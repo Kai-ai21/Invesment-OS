@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 
-from models.thesis import Thesis
-from ports.llm_provider import LLMProvider
-from repositories import thesis_repository
+from backend.models.thesis import Thesis
+from backend.ports.llm_provider import LLMProvider
+from backend.repositories import thesis_repository
 
 MAX_ATTEMPTS = 3  # 1 initial attempt + 2 retries
 

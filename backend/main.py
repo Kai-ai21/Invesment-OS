@@ -3,8 +3,8 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI
 
-from api.theses import router as theses_router
-from models.database import init_db, seed_demo_user
+from backend.api.theses import router as theses_router
+from backend.models.database import init_db, seed_demo_user
 
 load_dotenv()
 

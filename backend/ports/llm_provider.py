@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from domain.claim import ClaimData
+from backend.domain.claim import ClaimData
 
 
 class LLMProvider(ABC):

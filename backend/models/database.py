@@ -3,10 +3,10 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from models.base import Base
-from models.claim import Claim  # noqa: F401 (registers mapper with Base)
-from models.thesis import Thesis  # noqa: F401 (registers mapper with Base)
-from models.user import User
+from backend.models.base import Base
+from backend.models.claim import Claim  # noqa: F401 (registers mapper with Base)
+from backend.models.thesis import Thesis  # noqa: F401 (registers mapper with Base)
+from backend.models.user import User
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "investment_os.db")
 DATABASE_URL = f"sqlite:///{DB_PATH}"

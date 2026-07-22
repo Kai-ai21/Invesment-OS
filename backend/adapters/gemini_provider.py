@@ -5,8 +5,8 @@ from google import genai
 from google.genai import types
 from pydantic import BaseModel
 
-from domain.claim import ClaimData
-from ports.llm_provider import LLMProvider
+from backend.domain.claim import ClaimData
+from backend.ports.llm_provider import LLMProvider
 
 load_dotenv()
 

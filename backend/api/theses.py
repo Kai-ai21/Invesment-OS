@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from adapters.gemini_provider import GeminiProvider
-from api.schemas import ThesisCreateRequest, ThesisOut
-from models.database import get_db
-from repositories import thesis_repository, user_repository
-from services.extraction_service import ExtractionError, extract_and_save_thesis
+from backend.adapters.gemini_provider import GeminiProvider
+from backend.api.schemas import ThesisCreateRequest, ThesisOut
+from backend.models.database import get_db
+from backend.repositories import thesis_repository, user_repository
+from backend.services.extraction_service import ExtractionError, extract_and_save_thesis
 
 router = APIRouter(prefix="/theses", tags=["theses"])
 

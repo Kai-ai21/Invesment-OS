@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 
-from domain.claim import ClaimData
-from models.claim import Claim
-from models.thesis import Thesis
+from backend.domain.claim import ClaimData
+from backend.models.claim import Claim
+from backend.models.thesis import Thesis
 
 
 def create_thesis(db: Session, *, user_id: str, ticker: str, reasoning_raw: str) -> Thesis:
