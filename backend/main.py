@@ -1,6 +1,23 @@
+from contextlib import asynccontextmanager
+
+from dotenv import load_dotenv
 from fastapi import FastAPI
 
-app = FastAPI()
+from api.theses import router as theses_router
+from models.database import init_db, seed_demo_user
+
+load_dotenv()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    seed_demo_user()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
+app.include_router(theses_router)
 
 
 @app.get("/health")
