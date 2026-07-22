@@ -2,10 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from backend.adapters.gemini_provider import GeminiProvider
-from backend.api.schemas import ThesisCreateRequest, ThesisOut
+from backend.api.schemas import (
+    DocumentSubmitRequest,
+    EvidenceEventOut,
+    ThesisCreateRequest,
+    ThesisOut,
+)
 from backend.models.database import get_db
-from backend.repositories import thesis_repository, user_repository
+from backend.repositories import evidence_repository, thesis_repository, user_repository
 from backend.services.extraction_service import ExtractionError, extract_and_save_thesis
+from backend.services.verification_service import verify_document_against_thesis
 
 router = APIRouter(prefix="/theses", tags=["theses"])
 
@@ -42,3 +48,17 @@ def get_thesis(thesis_id: str, db: Session = Depends(get_db)):
     if thesis is None:
         raise HTTPException(status_code=404, detail="Thesis not found")
     return thesis
+
+
+@router.post("/{thesis_id}/documents", response_model=list[EvidenceEventOut])
+def submit_document(thesis_id: str, body: DocumentSubmitRequest, db: Session = Depends(get_db)):
+    if thesis_repository.get_thesis(db, thesis_id) is None:
+        raise HTTPException(status_code=404, detail="Thesis not found")
+    return verify_document_against_thesis(db, thesis_id, body.raw_text, body.title)
+
+
+@router.get("/{thesis_id}/evidence", response_model=list[EvidenceEventOut])
+def list_evidence(thesis_id: str, db: Session = Depends(get_db)):
+    if thesis_repository.get_thesis(db, thesis_id) is None:
+        raise HTTPException(status_code=404, detail="Thesis not found")
+    return evidence_repository.list_evidence_for_thesis(db, thesis_id)

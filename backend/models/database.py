@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from backend.models.base import Base
 from backend.models.claim import Claim  # noqa: F401 (registers mapper with Base)
+from backend.models.document import Document  # noqa: F401 (registers mapper with Base)
+from backend.models.evidence_event import EvidenceEvent  # noqa: F401 (registers mapper with Base)
 from backend.models.thesis import Thesis  # noqa: F401 (registers mapper with Base)
 from backend.models.user import User
 

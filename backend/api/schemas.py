@@ -28,3 +28,21 @@ class ThesisOut(BaseModel):
     claims: list[ClaimOut]
 
     model_config = {"from_attributes": True}
+
+
+class DocumentSubmitRequest(BaseModel):
+    raw_text: str
+    title: str | None = None
+
+
+class EvidenceEventOut(BaseModel):
+    id: str
+    claim_id: str
+    document_id: str
+    verdict: str
+    confidence: float
+    evidence_quote: str
+    reasoning: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

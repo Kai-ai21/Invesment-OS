@@ -6,6 +6,7 @@ from google.genai import types
 from pydantic import BaseModel
 
 from backend.domain.claim import ClaimData
+from backend.domain.verification import VerdictData
 from backend.ports.llm_provider import LLMProvider
 
 load_dotenv()
@@ -28,6 +29,28 @@ BAD proof_condition: "the company continues to do well" (too vague to ever confi
 
 Investor's reasoning about {ticker}:
 \"\"\"{reasoning}\"\"\"
+"""
+
+VERIFICATION_PROMPT = """You are checking whether a document bears on a specific investment claim.
+
+The claim:
+- statement: {statement}
+- proof_condition (would CONFIRM the claim): {proof_condition}
+- break_condition (would INVALIDATE the claim): {break_condition}
+
+Decide whether the document SUPPORTS, CONTRADICTS, or is NEUTRAL on the claim:
+- "supports": the document provides evidence that the proof_condition is being met
+- "contradicts": the document provides evidence that the break_condition is being met
+- "neutral": the document says nothing relevant to the claim
+
+Rules:
+- evidence_quote MUST be copied VERBATIM (word-for-word) from the document text below, so it can
+  later be located in the source. Do not paraphrase, summarize, or fix typos.
+- If nothing in the document is relevant, set verdict = "neutral" and evidence_quote = "" (empty).
+- confidence is your confidence in the verdict, from 0.0 to 1.0.
+
+Document text:
+\"\"\"{document_text}\"\"\"
 """
 
 
@@ -53,3 +76,24 @@ class GeminiProvider(LLMProvider):
 
         parsed = ClaimsResponse.model_validate_json(response.text)
         return parsed.claims
+
+    def verify_claim(
+        self, claim_statement: str, proof_condition: str, break_condition: str, document_text: str
+    ) -> VerdictData:
+        prompt = VERIFICATION_PROMPT.format(
+            statement=claim_statement,
+            proof_condition=proof_condition,
+            break_condition=break_condition,
+            document_text=document_text,
+        )
+
+        response = self._client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=VerdictData,
+            ),
+        )
+
+        return VerdictData.model_validate_json(response.text)
