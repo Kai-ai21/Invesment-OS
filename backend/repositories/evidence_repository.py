@@ -28,6 +28,15 @@ def create_evidence_event(
     return event
 
 
+def list_evidence_for_claim(db: Session, claim_id: str) -> list[EvidenceEvent]:
+    return (
+        db.query(EvidenceEvent)
+        .filter(EvidenceEvent.claim_id == claim_id)
+        .order_by(EvidenceEvent.created_at.desc())
+        .all()
+    )
+
+
 def list_evidence_for_thesis(db: Session, thesis_id: str) -> list[EvidenceEvent]:
     # Join through claims so we return evidence for every claim belonging to the thesis.
     return (

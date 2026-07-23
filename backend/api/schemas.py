@@ -46,3 +46,15 @@ class EvidenceEventOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class AlertOut(BaseModel):
+    id: str
+    thesis_id: str
+    prev_status: str
+    new_status: str
+    summary: str
+    is_read: bool
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

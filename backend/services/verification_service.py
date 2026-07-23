@@ -4,8 +4,18 @@ from sqlalchemy.orm import Session
 
 from backend.adapters.gemini_provider import GeminiProvider
 from backend.adapters.paste_source import PasteSource
+from backend.domain.status import (
+    compute_claim_status,
+    compute_thesis_status,
+    is_meaningful_change,
+)
 from backend.models.evidence_event import EvidenceEvent
-from backend.repositories import document_repository, evidence_repository, thesis_repository
+from backend.repositories import (
+    alert_repository,
+    document_repository,
+    evidence_repository,
+    thesis_repository,
+)
 
 # Verdicts that assert something about the claim and therefore require a grounded quote.
 _ASSERTIVE_VERDICTS = {"supports", "contradicts"}
@@ -29,6 +39,34 @@ def quote_is_grounded(quote: str, document_text: str) -> bool:
     if not normalized_quote:
         return False
     return normalized_quote in _normalize(document_text)
+
+
+def recompute_thesis(db: Session, thesis_id: str) -> tuple[str, str]:
+    """Re-score every claim from its evidence, roll it up to the thesis, and alert on change."""
+    thesis = thesis_repository.get_thesis(db, thesis_id)
+    prev_status = thesis.status
+
+    # The status functions are pure: hand them plain data, never the session.
+    claim_states: list[tuple[str, bool]] = []
+    for claim in thesis.claims:
+        events = evidence_repository.list_evidence_for_claim(db, claim.id)
+        claim.status = compute_claim_status(events)
+        claim_states.append((claim.status, claim.is_core))
+
+    new_status = compute_thesis_status(claim_states)
+    thesis.status = new_status
+
+    if is_meaningful_change(prev_status, new_status):
+        alert_repository.create_alert(
+            db,
+            thesis_id=thesis_id,
+            prev_status=prev_status,
+            new_status=new_status,
+            summary=f"{thesis.ticker} thesis moved from {prev_status} to {new_status}",
+        )
+
+    db.commit()
+    return prev_status, new_status
 
 
 def verify_document_against_thesis(
@@ -81,5 +119,8 @@ def verify_document_against_thesis(
         )
         created.append(event)
 
-    # 5. Return only the events we actually created.
+    # 5. Re-score claims and the thesis now that new evidence has landed.
+    recompute_thesis(db, thesis_id)
+
+    # 6. Return only the events we actually created.
     return created
