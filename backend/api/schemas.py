@@ -71,6 +71,7 @@ class CheckResultOut(BaseModel):
 class AlertOut(BaseModel):
     id: str
     thesis_id: str
+    ticker: str  # read from the related thesis via Alert.ticker
     prev_status: str
     new_status: str
     summary: str

@@ -12,9 +12,11 @@ const NAV_ITEMS = [
 export function Sidebar({
   collapsed,
   onToggle,
+  unreadCount,
 }: {
   collapsed: boolean
   onToggle: () => void
+  unreadCount: number
 }) {
   return (
     <aside
@@ -39,26 +41,60 @@ export function Sidebar({
       </div>
 
       <nav className="flex flex-col gap-1">
-        {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            title={collapsed ? label : undefined}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm transition-colors',
-                'focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
-                collapsed && 'justify-center px-0',
-                isActive
-                  ? 'bg-surface-raised text-text-primary'
-                  : 'text-text-secondary hover:bg-surface-raised/60 hover:text-text-primary',
-              )
-            }
-          >
-            <Icon className="size-4 shrink-0" aria-hidden />
-            {!collapsed && <span className="truncate">{label}</span>}
-          </NavLink>
-        ))}
+        {NAV_ITEMS.map(({ to, label, icon: Icon }) => {
+          const badge = to === '/alerts' && unreadCount > 0 ? unreadCount : null
+
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              title={
+                collapsed
+                  ? badge
+                    ? `${label} (${badge} unread)`
+                    : label
+                  : undefined
+              }
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm transition-colors',
+                  'focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
+                  collapsed && 'justify-center px-0',
+                  isActive
+                    ? 'bg-surface-raised text-text-primary'
+                    : 'text-text-secondary hover:bg-surface-raised/60 hover:text-text-primary',
+                )
+              }
+            >
+              <span className="relative shrink-0">
+                <Icon className="size-4" aria-hidden />
+                {/* Collapsed to an icon rail there's no room for the count, so
+                    it degrades to a dot; the tooltip still carries the number. */}
+                {badge !== null && collapsed && (
+                  <span
+                    aria-hidden
+                    className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-text-primary"
+                  />
+                )}
+              </span>
+
+              {!collapsed && (
+                <>
+                  <span className="truncate">{label}</span>
+                  {/* bg-background, not surface-raised — the active nav item is
+                      already surface-raised and would swallow it. */}
+                  {badge !== null && (
+                    <span className="ml-auto min-w-5 rounded-4xl bg-background px-1.5 py-0.5 text-center text-xs text-text-primary">
+                      {badge}
+                    </span>
+                  )}
+                </>
+              )}
+
+              {badge !== null && <span className="sr-only">{badge} unread</span>}
+            </NavLink>
+          )
+        })}
       </nav>
 
       <div className={cn('mt-auto', collapsed ? 'flex justify-center' : '')}>

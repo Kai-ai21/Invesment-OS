@@ -22,7 +22,14 @@
       "Bash(node -e ' *)",
       "Bash(./node_modules/.bin/oxlint)",
       "Bash(npx --yes shadcn@latest add select -y)",
-      "Bash(./node_modules/.bin/vite build *)"
+      "Bash(./node_modules/.bin/vite build *)",
+      "Bash(./venv/bin/python -c ' *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(./venv/bin/python -c \"import fastapi.testclient, httpx; print\\('TestClient available'\\)\")",
+      "Bash(./venv/bin/python /private/tmp/claude-501/-Users-kailaasnair-Desktop-IOM-Investment-OS/05c03aaa-74d7-44e0-ad46-ce80ef03bfe8/scratchpad/check_alerts.py)",
+      "Bash(PYTHONPATH=. ./venv/bin/python /private/tmp/claude-501/-Users-kailaasnair-Desktop-IOM-Investment-OS/05c03aaa-74d7-44e0-ad46-ce80ef03bfe8/scratchpad/check_alerts.py)",
+      "Bash(./venv/bin/python -m pytest -q)",
+      "Bash(git check-ignore *)"
     ]
   }
 }

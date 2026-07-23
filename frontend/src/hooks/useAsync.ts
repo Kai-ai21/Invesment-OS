@@ -1,7 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from 'react'
 
 export interface AsyncState<T> {
   data: T | null
+  /**
+   * Patch the loaded data locally after a mutation whose response already tells
+   * us the new state — avoids a refetch just to move one row.
+   */
+  setData: Dispatch<SetStateAction<T | null>>
   error: Error | null
   loading: boolean
   /** True during a quiet `refresh()`, so callers can show a subtle indicator. */
@@ -73,5 +85,5 @@ export function useAsync<T>(load: () => Promise<T>): AsyncState<T> {
     }
   }, [load])
 
-  return { data, error, loading, refreshing, reload, refresh }
+  return { data, setData, error, loading, refreshing, reload, refresh }
 }
