@@ -1,12 +1,15 @@
 import { useCallback, type ReactNode } from 'react'
-import { ArrowLeft, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Loader2, RefreshCw } from 'lucide-react'
 import { Link, useParams } from 'react-router'
 
 import { StatusBadge } from '@/components/StatusBadge'
+import { AddDocumentPanel } from '@/components/thesis/AddDocumentPanel'
+import { CheckNowControls, CheckNowResult } from '@/components/thesis/CheckNow'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAsync } from '@/hooks/useAsync'
+import { useCheckNow } from '@/hooks/useCheckNow'
 import {
   ApiError,
   getThesis,
@@ -34,7 +37,11 @@ export function ThesisDetailPage() {
     return { thesis, evidence }
   }, [id])
 
-  const { data, error, loading, reload } = useAsync<DetailData>(load)
+  const { data, error, loading, refreshing, reload, refresh } = useAsync<DetailData>(load)
+  // Declared before the early returns — hooks can't be conditional. The trigger
+  // renders in the header while the summary renders below it, which is why this
+  // state lives here rather than inside one component.
+  const check = useCheckNow(id, refresh)
 
   if (loading) return <DetailSkeleton />
   if (error) {
@@ -55,15 +62,37 @@ export function ThesisDetailPage() {
     <div>
       <BackLink />
 
-      <header className="mt-6 mb-8 flex flex-wrap items-center gap-3">
-        <h1 className="font-heading text-3xl font-medium text-text-primary">
-          {thesis.ticker}
-        </h1>
-        <StatusBadge status={thesis.status} />
-        <span className="ml-auto text-sm text-text-muted">
-          Created {formatDate(thesis.created_at)}
-        </span>
+      <header className="mt-6 mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="font-heading text-3xl font-medium text-text-primary">
+            {thesis.ticker}
+          </h1>
+          <StatusBadge status={thesis.status} />
+          {refreshing && (
+            <span className="flex items-center gap-1.5 text-xs text-text-muted">
+              <Loader2 className="size-3 animate-spin" aria-hidden />
+              Updating…
+            </span>
+          )}
+        </div>
+
+        <div className="flex flex-col items-end gap-1.5">
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-text-muted">
+              Created {formatDate(thesis.created_at)}
+            </span>
+            <CheckNowControls check={check} />
+          </div>
+          <p className="text-xs text-text-muted">
+            Each filing costs one AI call per claim.
+          </p>
+        </div>
       </header>
+
+      <div className="mb-10 flex flex-col gap-4">
+        <CheckNowResult check={check} />
+        <AddDocumentPanel thesisId={thesis.id} onSubmitted={refresh} />
+      </div>
 
       <section className="mb-10">
         <SectionHeading>Original reasoning</SectionHeading>

@@ -20,7 +20,9 @@
       "Bash(npx --yes shadcn@latest add button input textarea skeleton -y)",
       "Bash(node -e \"const r=require\\('react-router'\\); ['BrowserRouter','Routes','Route','NavLink','Navigate','Outlet','Link','useParams','useNavigate'].forEach\\(k=>console.log\\(k, typeof r[k]\\)\\)\")",
       "Bash(node -e ' *)",
-      "Bash(./node_modules/.bin/oxlint)"
+      "Bash(./node_modules/.bin/oxlint)",
+      "Bash(npx --yes shadcn@latest add select -y)",
+      "Bash(./node_modules/.bin/vite build *)"
     ]
   }
 }
