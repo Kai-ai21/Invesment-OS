@@ -70,9 +70,14 @@ def recompute_thesis(db: Session, thesis_id: str) -> tuple[str, str]:
 
 
 def verify_document_against_thesis(
-    db: Session, thesis_id: str, raw_text: str, title: str | None = None
+    db: Session,
+    thesis_id: str,
+    raw_text: str,
+    title: str | None = None,
+    source_type: str = "paste",
 ) -> list[EvidenceEvent]:
-    # 1. DEDUP — load + hash the text, and skip re-verification if we've seen it before.
+    # 1. DEDUP — hash the text (hashing is content-based, so PasteSource works for any
+    # source) and skip re-verification if we've seen this exact content before.
     document_data = PasteSource().load(raw_text, title=title)
     existing = document_repository.get_document_by_hash(db, document_data.content_hash)
     if existing is not None:
@@ -80,7 +85,7 @@ def verify_document_against_thesis(
 
     document = document_repository.create_document(
         db,
-        source_type=document_data.source_type,
+        source_type=source_type,
         title=document_data.title,
         content_hash=document_data.content_hash,
         raw_text=document_data.raw_text,

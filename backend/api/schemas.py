@@ -48,6 +48,26 @@ class EvidenceEventOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class CheckedFilingOut(BaseModel):
+    title: str
+    evidence_created: int
+
+
+class SkippedFilingOut(BaseModel):
+    title: str
+    reason: str
+
+
+class CheckResultOut(BaseModel):
+    ticker: str
+    filings_found: int
+    checked: list[CheckedFilingOut]
+    skipped: list[SkippedFilingOut]
+    status_before: str
+    status_after: str
+    total_evidence_created: int
+
+
 class AlertOut(BaseModel):
     id: str
     thesis_id: str
