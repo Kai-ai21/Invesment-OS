@@ -1,0 +1,136 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Geist Variable', sans-serif;
+
+    /* Investment OS surface + text scale (in addition to the shadcn tokens below) */
+    --color-surface: var(--surface);
+    --color-surface-raised: var(--surface-raised);
+    --color-text-primary: var(--text-primary);
+    --color-text-secondary: var(--text-secondary);
+    --color-text-muted: var(--text-muted);
+
+    /* Thesis/claim status palette — keyed to the backend status vocabulary in
+       backend/domain/status.py */
+    --color-status-strengthening: var(--status-strengthening);
+    --color-status-supported: var(--status-supported);
+    --color-status-weakening: var(--status-weakening);
+    --color-status-breaking: var(--status-broken);
+    --color-status-broken: var(--status-broken);
+    --color-status-pending: var(--status-pending);
+
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Dark is the only theme. The palette lives on :root so it applies even before any
+   class is set, and is repeated on .dark so shadcn's `dark:` variants stay active
+   (index.html puts `class="dark"` on <html>). */
+:root,
+.dark {
+    color-scheme: dark;
+
+    /* Raw design tokens */
+    --surface: #171a21;
+    --surface-raised: #1d212b;
+    --text-primary: #e8eaf0;
+    --text-secondary: #9aa3b2;
+    --text-muted: #6b7280;
+
+    --status-strengthening: #3ecf8e;
+    --status-supported: #3ecf8e;
+    --status-weakening: #f5b342;
+    --status-broken: #f0616d;
+    --status-pending: #6b7280;
+
+    /* shadcn semantic tokens mapped onto the tokens above.
+       Note: shadcn's `--accent` is the subtle hover/active background, NOT the brand
+       accent. The monochrome accent (#e8eaf0) is the primary-button colour, so it maps
+       to `--primary`. */
+    --background: #0f1115;
+    --foreground: #e8eaf0;
+    --card: #171a21;
+    --card-foreground: #e8eaf0;
+    --popover: #1d212b;
+    --popover-foreground: #e8eaf0;
+    --primary: #e8eaf0;
+    --primary-foreground: #0f1115;
+    --secondary: #1d212b;
+    --secondary-foreground: #e8eaf0;
+    --muted: #171a21;
+    --muted-foreground: #9aa3b2;
+    --accent: #1d212b;
+    --accent-foreground: #e8eaf0;
+    --destructive: #f0616d;
+    --border: #2a2f3a;
+    --input: #2a2f3a;
+    --ring: #9aa3b2;
+    --chart-1: #3ecf8e;
+    --chart-2: #f5b342;
+    --chart-3: #f0616d;
+    --chart-4: #9aa3b2;
+    --chart-5: #6b7280;
+    --radius: 0.625rem;
+    --sidebar: #171a21;
+    --sidebar-foreground: #e8eaf0;
+    --sidebar-primary: #e8eaf0;
+    --sidebar-primary-foreground: #0f1115;
+    --sidebar-accent: #1d212b;
+    --sidebar-accent-foreground: #e8eaf0;
+    --sidebar-border: #2a2f3a;
+    --sidebar-ring: #9aa3b2;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground;
+    }
+  html {
+    @apply font-sans;
+    }
+}

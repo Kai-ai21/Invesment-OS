@@ -6,7 +6,17 @@
       "WebFetch(domain:ai.google.dev)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:pypi.org)",
-      "WebFetch(domain:www.sec.gov)"
+      "WebFetch(domain:www.sec.gov)",
+      "Bash(npm -v)",
+      "Bash(npm view *)",
+      "Bash(npm install *)",
+      "Bash(npx --yes shadcn@latest init --base-color neutral --yes)",
+      "Bash(npx --yes shadcn@latest init --help)",
+      "Bash(npx --yes shadcn@latest init -b radix --css-variables -y)",
+      "Bash(npx --yes shadcn@latest init -b radix -p radix-nova --css-variables -y)",
+      "Bash(npx --yes shadcn@latest init -b radix -p nova --css-variables -y)",
+      "Bash(npx --yes shadcn@latest add badge card -y)",
+      "Bash(git add *)"
     ]
   }
 }
