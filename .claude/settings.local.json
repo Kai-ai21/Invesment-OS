@@ -34,7 +34,15 @@
       "Bash(./venv/bin/python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000)",
       "Bash(curl -s http://127.0.0.1:8000/health)",
       "Bash(curl -s http://127.0.0.1:8000/theses)",
-      "Bash(pkill -f \"uvicorn backend.main:app\")"
+      "Bash(pkill -f \"uvicorn backend.main:app\")",
+      "Bash(npx --yes shadcn@latest add @react-bits/GhostCursor-JS-CSS -y)",
+      "Bash(./venv/bin/python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --log-level warning)",
+      "Bash(./venv/bin/python -c \"import fontTools; print\\('fontTools', fontTools.version\\)\")",
+      "Bash(./venv/bin/python -c \"from fontTools.ttLib import woff2; print\\('woff2 module ok'\\)\")",
+      "Bash(./venv/bin/python -c \"import brotli; print\\('brotli ok'\\)\")",
+      "Bash(python3 -c \"import brotli; print\\('sys brotli ok'\\)\")",
+      "Bash(./venv/bin/pip --version)",
+      "Bash(./venv/bin/python -c \"import sys,json; [print\\(t['ticker'], t['id']\\) for t in json.load\\(sys.stdin\\)]\")"
     ]
   }
 }

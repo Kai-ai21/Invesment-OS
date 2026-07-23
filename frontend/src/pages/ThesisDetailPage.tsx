@@ -68,7 +68,9 @@ export function ThesisDetailPage() {
           the blur rather than beside it. */}
       <header className="glass-chrome sticky top-0 z-10 -mx-10 mt-6 mb-6 flex flex-wrap items-start justify-between gap-4 border-b px-10 py-4">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="font-heading text-3xl font-medium text-text-primary">
+          {/* Detail-page ticker in the display font (weight 400). The list-card
+              tickers stay on the sans — display font is for titles, not data rows. */}
+          <h1 className="font-display text-3xl tracking-[0.01em] text-text-primary">
             {thesis.ticker}
           </h1>
           <StatusBadge status={thesis.status} />

@@ -53,7 +53,7 @@ export function AlertsPage() {
   return (
     <div>
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <h1 className="font-heading text-2xl font-medium text-text-primary">Alerts</h1>
+        <h1 className="font-display text-2xl tracking-[0.01em] text-text-primary">Alerts</h1>
         <FilterToggle value={filter} onChange={setFilter} />
       </header>
 

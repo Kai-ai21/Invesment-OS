@@ -33,8 +33,10 @@ export function Sidebar({
         >
           IO
         </div>
+        {/* Wordmark in the display font, weight 400 (no font-medium — Righteous
+            is single-weight and would otherwise be synthetically bolded). */}
         {!collapsed && (
-          <span className="truncate font-heading text-sm font-medium text-text-primary">
+          <span className="truncate font-display text-sm tracking-[0.01em] text-text-primary">
             Investment OS
           </span>
         )}

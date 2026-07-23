@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
 
+import { DashboardBackground } from '@/components/effects/DashboardBackground'
 import { Sidebar } from '@/components/layout/Sidebar'
 import type { ShellContext } from '@/hooks/useShellContext'
 import { listAlerts } from '@/lib/api'
@@ -33,11 +34,14 @@ export function AppShell() {
 
   return (
     <div className="relative flex h-screen overflow-hidden bg-background">
-      {/* The ambient layer the glass chrome blurs. Painted first and pinned to
-          the viewport; the shell's own background must stay behind it, which is
-          why the wrapper keeps bg-background and this sits above it at z-0
-          rather than at a negative index. Landing has its own field and does
-          not get this. */}
+      {/* Two ambient layers the glass chrome refracts, both fixed to the
+          viewport at z-0 and painted before the z-10 sidebar/content. Order
+          matters: the animated cursor light is the FIRST child, so among the
+          equal z-0 layers it sits lowest; the static blobs paint over it and
+          give the glass something to refract even when the cursor is idle.
+          Both are pointer-transparent and additive-only, so opaque content
+          above is never dimmed. Landing has its own field and gets neither. */}
+      <DashboardBackground />
       <div aria-hidden className="ambient-backdrop pointer-events-none fixed inset-0 z-0" />
 
       <Sidebar

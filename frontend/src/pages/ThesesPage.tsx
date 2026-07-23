@@ -17,7 +17,7 @@ export function ThesesPage() {
   return (
     <div>
       <header className="mb-8 flex items-center justify-between gap-4">
-        <h1 className="font-heading text-2xl font-medium text-text-primary">Theses</h1>
+        <h1 className="font-display text-2xl tracking-[0.01em] text-text-primary">Theses</h1>
         <Button asChild>
           <Link to="/theses/new">
             <Plus aria-hidden />

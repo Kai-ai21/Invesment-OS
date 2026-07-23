@@ -3,11 +3,26 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 
+/* Righteous — DISPLAY ONLY (app name, landing headline, page titles, detail
+   ticker). Self-hosted from /public/fonts (OFL.txt ships alongside per the
+   licence). Single weight 400: hierarchy comes from size and colour, never
+   font-weight, or the browser would synthesise an ugly bold. */
+@font-face {
+  font-family: 'Righteous';
+  src: url('/fonts/Righteous-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
+    /* Display face for chrome/titles only. Falls back to the sans (so text is
+       readable during swap and if the ttf ever fails to load). */
+    --font-display: 'Righteous', var(--font-sans);
 
     /* Investment OS surface + text scale (in addition to the shadcn tokens below) */
     --color-surface: var(--surface);
@@ -149,6 +164,62 @@
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .glass-chrome {
       background-color: var(--surface);
+    }
+  }
+
+  /* From Uiverse.io by vinodjangid07 */
+  /**
+   * Circle-sweep hover for the shared Button (src/components/ui/button.tsx): a
+   * white ::before circle grows from the centre and, through mix-blend-mode:
+   * difference, inverts the button and its label as it passes.
+   *
+   * Adapted from the original: AUTO width (the button keeps its own padding, no
+   * fixed 130px), the design's own border-radius (kept via overflow:hidden),
+   * a softened 1px active nudge (was 5px), a real disabled state, a preserved
+   * focus ring (box-shadow is not clipped by overflow), and reduced-motion.
+   */
+  .btn-sweep {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-sweep::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    background-color: #fff;
+    transform: translate(-50%, -50%);
+    mix-blend-mode: difference;
+    transition: width 0.3s ease;
+    pointer-events: none;
+    /* Above the label so the difference blend inverts the text too, but the
+       box-shadow focus ring sits outside the box and is unaffected. */
+    z-index: 1;
+  }
+  .btn-sweep:hover:not(:disabled)::before {
+    width: 250%;
+  }
+  /* Softened from the original translate(5px, 5px) — too much for a dashboard. */
+  .btn-sweep:active:not(:disabled) {
+    transform: translate(1px, 1px);
+  }
+  /* Disabled: no sweep at all. Reduced opacity and not-allowed cursor come from
+     the component's Tailwind classes; several buttons disable during AI calls. */
+  .btn-sweep:disabled::before {
+    content: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .btn-sweep::before {
+      transition: none;
+    }
+    .btn-sweep:hover:not(:disabled)::before {
+      width: 0;
+    }
+    .btn-sweep:active:not(:disabled) {
+      transform: none;
     }
   }
 
