@@ -16,7 +16,11 @@
       "Bash(npx --yes shadcn@latest init -b radix -p radix-nova --css-variables -y)",
       "Bash(npx --yes shadcn@latest init -b radix -p nova --css-variables -y)",
       "Bash(npx --yes shadcn@latest add badge card -y)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(npx --yes shadcn@latest add button input textarea skeleton -y)",
+      "Bash(node -e \"const r=require\\('react-router'\\); ['BrowserRouter','Routes','Route','NavLink','Navigate','Outlet','Link','useParams','useNavigate'].forEach\\(k=>console.log\\(k, typeof r[k]\\)\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(./node_modules/.bin/oxlint)"
     ]
   }
 }
