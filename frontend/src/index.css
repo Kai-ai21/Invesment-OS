@@ -123,6 +123,70 @@
     --sidebar-ring: #9aa3b2;
 }
 
+@layer components {
+  /**
+   * Glass is for CHROME ONLY — sidebar and sticky headers. Never behind data:
+   * cards, lists and tables stay flat on --surface so text contrast is fixed
+   * and predictable rather than depending on what's scrolling underneath.
+   *
+   * Written as plain CSS rather than via a JS glass component, because the
+   * SVG-displacement approach is disabled on Safari and Firefox and silently
+   * degrades to a plain blur anyway.
+   */
+  .glass-chrome {
+    background-color: rgb(255 255 255 / 7%);
+    border-color: rgb(255 255 255 / 12%);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    backdrop-filter: blur(18px) saturate(1.4);
+    /* Inset highlight on the top and right inner edges, so the panel edge
+       catches the ambient light behind it. For `inset`, a negative x offset
+       lights the right edge and a positive y offset lights the top. */
+    box-shadow: inset -1px 1px 0 0 rgb(255 255 255 / 10%);
+  }
+
+  /* Without backdrop-filter the translucency would show raw page content
+     through the chrome, so fall back to the opaque surface colour. */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass-chrome {
+      background-color: var(--surface);
+    }
+  }
+
+  /**
+   * Ambient light behind the app shell — the thing the glass actually blurs.
+   * Static gradients on one element: no canvas, no animation, no paint cost
+   * beyond the initial composite. Deliberately cool and desaturated at under
+   * 10% so it reads as light in the room rather than as decoration, and never
+   * competes with data. Cards sit opaque on top and stay the clearest surface.
+   */
+  .ambient-backdrop {
+    background-image:
+      radial-gradient(60rem 45rem at 6% -8%, rgb(124 152 205 / 9%), transparent 62%),
+      radial-gradient(55rem 42rem at 104% 106%, rgb(116 140 190 / 8%), transparent 60%),
+      radial-gradient(32rem 60rem at -6% 52%, rgb(140 162 208 / 7%), transparent 66%);
+  }
+
+  /* Page-level fade on route change. Fade only — no slides. */
+  .page-enter {
+    animation: page-fade-in 180ms ease-out both;
+  }
+
+  @keyframes page-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page-enter {
+      animation: none;
+    }
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

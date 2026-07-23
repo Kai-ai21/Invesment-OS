@@ -29,7 +29,12 @@
       "Bash(./venv/bin/python /private/tmp/claude-501/-Users-kailaasnair-Desktop-IOM-Investment-OS/05c03aaa-74d7-44e0-ad46-ce80ef03bfe8/scratchpad/check_alerts.py)",
       "Bash(PYTHONPATH=. ./venv/bin/python /private/tmp/claude-501/-Users-kailaasnair-Desktop-IOM-Investment-OS/05c03aaa-74d7-44e0-ad46-ce80ef03bfe8/scratchpad/check_alerts.py)",
       "Bash(./venv/bin/python -m pytest -q)",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "Bash(ls -la /Users/kailaasnair/Desktop/IOM/ 2>/dev/null; echo \"=== .claude ===\"; find /Users/kailaasnair/Desktop/IOM/Investment-OS/.claude -type f 2>/dev/null | head -20; echo \"=== scratchpad ===\"; ls -la /private/tmp/claude-501/-Users-kailaasnair-Desktop-IOM-Investment-OS/05c03aaa-74d7-44e0-ad46-ce80ef03bfe8/scratchpad 2>/dev/null)",
+      "Bash(./venv/bin/python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000)",
+      "Bash(curl -s http://127.0.0.1:8000/health)",
+      "Bash(curl -s http://127.0.0.1:8000/theses)",
+      "Bash(pkill -f \"uvicorn backend.main:app\")"
     ]
   }
 }

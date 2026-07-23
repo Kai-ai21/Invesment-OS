@@ -21,7 +21,7 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        'flex h-full shrink-0 flex-col gap-6 border-r border-border bg-surface py-4 transition-[width] duration-200',
+        'glass-chrome relative z-10 flex h-full shrink-0 flex-col gap-6 border-r py-4 transition-[width] duration-200',
         collapsed ? 'w-16 px-2' : 'w-60 px-3',
       )}
     >
@@ -98,13 +98,15 @@ export function Sidebar({
       </nav>
 
       <div className={cn('mt-auto', collapsed ? 'flex justify-center' : '')}>
+        {/* Secondary rather than muted: against the glass panel #6b7280
+            measures 2.9:1, below AA-large. */}
         <Button
           variant="ghost"
           size="icon-sm"
           onClick={onToggle}
           aria-expanded={!collapsed}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="text-text-muted hover:text-text-primary"
+          className="text-text-secondary hover:text-text-primary"
         >
           {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
         </Button>

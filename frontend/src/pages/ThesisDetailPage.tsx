@@ -62,14 +62,21 @@ export function ThesisDetailPage() {
     <div>
       <BackLink />
 
-      <header className="mt-6 mb-6 flex flex-wrap items-start justify-between gap-4">
+      {/* Sticky, so the ticker and its status stay visible while reading down the
+          evidence list — which is why it gets the glass treatment. The negative
+          margins bleed it to the container edges so content passes underneath
+          the blur rather than beside it. */}
+      <header className="glass-chrome sticky top-0 z-10 -mx-10 mt-6 mb-6 flex flex-wrap items-start justify-between gap-4 border-b px-10 py-4">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="font-heading text-3xl font-medium text-text-primary">
             {thesis.ticker}
           </h1>
           <StatusBadge status={thesis.status} />
+          {/* Secondary, not muted: #6b7280 measures 2.9:1 against the glass
+              panel, below AA-large. The secondary tone clears AA at 5.4:1.
+              Everything below the header sits on flat cards and keeps muted. */}
           {refreshing && (
-            <span className="flex items-center gap-1.5 text-xs text-text-muted">
+            <span className="flex items-center gap-1.5 text-xs text-text-secondary">
               <Loader2 className="size-3 animate-spin" aria-hidden />
               Updating…
             </span>
@@ -78,12 +85,12 @@ export function ThesisDetailPage() {
 
         <div className="flex flex-col items-end gap-1.5">
           <div className="flex items-center gap-3">
-            <span className="text-sm text-text-muted">
+            <span className="text-sm text-text-secondary">
               Created {formatDate(thesis.created_at)}
             </span>
             <CheckNowControls check={check} />
           </div>
-          <p className="text-xs text-text-muted">
+          <p className="text-xs text-text-secondary">
             Each filing costs one AI call per claim.
           </p>
         </div>
