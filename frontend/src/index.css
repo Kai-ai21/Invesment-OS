@@ -15,6 +15,17 @@
   font-display: swap;
 }
 
+/* Newsreader — SERIF for prose only (claim statements + the reasoning quote on
+   the detail page). Self-hosted latin subset, weight 400 (Newsreader-OFL.txt
+   ships alongside per the licence). */
+@font-face {
+  font-family: 'Newsreader';
+  src: url('/fonts/Newsreader-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -23,6 +34,11 @@
     /* Display face for chrome/titles only. Falls back to the sans (so text is
        readable during swap and if the ttf ever fails to load). */
     --font-display: 'Righteous', var(--font-sans);
+    /* Serif for prose (claim statements + reasoning quote); mono for the proof/
+       break condition values and status badges. Mono is the system stack — no
+       download. Both fall back gracefully. */
+    --font-serif: 'Newsreader', ui-serif, Georgia, serif;
+    --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
     /* Investment OS surface + text scale (in addition to the shadcn tokens below) */
     --color-surface: var(--surface);

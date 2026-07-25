@@ -42,7 +42,20 @@
       "Bash(./venv/bin/python -c \"import brotli; print\\('brotli ok'\\)\")",
       "Bash(python3 -c \"import brotli; print\\('sys brotli ok'\\)\")",
       "Bash(./venv/bin/pip --version)",
-      "Bash(./venv/bin/python -c \"import sys,json; [print\\(t['ticker'], t['id']\\) for t in json.load\\(sys.stdin\\)]\")"
+      "Bash(./venv/bin/python -c \"import sys,json; [print\\(t['ticker'], t['id']\\) for t in json.load\\(sys.stdin\\)]\")",
+      "Bash(curl -s -o /dev/null -w \"frontend:%{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(curl -s -o /dev/null -w \"backend:%{http_code}\\\\n\" http://127.0.0.1:8000/health)",
+      "Bash(curl -s \"http://127.0.0.1:8000/alerts?unread_only=true\")",
+      "Bash(./venv/bin/python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('unread alerts:', len\\(d\\)\\); [print\\(' ', a['ticker'], a['prev_status'],'->',a['new_status'], '| read:', a['is_read']\\) for a in d[:5]]\")",
+      "Bash(PYTHONPATH=. ./venv/bin/python -c ' *)",
+      "Bash(./venv/bin/python --version)",
+      "WebFetch(domain:docs.trychroma.com)",
+      "WebFetch(domain:sbert.net)",
+      "Bash(./venv/bin/python -c \"import chromadb; print\\('chromadb', chromadb.__version__\\)\")",
+      "Bash(./venv/bin/python -c \"import sentence_transformers as s; print\\('sentence-transformers', s.__version__\\)\")",
+      "Bash(PYTHONPATH=. ./venv/bin/python /private/tmp/claude-501/-Users-kailaasnair-Desktop-IOM-Investment-OS/05c03aaa-74d7-44e0-ad46-ce80ef03bfe8/scratchpad/diag.py)",
+      "Bash(PYTHONPATH=. ./venv/bin/python -m pytest tests/test_retrieval.py -v)",
+      "Bash(PYTHONPATH=. ./venv/bin/python -m pytest -q)"
     ]
   }
 }

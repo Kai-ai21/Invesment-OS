@@ -19,9 +19,14 @@ ARCHIVE_URL = "https://www.sec.gov/Archives/edgar/data/{cik}/{accession}/{docume
 REQUEST_TIMEOUT = 15
 RATE_LIMIT_DELAY = 0.12  # SEC allows at most 10 requests/second
 
-# We skip oversized filings rather than truncating them: a verdict drawn from half a
-# document is worse than no verdict, because it looks just as confident.
-MAX_DOCUMENT_CHARS = 50000
+# A resource safety valve, NOT a context-window limit. Retrieval now chunks a filing
+# and shows the model only the passages relevant to each claim, so length no longer
+# constrains what we can verify — a full 10-K is fine. What this guards against is the
+# pathological input (a mislabelled binary, a runaway download) that would blow up
+# memory and embedding time. Oversized filings are still skipped rather than
+# truncated: a verdict drawn from half a document is worse than no verdict, because
+# it looks just as confident.
+MAX_DOCUMENT_CHARS = 1_000_000
 
 
 class EdgarError(Exception):
@@ -45,7 +50,7 @@ class EdgarNetworkError(EdgarError):
 
 
 class DocumentTooLargeError(EdgarError):
-    """Filing exceeds MAX_DOCUMENT_CHARS — skipped, never truncated."""
+    """Filing exceeds the MAX_DOCUMENT_CHARS safety valve — skipped, never truncated."""
 
 
 def _user_agent() -> str:
@@ -172,8 +177,9 @@ class EdgarSource(DocumentSource):
 
         if len(text) > MAX_DOCUMENT_CHARS:
             raise DocumentTooLargeError(
-                f"Filing at {ref} is {len(text)} characters, over the {MAX_DOCUMENT_CHARS} "
-                "character limit. Skipping rather than truncating."
+                f"Filing at {ref} is {len(text):,} characters, over the "
+                f"{MAX_DOCUMENT_CHARS:,} character safety limit. This is far larger than "
+                "any normal filing, so it is skipped rather than truncated."
             )
 
         return DocumentData(

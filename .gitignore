@@ -60,3 +60,6 @@ dmypy.json
 *.db
 *.sqlite
 *.sqlite3
+
+# Vector store (ChromaDB persistent client, default CHROMA_PATH)
+/chroma_store/

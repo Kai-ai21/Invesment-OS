@@ -105,7 +105,8 @@ export function ThesisDetailPage() {
 
       <section className="mb-10">
         <SectionHeading>Original reasoning</SectionHeading>
-        <blockquote className="border-l-2 border-border pl-4 text-sm leading-relaxed whitespace-pre-wrap text-text-secondary">
+        {/* Original reasoning is prose too — same serif family as the statements. */}
+        <blockquote className="border-l-2 border-border pl-4 font-serif text-[15px] leading-relaxed whitespace-pre-wrap text-text-secondary">
           {thesis.reasoning_raw}
         </blockquote>
       </section>
@@ -154,7 +155,10 @@ function ClaimCard({ claim }: { claim: Claim }) {
     <Card className="[--card-spacing:--spacing(5)]">
       <div className="flex flex-col gap-4 px-(--card-spacing)">
         <div className="flex items-start justify-between gap-4">
-          <p className="text-sm leading-relaxed text-text-primary">{claim.statement}</p>
+          {/* Claim statement is prose — serif, ~16px, weight 400, comfortable leading. */}
+          <p className="font-serif text-[16px] leading-[1.5] text-text-primary">
+            {claim.statement}
+          </p>
           <div className="flex shrink-0 items-center gap-2">
             <span className="rounded-4xl bg-surface-raised px-2 py-0.5 text-xs text-text-muted">
               {claim.is_core ? 'core' : 'minor'}
@@ -175,8 +179,12 @@ function ClaimCard({ claim }: { claim: Claim }) {
 function Condition({ label, value }: { label: string; value: string }) {
   return (
     <div>
+      {/* Label stays small uppercase muted sans; the VALUE goes mono (a spec/rule),
+          ~12.5px, a touch tighter than the serif statements. */}
       <dt className="text-xs tracking-wide text-text-muted uppercase">{label}</dt>
-      <dd className="mt-1 text-sm leading-relaxed text-text-secondary">{value}</dd>
+      <dd className="mt-1 font-mono text-[12.5px] leading-[1.4] text-text-secondary">
+        {value}
+      </dd>
     </div>
   )
 }
