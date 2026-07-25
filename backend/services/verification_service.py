@@ -1,5 +1,7 @@
+import os
 import re
 
+from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 
 from backend.adapters.gemini_provider import GeminiProvider
@@ -20,11 +22,29 @@ from backend.repositories import (
     thesis_repository,
 )
 
+load_dotenv()
+
 # Verdicts that assert something about the claim and therefore require a grounded quote.
 _ASSERTIVE_VERDICTS = {"supports", "contradicts"}
 
 # How many passages to retrieve per claim.
-_RETRIEVAL_K = 4
+#
+# The trade-off is silent misses vs. tokens: too low and the decisive passage never
+# reaches the model, which then answers "neutral" and looks confident about it — the
+# failure mode with no visible symptom. Too high and every claim costs more tokens.
+#
+# Why 20: measured against a real NVDA 10-K (~880 chunks after cleaning), the decisive
+# gross-margin passage ranked #14. 20 leaves headroom above that rather than fitting a
+# single observation exactly — one filing is not a distribution.
+#
+# This is a STOPGAP. Raising k widens the net but does not improve ranking; the
+# structural fix is hybrid keyword+vector retrieval, so an exact term like
+# "gross margin" can't be out-ranked by generic financial prose.
+#
+# Deliberately not wrapped in try/except: a malformed RETRIEVAL_K should fail loudly at
+# startup, not silently fall back to the default and leave someone believing they
+# configured a value they didn't get.
+_RETRIEVAL_K = int(os.getenv("RETRIEVAL_K") or 20)
 
 # Separates retrieved passages in the prompt. They are non-contiguous excerpts, so the
 # marker keeps the model from reading across a seam as if it were continuous prose (and

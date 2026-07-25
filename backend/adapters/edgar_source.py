@@ -2,6 +2,7 @@ import hashlib
 import os
 import re
 import time
+from collections import Counter
 
 import httpx
 from bs4 import BeautifulSoup
@@ -61,6 +62,75 @@ def _user_agent() -> str:
             "contact email, e.g. 'Investment OS (you@example.com)'. Requests without one get 403."
         )
     return user_agent
+
+
+# --- page furniture --------------------------------------------------------------
+# Filings repeat navigation and running headers on every page ("Table of Contents",
+# "<Company> and Subsidiaries", "Notes to the Consolidated Financial Statements
+# (Continued)"). Flattened into one blob these dominate retrieval: they read as
+# generic financial text, so they rank against any financial query and crowd out the
+# real MD&A prose.
+#
+# We delete whole structural SEGMENTS and never touch the characters of surviving
+# prose — no reflowing, no de-hyphenating — because evidence quotes must remain
+# verbatim substrings of what we return.
+#
+# Detection uses the "Table of Contents" page-break marker plus repetition, never a
+# company name, so it works for any filer.
+_FURNITURE_MIN_REPEATS = 5
+_FURNITURE_MAX_CHARS = 200
+
+_TABLE_OF_CONTENTS = re.compile(r"^table of contents$", re.IGNORECASE)
+_BARE_INTEGER = re.compile(r"^\d{1,4}$")
+_HAS_LETTERS = re.compile(r"[A-Za-z]")
+
+
+def _recurs_across_document(line: str, counts: Counter) -> bool:
+    """Short, wordy, and seen many times — the profile of a running header."""
+    return (
+        counts[line] >= _FURNITURE_MIN_REPEATS
+        and len(line) <= _FURNITURE_MAX_CHARS
+        and _HAS_LETTERS.search(line) is not None
+    )
+
+
+def _strip_page_furniture(lines: list[str]) -> list[str]:
+    """Drop page-break furniture. Surviving lines are returned unmodified.
+
+    Removal is ANCHORED to the "Table of Contents" navigation marker that EDGAR
+    filings emit at every page break, and only extends to the page number just
+    before it and the recurring header lines immediately after it.
+
+    Repetition alone is deliberately NOT enough to delete a line. Inline fragments
+    like "billion and $" also recur dozens of times, because the HTML splits
+    sentences across elements — deleting those silently corrupted a figure
+    ("$2.7 billion and $1.1 billion" became "$ 2.7 1.1 billion") during development.
+    Requiring the structural anchor keeps the filter off prose and off table cells.
+    """
+    counts = Counter(lines)
+    drop: set[int] = set()
+
+    for index, line in enumerate(lines):
+        if not _TABLE_OF_CONTENTS.match(line):
+            continue
+        drop.add(index)
+
+        # The bare page number printed just before the marker.
+        if index and _BARE_INTEGER.match(lines[index - 1]):
+            drop.add(index - 1)
+
+        # The running header trailing the marker — e.g. "<Company> and Subsidiaries",
+        # "Notes to the Consolidated Financial Statements", "(Continued)". Walk only
+        # while the lines keep looking like recurring headers, so the first line of
+        # real page content stops the scan.
+        following = index + 1
+        while following < len(lines) and _recurs_across_document(
+            lines[following], counts
+        ):
+            drop.add(following)
+            following += 1
+
+    return [line for index, line in enumerate(lines) if index not in drop]
 
 
 class EdgarSource(DocumentSource):
@@ -165,8 +235,13 @@ class EdgarSource(DocumentSource):
         for tag in soup(["script", "style"]):
             tag.decompose()
 
-        text = soup.get_text(separator=" ")
-        return re.sub(r"\s+", " ", text).strip()
+        # Split on element boundaries so page furniture can be dropped whole. Joining
+        # the survivors with " " and collapsing whitespace reproduces exactly what
+        # separator=" " used to yield for the text we keep — surviving prose is
+        # byte-identical, which is what the verbatim citation check depends on.
+        lines = [line.strip() for line in soup.get_text(separator="\n").split("\n")]
+        kept = _strip_page_furniture([line for line in lines if line])
+        return re.sub(r"\s+", " ", " ".join(kept)).strip()
 
     def load(self, ref: str, title: str | None = None) -> DocumentData:
         # For edgar, `ref` is a filing URL — use list_recent_filings() to find one.

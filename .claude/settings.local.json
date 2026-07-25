@@ -55,7 +55,12 @@
       "Bash(./venv/bin/python -c \"import sentence_transformers as s; print\\('sentence-transformers', s.__version__\\)\")",
       "Bash(PYTHONPATH=. ./venv/bin/python /private/tmp/claude-501/-Users-kailaasnair-Desktop-IOM-Investment-OS/05c03aaa-74d7-44e0-ad46-ce80ef03bfe8/scratchpad/diag.py)",
       "Bash(PYTHONPATH=. ./venv/bin/python -m pytest tests/test_retrieval.py -v)",
-      "Bash(PYTHONPATH=. ./venv/bin/python -m pytest -q)"
+      "Bash(PYTHONPATH=. ./venv/bin/python -m pytest -q)",
+      "Bash(PYTHONPATH=. ./venv/bin/python probe_10k.py)",
+      "Bash(PYTHONPATH=. ./venv/bin/python -c \"from backend.services.verification_service import _RETRIEVAL_K as k; print\\('k =', k\\)\")",
+      "Bash(RETRIEVAL_K= PYTHONPATH=. ./venv/bin/python -c \"from backend.services.verification_service import _RETRIEVAL_K as k; print\\('k =', k\\)\")",
+      "Bash(RETRIEVAL_K=8 PYTHONPATH=. ./venv/bin/python -c \"from backend.services.verification_service import _RETRIEVAL_K as k; print\\('k =', k\\)\")",
+      "Bash(RETRIEVAL_K=abc PYTHONPATH=. ./venv/bin/python -c \"import backend.services.verification_service\")"
     ]
   }
 }
