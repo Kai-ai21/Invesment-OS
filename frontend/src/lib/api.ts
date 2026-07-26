@@ -63,6 +63,23 @@ export interface Alert {
   created_at: string
 }
 
+/** NewsItemOut */
+export interface NewsItem {
+  title: string
+  url: string
+  source: string
+  /** Publisher domain, e.g. "barrons.com". Null when the feed gave no source URL. */
+  source_domain: string | null
+  /** Derived from source_domain. Null when there was no domain to derive it from. */
+  favicon_url: string | null
+  /**
+   * Null when the feed omitted the date or gave one the backend could not parse.
+   * Never guessed, so the UI must render "no date" rather than inventing one.
+   */
+  published_at: string | null
+  ticker: string
+}
+
 /** CheckedFilingOut */
 export interface CheckedFiling {
   title: string
@@ -224,4 +241,13 @@ export function markAlertRead(alertId: string): Promise<Alert> {
   return request<Alert>(`/alerts/${encodeURIComponent(alertId)}/read`, {
     method: "PATCH",
   })
+}
+
+/**
+ * Headlines across every ticker the user holds a thesis on, newest first.
+ * The backend caches for 15 minutes and isolates per-ticker feed failures, so a
+ * dead feed drops that ticker rather than failing the request.
+ */
+export function listNews(limitPerTicker = 5): Promise<NewsItem[]> {
+  return request<NewsItem[]>(`/news?limit_per_ticker=${limitPerTicker}`)
 }

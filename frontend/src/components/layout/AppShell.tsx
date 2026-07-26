@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router'
 
 import { DashboardBackground } from '@/components/effects/DashboardBackground'
 import { Sidebar } from '@/components/layout/Sidebar'
+import { NewsPanel } from '@/components/news/NewsPanel'
 import type { ShellContext } from '@/hooks/useShellContext'
 import { listAlerts } from '@/lib/api'
 
@@ -15,6 +16,11 @@ export function AppShell() {
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
+  // React state only — the panel is a transient view, not a preference to persist.
+  const [newsOpen, setNewsOpen] = useState(false)
+  // Stable identity: NewsPanel's focus effect depends on it, and a new function each
+  // render would re-run that effect and keep pulling focus back into the panel.
+  const closeNews = useCallback(() => setNewsOpen(false), [])
 
   // Fetched once on mount and again whenever a page reports a change. The badge
   // is decoration, so a failure here stays silent rather than breaking the shell.
@@ -48,6 +54,8 @@ export function AppShell() {
         collapsed={collapsed}
         onToggle={() => setCollapsed((c) => !c)}
         unreadCount={unreadCount}
+        onOpenNews={() => setNewsOpen(true)}
+        newsOpen={newsOpen}
       />
       <main className="relative z-10 flex-1 overflow-y-auto">
         {/* Keyed on the path so the fade replays on every route change. */}
@@ -58,6 +66,10 @@ export function AppShell() {
           <Outlet context={context} />
         </div>
       </main>
+
+      {/* Mounted only while open, so the panel fetches on open and its focus
+          effect runs exactly once per opening. */}
+      {newsOpen && <NewsPanel onClose={closeNews} />}
     </div>
   )
 }

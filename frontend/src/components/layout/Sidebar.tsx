@@ -1,4 +1,4 @@
-import { Bell, List, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { Bell, List, Newspaper, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { NavLink } from 'react-router'
 
 import { Button } from '@/components/ui/button'
@@ -9,14 +9,32 @@ const NAV_ITEMS = [
   { to: '/alerts', label: 'Alerts', icon: Bell },
 ] as const
 
+/** Shared by the NavLinks and by the News trigger, which is a button rather than a
+ *  link — it opens a panel over the current page instead of navigating. Extracted so
+ *  the two never drift apart. */
+function navItemClasses(collapsed: boolean, active: boolean) {
+  return cn(
+    'flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm transition-colors',
+    'focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
+    collapsed && 'justify-center px-0',
+    active
+      ? 'bg-surface-raised text-text-primary'
+      : 'text-text-secondary hover:bg-surface-raised/60 hover:text-text-primary',
+  )
+}
+
 export function Sidebar({
   collapsed,
   onToggle,
   unreadCount,
+  onOpenNews,
+  newsOpen,
 }: {
   collapsed: boolean
   onToggle: () => void
   unreadCount: number
+  onOpenNews: () => void
+  newsOpen: boolean
 }) {
   return (
     <aside
@@ -57,16 +75,7 @@ export function Sidebar({
                     : label
                   : undefined
               }
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm transition-colors',
-                  'focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
-                  collapsed && 'justify-center px-0',
-                  isActive
-                    ? 'bg-surface-raised text-text-primary'
-                    : 'text-text-secondary hover:bg-surface-raised/60 hover:text-text-primary',
-                )
-              }
+              className={({ isActive }) => navItemClasses(collapsed, isActive)}
             >
               <span className="relative shrink-0">
                 <Icon className="size-4" aria-hidden />
@@ -97,6 +106,21 @@ export function Sidebar({
             </NavLink>
           )
         })}
+
+        {/* A button, not a NavLink: News opens a slide-over on top of whatever page
+            you are on rather than navigating away. The /news route still exists and
+            the panel's "See all" goes there. */}
+        <button
+          type="button"
+          onClick={onOpenNews}
+          title={collapsed ? 'News' : undefined}
+          aria-haspopup="dialog"
+          aria-expanded={newsOpen}
+          className={navItemClasses(collapsed, newsOpen)}
+        >
+          <Newspaper className="size-4 shrink-0" aria-hidden />
+          {!collapsed && <span className="truncate">News</span>}
+        </button>
       </nav>
 
       <div className={cn('mt-auto', collapsed ? 'flex justify-center' : '')}>
