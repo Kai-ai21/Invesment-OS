@@ -29,22 +29,34 @@ _ASSERTIVE_VERDICTS = {"supports", "contradicts"}
 
 # How many passages to retrieve per claim.
 #
-# The trade-off is silent misses vs. tokens: too low and the decisive passage never
-# reaches the model, which then answers "neutral" and looks confident about it — the
-# failure mode with no visible symptom. Too high and every claim costs more tokens.
+# The two failure modes are ASYMMETRIC, which is what sets this value:
+#   * too high — every claim costs more tokens. Visible, on a bill, and bounded.
+#   * too low  — the decisive passage never reaches the model, which then answers
+#                "neutral" and looks confident doing it. No error, no symptom, and a
+#                thesis that quietly stops being checked.
+# So the number is chosen to buy margin against the invisible failure, not to fit the
+# measurements exactly.
 #
-# Why 20: measured against a real NVDA 10-K (~880 chunks after cleaning), the decisive
-# gross-margin passage ranked #14. 20 leaves headroom above that rather than fitting a
-# single observation exactly — one filing is not a distribution.
+# Why 8: measured against a real NVDA 10-K (882 chunks) with hybrid retrieval, the best
+# relevant passage ranked #1, #0 and #1 for the thesis's three claims. Every candidate
+# k from 4 upward captured all three, so 8 is roughly 8x the observed worst rank. It
+# also absorbs a known inefficiency — chunk_text overlaps by 150 chars, so a passage
+# near a boundary is duplicated into two chunks that then occupy adjacent ranks; two of
+# the top slots can hold the same sentence twice. Versus the previous k=20 this cuts
+# roughly 60% of the retrieval tokens (~16,000 -> ~6,400 chars per claim).
 #
-# This is a STOPGAP. Raising k widens the net but does not improve ranking; the
-# structural fix is hybrid keyword+vector retrieval, so an exact term like
-# "gross margin" can't be out-ranked by generic financial prose.
+# This replaced k=20, which was sized when vector-only retrieval put that same
+# gross-margin passage at #14. Hybrid retrieval (vector + BM25 fused by RRF) moved it
+# to #0, so the wide net is no longer what is doing the work.
+#
+# EVIDENCE BASE: one filing, three claims. That justifies a smaller k; it does not
+# establish a floor. A different filer or a differently-worded claim could rank its
+# evidence lower, which is why this stays configurable.
 #
 # Deliberately not wrapped in try/except: a malformed RETRIEVAL_K should fail loudly at
 # startup, not silently fall back to the default and leave someone believing they
 # configured a value they didn't get.
-_RETRIEVAL_K = int(os.getenv("RETRIEVAL_K") or 20)
+_RETRIEVAL_K = int(os.getenv("RETRIEVAL_K") or 8)
 
 # Separates retrieved passages in the prompt. They are non-contiguous excerpts, so the
 # marker keeps the model from reading across a seam as if it were continuous prose (and

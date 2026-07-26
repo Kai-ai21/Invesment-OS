@@ -64,7 +64,11 @@
       "Bash(PYTHONPATH=. ./venv/bin/python -m pytest tests/test_bm25.py -q)",
       "Bash(PYTHONPATH=. ./venv/bin/python -)",
       "Bash(PYTHONPATH=. ./venv/bin/python -m pytest tests/test_bm25.py -v -k \"gross_margin_passage or hyphenated or unrelated_hyphenated or filler_does_not or function_words\")",
-      "Bash(PYTHONPATH=. ./venv/bin/python probe_hybrid.py)"
+      "Bash(PYTHONPATH=. ./venv/bin/python probe_hybrid.py)",
+      "Bash(PYTHONPATH=. ./venv/bin/python probe_k.py)",
+      "Bash(PYTHONPATH=. ./venv/bin/python -c \"from backend.services.verification_service import _RETRIEVAL_K as k; print\\('unset  ->', k\\)\")",
+      "Bash(RETRIEVAL_K= PYTHONPATH=. ./venv/bin/python -c \"from backend.services.verification_service import _RETRIEVAL_K as k; print\\('empty  ->', k\\)\")",
+      "Bash(RETRIEVAL_K=12 PYTHONPATH=. ./venv/bin/python -c \"from backend.services.verification_service import _RETRIEVAL_K as k; print\\('set 12 ->', k\\)\")"
     ]
   }
 }
