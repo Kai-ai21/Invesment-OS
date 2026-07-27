@@ -1,12 +1,22 @@
-import { Bell, List, Newspaper, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import {
+  Bell,
+  List,
+  Newspaper,
+  NotebookPen,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from 'lucide-react'
 import { NavLink } from 'react-router'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
+// `badge` names which count decorates the item, so adding a badged nav item is a
+// data change rather than another branch in the render.
 const NAV_ITEMS = [
-  { to: '/theses', label: 'Theses', icon: List },
-  { to: '/alerts', label: 'Alerts', icon: Bell },
+  { to: '/theses', label: 'Theses', icon: List, badge: null },
+  { to: '/alerts', label: 'Alerts', icon: Bell, badge: 'unread' },
+  { to: '/reflections', label: 'Reflections', icon: NotebookPen, badge: 'pending' },
 ] as const
 
 /** Shared by the NavLinks and by the News trigger, which is a button rather than a
@@ -27,15 +37,18 @@ export function Sidebar({
   collapsed,
   onToggle,
   unreadCount,
+  pendingReflections,
   onOpenNews,
   newsOpen,
 }: {
   collapsed: boolean
   onToggle: () => void
   unreadCount: number
+  pendingReflections: number
   onOpenNews: () => void
   newsOpen: boolean
 }) {
+  const counts = { unread: unreadCount, pending: pendingReflections }
   return (
     <aside
       className={cn(
@@ -61,8 +74,12 @@ export function Sidebar({
       </div>
 
       <nav className="flex flex-col gap-1">
-        {NAV_ITEMS.map(({ to, label, icon: Icon }) => {
-          const badge = to === '/alerts' && unreadCount > 0 ? unreadCount : null
+        {NAV_ITEMS.map(({ to, label, icon: Icon, badge: badgeKey }) => {
+          const count = badgeKey ? counts[badgeKey] : 0
+          const badge = count > 0 ? count : null
+          // Alerts are "unread"; reflections are "pending". Announcing three
+          // reflections as "3 unread" would be simply wrong.
+          const badgeNoun = badgeKey === 'pending' ? 'pending' : 'unread'
 
           return (
             <NavLink
@@ -71,7 +88,7 @@ export function Sidebar({
               title={
                 collapsed
                   ? badge
-                    ? `${label} (${badge} unread)`
+                    ? `${label} (${badge} ${badgeNoun})`
                     : label
                   : undefined
               }
@@ -102,7 +119,11 @@ export function Sidebar({
                 </>
               )}
 
-              {badge !== null && <span className="sr-only">{badge} unread</span>}
+              {badge !== null && (
+                <span className="sr-only">
+                  {badge} {badgeNoun}
+                </span>
+              )}
             </NavLink>
           )
         })}

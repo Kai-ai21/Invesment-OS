@@ -5,7 +5,7 @@ import { DashboardBackground } from '@/components/effects/DashboardBackground'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { NewsPanel } from '@/components/news/NewsPanel'
 import type { ShellContext } from '@/hooks/useShellContext'
-import { listAlerts } from '@/lib/api'
+import { listAlerts, listPostMortems } from '@/lib/api'
 
 /**
  * Persistent chrome around every route. Because this is a layout route, the
@@ -16,6 +16,7 @@ export function AppShell() {
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [pendingReflections, setPendingReflections] = useState(0)
   // React state only — the panel is a transient view, not a preference to persist.
   const [newsOpen, setNewsOpen] = useState(false)
   // Stable identity: NewsPanel's focus effect depends on it, and a new function each
@@ -32,11 +33,22 @@ export function AppShell() {
     }
   }, [])
 
+  // Same contract as the alert badge: fetched on mount, re-fetched only when a page
+  // reports a change. Decoration, so a failure stays silent.
+  const refreshPendingReflections = useCallback(async () => {
+    try {
+      setPendingReflections((await listPostMortems(true)).length)
+    } catch {
+      setPendingReflections(0)
+    }
+  }, [])
+
   useEffect(() => {
     void refreshUnreadCount()
-  }, [refreshUnreadCount])
+    void refreshPendingReflections()
+  }, [refreshUnreadCount, refreshPendingReflections])
 
-  const context: ShellContext = { refreshUnreadCount }
+  const context: ShellContext = { refreshUnreadCount, refreshPendingReflections }
 
   return (
     <div className="relative flex h-screen overflow-hidden bg-background">
@@ -54,6 +66,7 @@ export function AppShell() {
         collapsed={collapsed}
         onToggle={() => setCollapsed((c) => !c)}
         unreadCount={unreadCount}
+        pendingReflections={pendingReflections}
         onOpenNews={() => setNewsOpen(true)}
         newsOpen={newsOpen}
       />

@@ -1,8 +1,9 @@
-import { useCallback, type ReactNode } from 'react'
-import { ArrowLeft, Loader2, RefreshCw } from 'lucide-react'
+import { useCallback, useState, type ReactNode } from 'react'
+import { ArrowLeft, Loader2, NotebookPen, RefreshCw } from 'lucide-react'
 import { Link, useParams } from 'react-router'
 
 import { StatusBadge } from '@/components/StatusBadge'
+import { ThesisReflections } from '@/components/reflection/ThesisReflections'
 import { AddDocumentPanel } from '@/components/thesis/AddDocumentPanel'
 import { CheckNowControls, CheckNowResult } from '@/components/thesis/CheckNow'
 import { Button } from '@/components/ui/button'
@@ -10,8 +11,10 @@ import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAsync } from '@/hooks/useAsync'
 import { useCheckNow } from '@/hooks/useCheckNow'
+import { useShellContext } from '@/hooks/useShellContext'
 import {
   ApiError,
+  createManualPostMortem,
   getThesis,
   listEvidence,
   type Claim,
@@ -42,6 +45,10 @@ export function ThesisDetailPage() {
   // renders in the header while the summary renders below it, which is why this
   // state lives here rather than inside one component.
   const check = useCheckNow(id, refresh)
+  // Bumped after a manual "Reflect" so ThesisReflections remounts and refetches.
+  // A key bump rather than lifting the fetch: the reflections block owns its own
+  // loading/error states and there is no reason for the page to duplicate them.
+  const [reflectionsKey, setReflectionsKey] = useState(0)
 
   if (loading) return <DetailSkeleton />
   if (error) {
@@ -90,6 +97,10 @@ export function ThesisDetailPage() {
             <span className="text-sm text-text-secondary">
               Created {formatDate(thesis.created_at)}
             </span>
+            <ReflectButton
+              thesisId={thesis.id}
+              onCreated={() => setReflectionsKey((key) => key + 1)}
+            />
             <CheckNowControls check={check} />
           </div>
           <p className="text-xs text-text-secondary">
@@ -97,6 +108,11 @@ export function ThesisDetailPage() {
           </p>
         </div>
       </header>
+
+      {/* Near the top on purpose: a thesis that just broke is the moment reflection
+          matters, and burying it under the evidence would make it a chore. It is
+          never blocking — the card carries its own "Skip for now". */}
+      <ThesisReflections key={reflectionsKey} thesisId={thesis.id} />
 
       <div className="mb-10 flex flex-col gap-4">
         <CheckNowResult check={check} />
@@ -149,6 +165,61 @@ export function ThesisDetailPage() {
     </div>
   )
 }
+
+function ReflectButton({
+  thesisId,
+  onCreated,
+}: {
+  thesisId: string
+  onCreated: () => void
+}) {
+  const { refreshPendingReflections } = useShellContext()
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleClick() {
+    if (pending) return
+    setPending(true)
+    setError(null)
+    try {
+      await createManualPostMortem(thesisId)
+      onCreated()
+      void refreshPendingReflections()
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause.message : String(cause))
+    } finally {
+      setPending(false)
+    }
+  }
+
+  return (
+    <span className="flex items-center gap-2">
+      {error && (
+        <span role="alert" className="text-xs text-status-broken">
+          {error}
+        </span>
+      )}
+      {/* Available at ANY status, not just breaking — rethinking a thesis is useful
+          long before it falls apart. */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleClick}
+        disabled={pending}
+        title="Open a reflection on this thesis"
+        className="text-text-secondary hover:text-text-primary"
+      >
+        {pending ? (
+          <Loader2 className="animate-spin" aria-hidden />
+        ) : (
+          <NotebookPen aria-hidden />
+        )}
+        Reflect
+      </Button>
+    </span>
+  )
+}
+
 
 function ClaimCard({ claim }: { claim: Claim }) {
   return (

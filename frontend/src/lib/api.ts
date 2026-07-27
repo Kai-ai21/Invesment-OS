@@ -63,6 +63,26 @@ export interface Alert {
   created_at: string
 }
 
+/** PostMortemOut */
+export interface PostMortem {
+  id: string
+  thesis_id: string
+  ticker: string
+  /**
+   * Null for a MANUALLY opened reflection — there is no specific broken claim, so
+   * the UI shows a fixed question and never asks the AI for one.
+   */
+  broken_claim_id: string | null
+  broken_claim_statement: string | null
+  /** Written by the AI on demand; null until generateQuestion() has run. */
+  prompt_question: string | null
+  /** Null means still pending. This is the only pending/answered flag. */
+  user_response: string | null
+  status_at_break: ThesisStatus
+  created_at: string
+  answered_at: string | null
+}
+
 /** NewsItemOut */
 export interface NewsItem {
   title: string
@@ -168,6 +188,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(response.status, await response.text(), path)
   }
 
+  // 204 carries no body, so parsing it as JSON would throw on a successful call.
+  // DELETE endpoints use it.
+  if (response.status === 204) {
+    return undefined as T
+  }
+
   return response.json() as Promise<T>
 }
 
@@ -250,4 +276,60 @@ export function markAlertRead(alertId: string): Promise<Alert> {
  */
 export function listNews(limitPerTicker = 5): Promise<NewsItem[]> {
   return request<NewsItem[]>(`/news?limit_per_ticker=${limitPerTicker}`)
+}
+
+/* --- post-mortems --------------------------------------------------------- */
+
+export function listPostMortems(pendingOnly = false): Promise<PostMortem[]> {
+  const query = pendingOnly ? "?pending_only=true" : ""
+  return request<PostMortem[]>(`/post-mortems${query}`)
+}
+
+export function listPostMortemsForThesis(thesisId: string): Promise<PostMortem[]> {
+  return request<PostMortem[]>(
+    `/theses/${encodeURIComponent(thesisId)}/post-mortems`,
+  )
+}
+
+/**
+ * Write the AI reflection question. Idempotent on the backend — an existing
+ * question is returned untouched — so re-displaying a post-mortem costs nothing and
+ * the wording never shifts under the user.
+ *
+ * Only for AUTOMATIC post-mortems. One with a null broken_claim_id has nothing
+ * specific to ask about and the backend answers 422; the UI shows a fixed question
+ * for those instead of calling this.
+ */
+export function generateQuestion(postMortemId: string): Promise<PostMortem> {
+  return request<PostMortem>(
+    `/post-mortems/${encodeURIComponent(postMortemId)}/question`,
+    { method: "POST" },
+  )
+}
+
+/** Returns the updated post-mortem, so callers can swap it in without a refetch. */
+export function answerPostMortem(
+  postMortemId: string,
+  userResponse: string,
+): Promise<PostMortem> {
+  return request<PostMortem>(
+    `/post-mortems/${encodeURIComponent(postMortemId)}`,
+    { method: "PATCH", body: JSON.stringify({ user_response: userResponse }) },
+  )
+}
+
+/** Post-mortems are deletable by design — unlike evidence, a reflection is the
+ *  user's private note about themselves. Resolves with nothing (HTTP 204). */
+export function deletePostMortem(postMortemId: string): Promise<void> {
+  return request<void>(`/post-mortems/${encodeURIComponent(postMortemId)}`, {
+    method: "DELETE",
+  })
+}
+
+/** Open a reflection on demand, without waiting for the thesis to break. */
+export function createManualPostMortem(thesisId: string): Promise<PostMortem> {
+  return request<PostMortem>(
+    `/theses/${encodeURIComponent(thesisId)}/post-mortems`,
+    { method: "POST" },
+  )
 }

@@ -7,6 +7,9 @@ export interface ShellContext {
    * there is, deliberately: no polling.
    */
   refreshUnreadCount: () => Promise<void>
+  /** Same contract for the pending-reflection badge: call after saving, deleting
+   *  or opening a reflection. */
+  refreshPendingReflections: () => Promise<void>
 }
 
 export function useShellContext(): ShellContext {
