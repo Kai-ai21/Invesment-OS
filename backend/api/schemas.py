@@ -101,6 +101,35 @@ class PostMortemAnswerRequest(BaseModel):
     user_response: str
 
 
+class PatternSourceOut(BaseModel):
+    """One reflection a pattern is drawn from, resolved so the frontend can show what
+    the observation is based on without fetching each post-mortem."""
+
+    post_mortem_id: str
+    ticker: str
+    prompt_question: str | None
+
+
+class PatternOut(BaseModel):
+    id: str
+    statement: str
+    sources: list[PatternSourceOut]
+    generated_at: datetime
+    dismissed: bool
+
+
+class PatternGenerateOut(BaseModel):
+    """Regeneration result.
+
+    `reason` is populated when the set came back empty, so the UI can distinguish "not
+    enough reflections yet" from "analysed them and found nothing" — two very different
+    messages to show someone. Neither is an error.
+    """
+
+    patterns: list[PatternOut]
+    reason: str | None = None
+
+
 class NewsItemOut(BaseModel):
     title: str
     url: str

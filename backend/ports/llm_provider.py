@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from backend.domain.claim import ClaimData
+from backend.domain.pattern import PatternData
 from backend.domain.verification import VerdictData
 
 
@@ -29,4 +30,16 @@ class LLMProvider(ABC):
 
         Must reference the specific claim and at least one of `evidence_quotes`, and may
         reference nothing beyond what is passed in — the caller checks that.
+        """
+
+    @abstractmethod
+    def generate_patterns(self, post_mortems: list[dict]) -> list[PatternData]:
+        """Find recurring behaviours across a set of answered reflections.
+
+        Each input dict carries post_mortem_id, ticker, broken_claim_statement,
+        prompt_question, user_response and created_at.
+
+        An EMPTY list is a valid and expected answer — most small sets contain no
+        genuine pattern. Every returned pattern must cite at least two of the supplied
+        post_mortem_ids; the caller rejects any that cites unknown ids or too few.
         """

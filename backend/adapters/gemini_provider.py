@@ -6,6 +6,7 @@ from google.genai import types
 from pydantic import BaseModel
 
 from backend.domain.claim import ClaimData
+from backend.domain.pattern import PatternData
 from backend.domain.verification import VerdictData
 from backend.ports.llm_provider import LLMProvider
 
@@ -95,8 +96,50 @@ VERBATIM from an evidence quote — do not paraphrase inside quotation marks.
 Return only the context and the question."""
 
 
+PATTERNS_PROMPT = """You are reviewing an investor's own written reflections on theses that \
+went wrong. Identify recurring behaviours ACROSS them.
+
+The reflections:
+{post_mortems}
+
+Rules:
+
+1. CITE YOUR EVIDENCE. Every pattern must list the post_mortem_ids it is drawn from, and \
+must be supported by AT LEAST TWO of them. One reflection is an anecdote, not a pattern — do \
+not emit it. Use only ids that appear above; never invent one.
+
+2. DESCRIBE, DO NOT JUDGE. Write about the behaviour visible in the text, not about the \
+person's character or competence. Good: "Three of these reflections mention trusting \
+management guidance without seeking independent confirmation." Forbidden: "You are gullible", \
+"you repeatedly fail to", "your weakness is", or any sentence whose subject is what the \
+investor IS rather than what they DID.
+
+3. NEVER GIVE INVESTMENT ADVICE. Do not suggest buying, selling, holding, or changing a \
+process. Do not recommend what to do differently. Patterns describe the past only. This is a \
+hard rule with no exceptions.
+
+4. USE ONLY THE MATERIAL ABOVE. Every ticker, claim and quotation must come from the \
+reflections provided. Invent nothing.
+
+5. RETURN AN EMPTY LIST IF THERE IS NO GENUINE RECURRING BEHAVIOUR. This is a valid and \
+EXPECTED answer. A handful of reflections about different companies usually share nothing \
+real. Do not manufacture a pattern to fill the space — a false pattern about someone's own \
+behaviour is worse than saying nothing.
+
+6. AT MOST THREE patterns. Quality over volume. Two well-evidenced observations beat three \
+where the last is padding.
+
+Return the patterns as a list, or an empty list."""
+
+
 class ClaimsResponse(BaseModel):
     claims: list[ClaimData]
+
+
+class PatternsResponse(BaseModel):
+    """Wrapper so the model can return an empty list cleanly."""
+
+    patterns: list[PatternData]
 
 
 class ReflectionQuestion(BaseModel):
@@ -177,3 +220,32 @@ class GeminiProvider(LLMProvider):
         )
 
         return ReflectionQuestion.model_validate_json(response.text).question
+
+    def generate_patterns(self, post_mortems: list[dict]) -> list[PatternData]:
+        # Rendered as a labelled block per reflection so the model can cite ids exactly.
+        formatted = "\n\n".join(
+            "\n".join(
+                [
+                    f"post_mortem_id: {item['post_mortem_id']}",
+                    f"ticker: {item['ticker']}",
+                    f"date: {item['created_at']}",
+                    f"claim that broke: {item['broken_claim_statement']}",
+                    f"question asked: {item['prompt_question']}",
+                    f"their answer: {item['user_response']}",
+                ]
+            )
+            for item in post_mortems
+        )
+
+        prompt = PATTERNS_PROMPT.format(post_mortems=formatted)
+
+        response = self._client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=PatternsResponse,
+            ),
+        )
+
+        return PatternsResponse.model_validate_json(response.text).patterns
