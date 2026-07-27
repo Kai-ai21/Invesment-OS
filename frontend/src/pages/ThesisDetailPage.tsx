@@ -2,6 +2,7 @@ import { useCallback, useState, type ReactNode } from 'react'
 import { ArrowLeft, Loader2, NotebookPen, RefreshCw } from 'lucide-react'
 import { Link, useParams } from 'react-router'
 
+import { CompanyLogo } from '@/components/CompanyLogo'
 import { StatusBadge } from '@/components/StatusBadge'
 import { ThesisReflections } from '@/components/reflection/ThesisReflections'
 import { AddDocumentPanel } from '@/components/thesis/AddDocumentPanel'
@@ -44,11 +45,25 @@ export function ThesisDetailPage() {
   // Declared before the early returns — hooks can't be conditional. The trigger
   // renders in the header while the summary renders below it, which is why this
   // state lives here rather than inside one component.
-  const check = useCheckNow(id, refresh)
-  // Bumped after a manual "Reflect" so ThesisReflections remounts and refetches.
-  // A key bump rather than lifting the fetch: the reflections block owns its own
-  // loading/error states and there is no reason for the page to duplicate them.
+  // Bumped to remount ThesisReflections so it refetches. A key bump rather than
+  // lifting the fetch: the reflections block owns its own loading/error states and
+  // there is no reason for the page to duplicate them.
   const [reflectionsKey, setReflectionsKey] = useState(0)
+
+  // Refresh the thesis AND re-read its reflections. Both a check and a document
+  // submission can break a claim, which opens a post-mortem server-side — refreshing
+  // only the thesis left that post-mortem invisible until a manual page reload.
+  const refreshAll = useCallback(async () => {
+    try {
+      await refresh()
+    } finally {
+      // In `finally` on purpose: the post-mortem may exist even when refreshing the
+      // thesis itself failed, so the reflections must still be re-read.
+      setReflectionsKey((key) => key + 1)
+    }
+  }, [refresh])
+
+  const check = useCheckNow(id, refreshAll)
 
   if (loading) return <DetailSkeleton />
   if (error) {
@@ -77,6 +92,7 @@ export function ThesisDetailPage() {
         <div className="flex flex-wrap items-center gap-3">
           {/* Detail-page ticker in the display font (weight 400). The list-card
               tickers stay on the sans — display font is for titles, not data rows. */}
+          <CompanyLogo ticker={thesis.ticker} logoUrl={thesis.logo_url} size={40} />
           <h1 className="font-display text-3xl tracking-[0.01em] text-text-primary">
             {thesis.ticker}
           </h1>
@@ -116,7 +132,7 @@ export function ThesisDetailPage() {
 
       <div className="mb-10 flex flex-col gap-4">
         <CheckNowResult check={check} />
-        <AddDocumentPanel thesisId={thesis.id} onSubmitted={refresh} />
+        <AddDocumentPanel thesisId={thesis.id} onSubmitted={refreshAll} />
       </div>
 
       <section className="mb-10">

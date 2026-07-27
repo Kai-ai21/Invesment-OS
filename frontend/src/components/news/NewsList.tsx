@@ -52,6 +52,8 @@ function NewsSkeleton() {
           <Skeleton className="h-4 w-11/12" />
           <Skeleton className="h-4 w-2/3" />
           <div className="flex items-center gap-2">
+            {/* Matches CompanyLogo's 16px box in the loaded row. */}
+            <Skeleton className="size-4 rounded-lg" />
             <Skeleton className="h-4 w-14 rounded-[4px]" />
             <Skeleton className="h-3 w-24" />
           </div>

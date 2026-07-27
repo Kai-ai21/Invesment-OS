@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { Loader2, RefreshCw } from 'lucide-react'
 
+import { PatternsSection } from '@/components/pattern/PatternsSection'
 import { ReflectionCard } from '@/components/reflection/ReflectionCard'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -38,6 +39,14 @@ export function ReflectionsPage() {
           Refresh
         </Button>
       </header>
+
+      {/* Patterns sit ABOVE the reflections: they are the payoff, and the
+          reflections below are the raw material they were drawn from. */}
+      <PatternsSection postMortems={items} loadingPostMortems={loading} />
+
+      <h2 className="mb-4 font-display text-xl tracking-[0.01em] text-text-primary">
+        Your reflections
+      </h2>
 
       {loading ? (
         <ReflectionsSkeleton />

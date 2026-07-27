@@ -75,7 +75,18 @@
       "Read(//tmp/**)",
       "Bash(python3 -)",
       "Bash(sed -n '/^class ClaimsResponse/,/^class GeminiProvider/p' backend/adapters/gemini_provider.py)",
-      "Bash(sed -n '/^_CURLY_TO_STRAIGHT/,/return normalized_quote in _normalize/p' backend/services/verification_service.py)"
+      "Bash(sed -n '/^_CURLY_TO_STRAIGHT/,/return normalized_quote in _normalize/p' backend/services/verification_service.py)",
+      "Bash(curl -s http://127.0.0.1:8000/patterns)",
+      "Bash(curl -s -w \"  http=%{http_code}\\\\n\" -o /tmp/g.json http://127.0.0.1:8000/post-mortems)",
+      "Bash(./venv/bin/python -c \"import json;d=json.load\\(open\\('/tmp/g.json'\\)\\);print\\('  count:',len\\(d\\)\\)\")",
+      "Bash(curl -s -w '  http=%{http_code}\\\\n' -o /tmp/t.json http://127.0.0.1:8000/theses/__TRACKED_VAR__/post-mortems)",
+      "WebFetch(domain:vitest.dev)",
+      "Bash(node -e \"const d=require\\('./package.json'\\).devDependencies; for \\(const k of ['vitest','@testing-library/react','@testing-library/jest-dom','@testing-library/dom','jsdom']\\) console.log\\(' ', k, d[k]\\)\")",
+      "Bash(node -e \"console.log\\(JSON.stringify\\(require\\('./package.json'\\).scripts, null, 2\\)\\)\")",
+      "Bash(npm test *)",
+      "Bash(cd /Users/kailaasnair/Desktop/IOM/Investment-OS/frontend *)",
+      "Bash(./node_modules/.bin/tsc -b --listFiles)",
+      "Bash(npx vitest *)"
     ]
   }
 }

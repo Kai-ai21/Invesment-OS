@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Loader2, Trash2 } from 'lucide-react'
 
+import { CompanyLogo } from '@/components/CompanyLogo'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -94,6 +95,7 @@ export function ReflectionCard({
     <Card className="[--card-spacing:--spacing(6)]">
       <div className="flex flex-col gap-4 px-(--card-spacing)">
         <header className="flex flex-wrap items-center gap-2">
+          <CompanyLogo ticker={item.ticker} logoUrl={item.logo_url} size={24} />
           <span className="font-display text-base tracking-[0.01em] text-text-primary">
             {item.ticker}
           </span>

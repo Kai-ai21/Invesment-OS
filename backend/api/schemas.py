@@ -1,6 +1,24 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
+
+from backend.domain.company_domains import logo_url_for_ticker
+
+
+class TickerLogoMixin(BaseModel):
+    """Adds a DERIVED logo_url to any response carrying a ticker.
+
+    Computed on the way out rather than stored: the mapping is static code, so
+    persisting it would just be a copy that can go stale. None when the ticker is not
+    in the curated map — the UI falls back to its initials.
+    """
+
+    ticker: str
+
+    @computed_field
+    @property
+    def logo_url(self) -> str | None:
+        return logo_url_for_ticker(self.ticker)
 
 
 class ThesisCreateRequest(BaseModel):
@@ -19,9 +37,8 @@ class ClaimOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class ThesisOut(BaseModel):
+class ThesisOut(TickerLogoMixin):
     id: str
-    ticker: str
     reasoning_raw: str
     status: str
     created_at: datetime
@@ -81,10 +98,10 @@ class AlertOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class PostMortemOut(BaseModel):
+class PostMortemOut(TickerLogoMixin):
     id: str
     thesis_id: str
-    ticker: str  # read from the related thesis via PostMortem.ticker
+    # `ticker` comes from TickerLogoMixin; the ORM supplies it via PostMortem.ticker.
     broken_claim_id: str | None
     # Denormalised from the related claim so the frontend needn't fetch it separately.
     broken_claim_statement: str | None
@@ -130,7 +147,7 @@ class PatternGenerateOut(BaseModel):
     reason: str | None = None
 
 
-class NewsItemOut(BaseModel):
+class NewsItemOut(TickerLogoMixin):
     title: str
     url: str
     source: str

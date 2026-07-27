@@ -32,6 +32,9 @@ export interface Claim {
 export interface Thesis {
   id: string
   ticker: string
+  /** Derived server-side from a curated ticker->domain map. Null when unmapped —
+   *  CompanyLogo falls back to the ticker's initials, which is the normal case. */
+  logo_url: string | null
   reasoning_raw: string
   status: ThesisStatus
   created_at: string
@@ -68,6 +71,8 @@ export interface PostMortem {
   id: string
   thesis_id: string
   ticker: string
+  /** See Thesis.logo_url. */
+  logo_url: string | null
   /**
    * Null for a MANUALLY opened reflection — there is no specific broken claim, so
    * the UI shows a fixed question and never asks the AI for one.
@@ -83,11 +88,47 @@ export interface PostMortem {
   answered_at: string | null
 }
 
+/** PatternSourceOut */
+export interface PatternSource {
+  post_mortem_id: string
+  ticker: string
+  prompt_question: string | null
+}
+
+/** PatternOut */
+export interface Pattern {
+  id: string
+  statement: string
+  /**
+   * The reflections this observation is drawn from. Always at least two — the
+   * backend rejects any pattern citing fewer, or citing an id it never supplied.
+   * A source the user has since deleted drops out, so this can be shorter than
+   * what the AI originally cited.
+   */
+  sources: PatternSource[]
+  generated_at: string
+  dismissed: boolean
+}
+
+/** PatternGenerateOut */
+export interface PatternGenerateResult {
+  patterns: Pattern[]
+  /**
+   * Populated only when `patterns` is empty, explaining WHY — "not enough
+   * reflections yet" and "analysed and found nothing" are different messages to
+   * show someone about their own judgement. Neither is an error.
+   */
+  reason: string | null
+}
+
 /** NewsItemOut */
 export interface NewsItem {
   title: string
   url: string
   source: string
+  /** The COMPANY's logo (from the ticker), distinct from favicon_url which is the
+   *  news PUBLISHER's icon. Both can appear on one row. */
+  logo_url: string | null
   /** Publisher domain, e.g. "barrons.com". Null when the feed gave no source URL. */
   source_domain: string | null
   /** Derived from source_domain. Null when there was no domain to derive it from. */
@@ -331,5 +372,29 @@ export function createManualPostMortem(thesisId: string): Promise<PostMortem> {
   return request<PostMortem>(
     `/theses/${encodeURIComponent(thesisId)}/post-mortems`,
     { method: "POST" },
+  )
+}
+
+/* --- patterns ------------------------------------------------------------- */
+
+/** The stored pattern set. Dismissed patterns are excluded by the backend. */
+export function listPatterns(): Promise<Pattern[]> {
+  return request<Pattern[]>("/patterns")
+}
+
+/**
+ * Rebuild the pattern set from every answered reflection. Slow — one LLM call over
+ * all of them. REPLACES the previous set rather than adding to it, so a pattern that
+ * no longer holds disappears.
+ */
+export function generatePatterns(): Promise<PatternGenerateResult> {
+  return request<PatternGenerateResult>("/patterns/generate", { method: "POST" })
+}
+
+/** Returns the updated pattern, so callers can drop it without a refetch. */
+export function dismissPattern(patternId: string): Promise<Pattern> {
+  return request<Pattern>(
+    `/patterns/${encodeURIComponent(patternId)}/dismiss`,
+    { method: "PATCH" },
   )
 }

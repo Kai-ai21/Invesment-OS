@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { Plus, RefreshCw } from 'lucide-react'
 import { Link } from 'react-router'
 
+import { CompanyLogo } from '@/components/CompanyLogo'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -56,6 +57,7 @@ function ThesisCard({ thesis }: { thesis: Thesis }) {
       <Card className="[--card-spacing:--spacing(5)] transition-colors hover:bg-surface-raised">
         <div className="flex items-center justify-between gap-4 px-(--card-spacing)">
           <div className="flex items-center gap-3">
+            <CompanyLogo ticker={thesis.ticker} logoUrl={thesis.logo_url} size={32} />
             <span className="font-heading text-xl font-medium text-text-primary">
               {thesis.ticker}
             </span>
@@ -80,6 +82,8 @@ function ThesesSkeleton() {
         <Card key={i} className="[--card-spacing:--spacing(5)]">
           <div className="flex items-center justify-between gap-4 px-(--card-spacing)">
             <div className="flex items-center gap-3">
+              {/* Matches CompanyLogo's 32px box so the row does not jump. */}
+              <Skeleton className="size-8 rounded-lg" />
               <Skeleton className="h-6 w-16" />
               <Skeleton className="h-5 w-24 rounded-4xl" />
             </div>
