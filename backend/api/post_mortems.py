@@ -4,6 +4,11 @@ from sqlalchemy.orm import Session
 from backend.api.schemas import PostMortemAnswerRequest, PostMortemOut
 from backend.models.database import get_db
 from backend.repositories import post_mortem_repository
+from backend.services.post_mortem_service import (
+    PostMortemError,
+    PostMortemNotFound,
+    generate_question,
+)
 
 router = APIRouter(prefix="/post-mortems", tags=["post-mortems"])
 
@@ -11,6 +16,29 @@ router = APIRouter(prefix="/post-mortems", tags=["post-mortems"])
 @router.get("", response_model=list[PostMortemOut])
 def list_post_mortems(pending_only: bool = False, db: Session = Depends(get_db)):
     return post_mortem_repository.list_post_mortems(db, pending_only=pending_only)
+
+
+@router.post("/{post_mortem_id}/question", response_model=PostMortemOut)
+def generate_post_mortem_question(
+    post_mortem_id: str,
+    force: bool = False,
+    db: Session = Depends(get_db),
+):
+    """Write the reflection question, lazily.
+
+    Called by the frontend when it goes to display a post-mortem, deliberately NOT
+    during verification — that keeps the AI call off the critical path of a check.
+    Idempotent unless `force`, so re-displaying costs nothing and the wording does not
+    shift under the user.
+    """
+    try:
+        return generate_question(db, post_mortem_id, force=force)
+    except PostMortemNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except PostMortemError as exc:
+        # The post-mortem exists but has no broken claim to ask about — unprocessable,
+        # not missing.
+        raise HTTPException(status_code=422, detail=str(exc))
 
 
 @router.patch("/{post_mortem_id}", response_model=PostMortemOut)

@@ -73,7 +73,9 @@
       "Bash(curl -s \"http://127.0.0.1:8000/news?limit_per_ticker=2\")",
       "Bash(curl -s -o /tmp/fav404.png -w 'status=%{http_code} type=%{content_type} bytes=%{size_download}\\\\n' https://icons.duckduckgo.com/ip3/definitely-not-a-real-domain-xyzq.invalid.ico)",
       "Read(//tmp/**)",
-      "Bash(python3 -)"
+      "Bash(python3 -)",
+      "Bash(sed -n '/^class ClaimsResponse/,/^class GeminiProvider/p' backend/adapters/gemini_provider.py)",
+      "Bash(sed -n '/^_CURLY_TO_STRAIGHT/,/return normalized_quote in _normalize/p' backend/services/verification_service.py)"
     ]
   }
 }

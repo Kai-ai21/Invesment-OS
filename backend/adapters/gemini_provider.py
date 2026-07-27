@@ -54,8 +54,55 @@ Document text:
 """
 
 
+REFLECTION_PROMPT = """An investor wrote an investment thesis. One of its claims has since been \
+contradicted by evidence. Write ONE question that helps them examine the reasoning they used \
+when they FIRST wrote it.
+
+Their original reasoning:
+\"\"\"{original_reasoning}\"\"\"
+
+The claim that broke:
+- statement: {statement}
+- proof_condition (what would have CONFIRMED it): {proof_condition}
+- break_condition (what would have INVALIDATED it): {break_condition}
+
+Evidence that contradicted it:
+{evidence_quotes}
+
+Write two to three sentences of context, then one question. Rules:
+
+1. BE SPECIFIC. Reference this claim and at least one of the evidence quotes above. Generic \
+questions are forbidden — never write "what did you learn?", "what would you do differently?", \
+or anything that would fit any thesis unchanged. If your question would still make sense for a \
+different company, it is wrong.
+
+2. ASK ABOUT THEIR THINKING AT THE TIME, not about what to do now. Good: "What made you \
+confident that margins would hold above 72%?" or "What were you reading that suggested \
+competitors could not close the gap?" Bad: anything asking what they should do next.
+
+3. BE FACTUAL AND DIRECT, NEVER JUDGEMENTAL. Describe what happened; do not evaluate the person. \
+Never write "you should have", "your mistake was", "you failed to", or "you overlooked". State \
+what the evidence showed and ask about the reasoning — the investor draws their own conclusions.
+
+4. NEVER GIVE INVESTMENT ADVICE. Do not suggest buying, selling, holding, or adjusting anything. \
+Do not predict what happens next. Do not evaluate whether the thesis is still valid. This is a \
+hard rule with no exceptions.
+
+5. USE ONLY THE MATERIAL ABOVE. Every figure, date, company and fact you mention must appear in \
+the reasoning, the claim, or the evidence quotes. Invent nothing. If you quote, copy the words \
+VERBATIM from an evidence quote — do not paraphrase inside quotation marks.
+
+Return only the context and the question."""
+
+
 class ClaimsResponse(BaseModel):
     claims: list[ClaimData]
+
+
+class ReflectionQuestion(BaseModel):
+    """Structured output so the model returns the question alone, with no preamble."""
+
+    question: str
 
 
 class GeminiProvider(LLMProvider):
@@ -97,3 +144,36 @@ class GeminiProvider(LLMProvider):
         )
 
         return VerdictData.model_validate_json(response.text)
+
+    def generate_reflection_question(
+        self,
+        original_reasoning: str,
+        broken_claim_statement: str,
+        broken_claim_proof: str,
+        broken_claim_break: str,
+        evidence_quotes: list[str],
+    ) -> str:
+        # Numbered and quoted so the model can point at a specific one, and so the
+        # caller's grounding check has exactly these strings to compare against.
+        formatted_quotes = "\n".join(
+            f'{index}. "{quote}"' for index, quote in enumerate(evidence_quotes, start=1)
+        )
+
+        prompt = REFLECTION_PROMPT.format(
+            original_reasoning=original_reasoning,
+            statement=broken_claim_statement,
+            proof_condition=broken_claim_proof,
+            break_condition=broken_claim_break,
+            evidence_quotes=formatted_quotes or "(none recorded)",
+        )
+
+        response = self._client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=ReflectionQuestion,
+            ),
+        )
+
+        return ReflectionQuestion.model_validate_json(response.text).question
