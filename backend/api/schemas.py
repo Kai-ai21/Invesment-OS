@@ -79,3 +79,39 @@ class AlertOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class PostMortemOut(BaseModel):
+    id: str
+    thesis_id: str
+    ticker: str  # read from the related thesis via PostMortem.ticker
+    broken_claim_id: str | None
+    # Denormalised from the related claim so the frontend needn't fetch it separately.
+    broken_claim_statement: str | None
+    prompt_question: str | None  # written by the AI in Step 2; null until then
+    user_response: str | None  # null means still pending
+    status_at_break: str
+    created_at: datetime
+    answered_at: datetime | None
+
+    model_config = {"from_attributes": True}
+
+
+class PostMortemAnswerRequest(BaseModel):
+    user_response: str
+
+
+class NewsItemOut(BaseModel):
+    title: str
+    url: str
+    source: str
+    # Both None when the feed gave no usable source URL — never derived from the
+    # publisher's name, which would produce a confidently wrong icon.
+    source_domain: str | None
+    favicon_url: str | None
+    # None when the feed omitted the date or gave one we could not parse — never
+    # guessed, so the frontend can show "no date" rather than a wrong one.
+    published_at: datetime | None
+    ticker: str
+
+    model_config = {"from_attributes": True}

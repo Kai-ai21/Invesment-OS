@@ -68,7 +68,12 @@
       "Bash(PYTHONPATH=. ./venv/bin/python probe_k.py)",
       "Bash(PYTHONPATH=. ./venv/bin/python -c \"from backend.services.verification_service import _RETRIEVAL_K as k; print\\('unset  ->', k\\)\")",
       "Bash(RETRIEVAL_K= PYTHONPATH=. ./venv/bin/python -c \"from backend.services.verification_service import _RETRIEVAL_K as k; print\\('empty  ->', k\\)\")",
-      "Bash(RETRIEVAL_K=12 PYTHONPATH=. ./venv/bin/python -c \"from backend.services.verification_service import _RETRIEVAL_K as k; print\\('set 12 ->', k\\)\")"
+      "Bash(RETRIEVAL_K=12 PYTHONPATH=. ./venv/bin/python -c \"from backend.services.verification_service import _RETRIEVAL_K as k; print\\('set 12 ->', k\\)\")",
+      "Bash(curl -s \"http://127.0.0.1:8000/news?limit_per_ticker=3\")",
+      "Bash(curl -s \"http://127.0.0.1:8000/news?limit_per_ticker=2\")",
+      "Bash(curl -s -o /tmp/fav404.png -w 'status=%{http_code} type=%{content_type} bytes=%{size_download}\\\\n' https://icons.duckduckgo.com/ip3/definitely-not-a-real-domain-xyzq.invalid.ico)",
+      "Read(//tmp/**)",
+      "Bash(python3 -)"
     ]
   }
 }

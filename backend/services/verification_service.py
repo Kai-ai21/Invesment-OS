@@ -8,6 +8,7 @@ from backend.adapters.gemini_provider import GeminiProvider
 from backend.adapters.hybrid_retriever import HybridRetriever
 from backend.adapters.paste_source import PasteSource
 from backend.domain.status import (
+    BROKEN_CLAIM_STATUS,
     compute_claim_status,
     compute_thesis_status,
     is_meaningful_change,
@@ -19,6 +20,7 @@ from backend.repositories import (
     alert_repository,
     document_repository,
     evidence_repository,
+    post_mortem_repository,
     thesis_repository,
 )
 
@@ -114,8 +116,51 @@ def recompute_thesis(db: Session, thesis_id: str) -> tuple[str, str]:
             summary=f"{thesis.ticker} thesis moved from {prev_status} to {new_status}",
         )
 
+    # A thesis ENTERING "breaking" is the moment worth reflecting on. Guarded on the
+    # transition, not the state, so a thesis that stays broken across many checks
+    # prompts once rather than every run.
+    if new_status == "breaking" and prev_status != "breaking":
+        _open_post_mortem(db, thesis, new_status)
+
     db.commit()
     return prev_status, new_status
+
+
+def _open_post_mortem(db: Session, thesis, status_at_break: str) -> None:
+    """Create a pending post-mortem for a thesis that has just broken.
+
+    Never raises: saving evidence is the primary job of this run, and a reflection
+    prompt is a secondary nicety. A failure here is logged and swallowed rather than
+    rolling back a verification that otherwise succeeded.
+    """
+    try:
+        # One open question at a time. A second pending prompt for the same thesis
+        # would just be nagging, and the user has not answered the first one yet.
+        if post_mortem_repository.list_post_mortems(
+            db, thesis_id=thesis.id, pending_only=True
+        ):
+            return
+
+        # The core claim that broke is what the reflection is about. Non-core claims
+        # can break without breaking the thesis, so they are not the cause here.
+        broken_core = next(
+            (
+                claim
+                for claim in thesis.claims
+                if claim.is_core and claim.status == BROKEN_CLAIM_STATUS
+            ),
+            None,
+        )
+
+        post_mortem_repository.create_post_mortem(
+            db,
+            thesis_id=thesis.id,
+            # None is valid: the thesis broke, but no single core claim is identifiable.
+            broken_claim_id=broken_core.id if broken_core is not None else None,
+            status_at_break=status_at_break,
+        )
+    except Exception as exc:  # noqa: BLE001 - a reflection prompt must never fail a check
+        print(f"Could not open a post-mortem for thesis {thesis.id}: {exc}")
 
 
 def _retrieval_query(claim) -> str:

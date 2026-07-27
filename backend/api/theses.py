@@ -7,11 +7,18 @@ from backend.api.schemas import (
     CheckResultOut,
     DocumentSubmitRequest,
     EvidenceEventOut,
+    PostMortemOut,
     ThesisCreateRequest,
     ThesisOut,
 )
+from backend.domain.status import BROKEN_CLAIM_STATUS
 from backend.models.database import get_db
-from backend.repositories import evidence_repository, thesis_repository, user_repository
+from backend.repositories import (
+    evidence_repository,
+    post_mortem_repository,
+    thesis_repository,
+    user_repository,
+)
 from backend.services.check_service import CheckError, check_thesis
 from backend.services.extraction_service import ExtractionError, extract_and_save_thesis
 from backend.services.verification_service import verify_document_against_thesis
@@ -65,6 +72,42 @@ def list_evidence(thesis_id: str, db: Session = Depends(get_db)):
     if thesis_repository.get_thesis(db, thesis_id) is None:
         raise HTTPException(status_code=404, detail="Thesis not found")
     return evidence_repository.list_evidence_for_thesis(db, thesis_id)
+
+
+@router.get("/{thesis_id}/post-mortems", response_model=list[PostMortemOut])
+def list_thesis_post_mortems(thesis_id: str, db: Session = Depends(get_db)):
+    if thesis_repository.get_thesis(db, thesis_id) is None:
+        raise HTTPException(status_code=404, detail="Thesis not found")
+    return post_mortem_repository.list_post_mortems(db, thesis_id=thesis_id)
+
+
+@router.post("/{thesis_id}/post-mortems", response_model=PostMortemOut)
+def create_thesis_post_mortem(thesis_id: str, db: Session = Depends(get_db)):
+    """Open a post-mortem on demand, without waiting for the thesis to break.
+
+    Reflection is useful when a thesis merely wobbles, or when the user simply wants
+    to think one through — so this deliberately does NOT require a "breaking" status.
+    Unlike the automatic trigger there is no duplicate guard: asking for one is an
+    explicit act, and refusing it would be surprising.
+    """
+    thesis = thesis_repository.get_thesis(db, thesis_id)
+    if thesis is None:
+        raise HTTPException(status_code=404, detail="Thesis not found")
+
+    broken_core = next(
+        (
+            claim
+            for claim in thesis.claims
+            if claim.is_core and claim.status == BROKEN_CLAIM_STATUS
+        ),
+        None,
+    )
+    return post_mortem_repository.create_post_mortem(
+        db,
+        thesis_id=thesis_id,
+        broken_claim_id=broken_core.id if broken_core is not None else None,
+        status_at_break=thesis.status,
+    )
 
 
 @router.post("/{thesis_id}/check", response_model=CheckResultOut)
