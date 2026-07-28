@@ -86,7 +86,14 @@
       "Bash(npm test *)",
       "Bash(cd /Users/kailaasnair/Desktop/IOM/Investment-OS/frontend *)",
       "Bash(./node_modules/.bin/tsc -b --listFiles)",
-      "Bash(npx vitest *)"
+      "Bash(npx vitest *)",
+      "Bash(./venv/bin/python -c \"import yfinance; print\\('yfinance', yfinance.__version__\\)\")",
+      "Bash(curl -s -o /tmp/stooq.csv -w 'http=%{http_code} bytes=%{size_download} type=%{content_type}\\\\n' --max-time 20 'https://stooq.com/q/d/l/?s=nvda.us&i=d')",
+      "Bash(./venv/bin/python -c \"import yfinance; print\\('yfinance version:', yfinance.__version__\\)\")",
+      "Bash(PYTHONPATH=. timeout 120 ./venv/bin/python -c ' *)",
+      "Bash(PYTHONPATH=. ./venv/bin/python -m pytest tests/test_prices.py -q)",
+      "Bash(PYTHONPATH=. ./venv/bin/python -c \"from backend.ports.price_source import PricePoint; print\\('port OK'\\)\")",
+      "Bash(grep -vE \"possibly delisted|HTTP Error|^\\\\\\\\\\\\$\")"
     ]
   }
 }

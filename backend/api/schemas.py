@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date as DateOnly, datetime
 
 from pydantic import BaseModel, computed_field
 
@@ -161,3 +161,22 @@ class NewsItemOut(TickerLogoMixin):
     ticker: str
 
     model_config = {"from_attributes": True}
+
+
+class PricePointOut(BaseModel):
+    # Aliased: a field NAMED `date` would shadow a bare `date` import in its own
+    # annotation, which pydantic cannot resolve.
+    date: DateOnly
+    close: float
+    # Populated only on a current price — a history row has no "previous" to compare
+    # against, and a zero would read as "flat" rather than "not applicable".
+    previous_close: float | None = None
+    change: float | None = None
+    change_percent: float | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class PriceHistoryOut(BaseModel):
+    ticker: str
+    points: list[PricePointOut]
