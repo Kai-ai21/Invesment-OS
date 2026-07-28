@@ -1,6 +1,6 @@
 from datetime import date as DateOnly, datetime
 
-from pydantic import BaseModel, computed_field
+from pydantic import BaseModel, Field, computed_field, field_validator
 
 from backend.domain.company_domains import logo_url_for_ticker
 
@@ -217,3 +217,88 @@ class ChartDataOut(BaseModel):
     # upstream cannot hide the user's own evidence — the chart shows "price data
     # unavailable" instead of a flat line at zero.
     prices_unavailable: bool = False
+
+
+class HoldingCreateRequest(BaseModel):
+    ticker: str
+    # Constrained here rather than in the route: pydantic turns a violation into
+    # FastAPI's own 422 with the offending field named, which is a better error than
+    # anything hand-rolled would produce.
+    shares: float = Field(gt=0)
+    # >= 0, not > 0: shares can genuinely cost nothing (a grant, a spin-off).
+    average_cost: float = Field(ge=0)
+    purchased_at: DateOnly | None = None
+    note: str | None = None
+
+    @field_validator("ticker")
+    @classmethod
+    def _normalise_ticker(cls, value: str) -> str:
+        """Uppercase and non-empty.
+
+        Lowercase input is NORMALISED, not rejected — "nvda" is unambiguous and
+        bouncing it would be pedantry. Whitespace-only is rejected, because there is
+        nothing to normalise it into.
+        """
+        ticker = value.strip().upper()
+        if not ticker:
+            raise ValueError("Ticker must not be empty")
+        return ticker
+
+
+class HoldingUpdateRequest(BaseModel):
+    """Partial update. An omitted field is left alone; see the note in
+    holding_repository.update_holding about why `note` needs the distinction."""
+
+    shares: float | None = Field(default=None, gt=0)
+    average_cost: float | None = Field(default=None, ge=0)
+    note: str | None = None
+
+
+class HoldingOut(TickerLogoMixin):
+    id: str
+    # `ticker` and `logo_url` come from TickerLogoMixin.
+    shares: float
+    average_cost: float
+    purchased_at: DateOnly | None
+    note: str | None
+    created_at: datetime
+
+    # Every one of these is None when the price could not be fetched — never 0. The
+    # reasoning is in backend/domain/portfolio.py; the short version is that 0 would
+    # render a healthy position as a total loss.
+    current_price: float | None
+    market_value: float | None
+    unrealised_pnl: float | None
+    pnl_percent: float | None
+    allocation_percent: float | None
+    # The exception: what was paid needs no live price and survives an outage.
+    cost_basis: float
+
+    price_unavailable: bool
+    # Why, in words the UI can show — and it distinguishes an unknown ticker from an
+    # unreachable source, which need different things from the user.
+    price_error: str | None
+
+    # Null when the user owns something they never wrote a thesis about. Normal.
+    thesis_id: str | None
+    thesis_status: str | None
+
+
+class PortfolioTotalsOut(BaseModel):
+    """Totals over the PRICED holdings only.
+
+    `holdings_excluded` is what keeps this honest: it says how many positions these
+    figures leave out, so a partial total is visibly partial instead of quietly wrong.
+    """
+
+    market_value: float
+    cost_basis: float
+    unrealised_pnl: float
+    pnl_percent: float | None  # None on a zero cost basis
+    holdings_counted: int
+    holdings_excluded: int
+
+
+class PortfolioOut(BaseModel):
+    holdings: list[HoldingOut]
+    totals: PortfolioTotalsOut

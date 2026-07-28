@@ -8,6 +8,7 @@ from backend.models.alert import Alert  # noqa: F401 (registers mapper with Base
 from backend.models.claim import Claim  # noqa: F401 (registers mapper with Base)
 from backend.models.document import Document  # noqa: F401 (registers mapper with Base)
 from backend.models.evidence_event import EvidenceEvent  # noqa: F401 (registers mapper with Base)
+from backend.models.holding import Holding  # noqa: F401 (registers mapper with Base)
 from backend.models.pattern import Pattern  # noqa: F401 (registers mapper with Base)
 from backend.models.post_mortem import PostMortem  # noqa: F401 (registers mapper with Base)
 from backend.models.thesis import Thesis  # noqa: F401 (registers mapper with Base)

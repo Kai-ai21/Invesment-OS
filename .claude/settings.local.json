@@ -103,7 +103,10 @@
       "Bash(echo \"EXIT=$?\")",
       "Bash(sqlite3 backend/investment_os.db \"SELECT id, prev_status, new_status, substr\\(summary,1,40\\), created_at FROM alerts ORDER BY created_at;\")",
       "Bash(sqlite3 backend/investment_os.db 'SELECT document_id FROM evidence_events WHERE id IN \\('\\\\''853e9f9f-ca62-4242-b2b6-00fd965a40e4'\\\\'','\\\\''49cd7a8f-dd7e-4401-ba73-9bd30c5811ef'\\\\'','\\\\''274d2a22-6c34-451d-ae28-e92a5d2a027f'\\\\'','\\\\''1febcbd4-a749-49c9-8900-ae407dc7b580'\\\\''\\); *)",
-      "Bash(sqlite3 backend/investment_os.db)"
+      "Bash(sqlite3 backend/investment_os.db)",
+      "Bash(./venv/bin/python -m pytest tests/test_portfolio.py -q)",
+      "Bash(./venv/bin/python /private/tmp/claude-501/-Users-kailaasnair-Desktop-IOM-Investment-OS/05c03aaa-74d7-44e0-ad46-ce80ef03bfe8/scratchpad/smoke_holdings.py)",
+      "Bash(PYTHONPATH=. ./venv/bin/python /private/tmp/claude-501/-Users-kailaasnair-Desktop-IOM-Investment-OS/05c03aaa-74d7-44e0-ad46-ce80ef03bfe8/scratchpad/smoke_holdings.py)"
     ]
   }
 }

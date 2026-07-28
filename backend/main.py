@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.alerts import router as alerts_router
+from backend.api.holdings import router as holdings_router
 from backend.api.news import router as news_router
 from backend.api.patterns import router as patterns_router
 from backend.api.prices import router as prices_router
@@ -38,6 +39,7 @@ app.include_router(news_router)
 app.include_router(post_mortems_router)
 app.include_router(patterns_router)
 app.include_router(prices_router)
+app.include_router(holdings_router)
 
 
 @app.get("/health")
