@@ -219,6 +219,26 @@ class ChartDataOut(BaseModel):
     prices_unavailable: bool = False
 
 
+class QuoteOut(TickerLogoMixin):
+    """One company on the market page.
+
+    Every numeric field is null — never 0 — when the quote could not be fetched, so
+    a failed request can never render as a company priced at nothing. `ticker` and
+    `logo_url` come from TickerLogoMixin.
+    """
+
+    company_name: str | None
+    price: float | None
+    previous_close: float | None
+    change: float | None
+    change_percent: float | None
+    market_cap: float | None
+    unavailable: bool
+    error: str | None
+
+    model_config = {"from_attributes": True}
+
+
 class HoldingCreateRequest(BaseModel):
     ticker: str
     # Constrained here rather than in the route: pydantic turns a violation into

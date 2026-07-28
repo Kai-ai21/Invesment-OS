@@ -124,6 +124,35 @@ export function formatSignedPercent(value: number | null): string {
   return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`
 }
 
+/**
+ * Large sums at a glance: 3_240_000_000_000 -> "$3.24T". Null -> "—".
+ *
+ * Market caps are compared against each other, not reconciled against a ledger, so
+ * three significant figures is the useful precision — "$3,240,187,441,152" is
+ * harder to rank by eye and implies an accuracy the figure does not have. Falls
+ * through to plain money below a million, where the abbreviation stops helping.
+ */
+export function formatCompactMoney(value: number | null): string {
+  if (value === null) return UNAVAILABLE
+
+  const scales: Array<[number, string]> = [
+    [1e12, 'T'],
+    [1e9, 'B'],
+    [1e6, 'M'],
+  ]
+  const magnitude = Math.abs(value)
+  for (const [size, suffix] of scales) {
+    if (magnitude >= size) {
+      const scaled = value / size
+      // Two decimals under 100 ("$3.24T"), one above ("$142.6B") — keeps the string
+      // a predictable width so a column of them stays scannable.
+      const digits = Math.abs(scaled) >= 100 ? 1 : 2
+      return `$${scaled.toFixed(digits)}${suffix}`
+    }
+  }
+  return formatMoney(value)
+}
+
 /** Share counts. Trailing zeros dropped so a whole number reads as "10", not
  *  "10.0000", while a fractional holding keeps its precision. */
 export function formatShares(shares: number): string {

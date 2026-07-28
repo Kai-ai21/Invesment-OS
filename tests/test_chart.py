@@ -27,6 +27,9 @@ class FakePriceSource(PriceSource):
         self._points = points or []
         self._raises = raises
 
+    def get_quote(self, ticker):
+        raise NotImplementedError
+
     def get_current_price(self, ticker):
         raise NotImplementedError
 

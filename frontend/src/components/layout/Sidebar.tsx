@@ -1,5 +1,6 @@
 import {
   Bell,
+  ChartCandlestick,
   List,
   Newspaper,
   NotebookPen,
@@ -18,6 +19,8 @@ const NAV_ITEMS = [
   { to: '/theses', label: 'Theses', icon: List, badge: null },
   // Directly under Theses: what you own sits beside what you believe.
   { to: '/portfolio', label: 'Portfolio', icon: Wallet, badge: null },
+  // The wider market, after the user's own two views — their work comes first.
+  { to: '/market', label: 'Market', icon: ChartCandlestick, badge: null },
   { to: '/alerts', label: 'Alerts', icon: Bell, badge: 'unread' },
   { to: '/reflections', label: 'Reflections', icon: NotebookPen, badge: 'pending' },
 ] as const

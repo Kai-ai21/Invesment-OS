@@ -27,7 +27,56 @@ class PricePoint(BaseModel):
     )
 
 
+class Quote(BaseModel):
+    """A live quote: what a company is worth and how it moved today.
+
+    ⚠️ EVERY NUMERIC FIELD IS OPTIONAL, AND None NEVER MEANS ZERO. Same rule as
+    backend/domain/portfolio.py: a missing price is a gap in what we know, while a
+    zero is a claim about the world, and a $0.00 share price beside a real company
+    name reads as a catastrophe rather than a failed HTTP call.
+
+    A source's get_quote() returns either a FULLY populated quote or None. The
+    half-filled shape — `unavailable` set, numbers None — is built by the service
+    layer for a ticker it could not fetch, so a failed company still occupies its
+    place on the page instead of vanishing from it.
+    """
+
+    ticker: str = Field(description="The symbol as requested, upper-cased.")
+    company_name: str | None = Field(
+        default=None, description="Full legal name, e.g. 'Apple Inc.'."
+    )
+    price: float | None = Field(default=None, description="Latest regular-market price.")
+    previous_close: float | None = Field(
+        default=None, description="The prior session's official close."
+    )
+    change: float | None = Field(default=None, description="price - previous_close.")
+    change_percent: float | None = Field(
+        default=None, description="Percentage move from previous_close."
+    )
+    market_cap: float | None = Field(
+        default=None, description="Market capitalisation in USD."
+    )
+
+    # Set by the SERVICE, never by an adapter — see the class docstring.
+    unavailable: bool = Field(
+        default=False, description="True when this quote could not be fetched."
+    )
+    error: str | None = Field(
+        default=None, description="Why, in words, when unavailable."
+    )
+
+
 class PriceSource(ABC):
+    @abstractmethod
+    def get_quote(self, ticker: str) -> Quote | None:
+        """A full quote for `ticker`, or None when the ticker is unknown.
+
+        Same contract as get_current_price: None is the real answer "no such
+        symbol", while anything that WENT WRONG raises. A returned Quote always has
+        its price and market cap populated — a partial quote is reported as a
+        failure rather than shipped with holes in it.
+        """
+
     @abstractmethod
     def get_current_price(self, ticker: str) -> PricePoint | None:
         """The latest price for `ticker`, or None when the ticker is unknown.

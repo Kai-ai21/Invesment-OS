@@ -26,6 +26,9 @@ class FakeSource(PriceSource):
         self.price_calls = 0
         self.history_calls = 0
 
+    def get_quote(self, ticker):
+        raise NotImplementedError  # not exercised by the price-cache tests
+
     def get_current_price(self, ticker):
         self.price_calls += 1
         if self._raises:

@@ -31,8 +31,15 @@ TICKER_DOMAINS: dict[str, str] = {
     "META": "meta.com",
     "TSLA": "tesla.com",
     "AVGO": "broadcom.com",
+    # BOTH share-class notations, deliberately. There is no agreed convention: the
+    # dot form is how these are usually written, while Yahoo (and so yfinance, and
+    # so the market page) uses a hyphen. Mapping only one silently drops the logo
+    # for whichever source uses the other — which is exactly how BRK-B turned up
+    # bare on the market page.
     "BRK.B": "berkshirehathaway.com",
     "BRK.A": "berkshirehathaway.com",
+    "BRK-B": "berkshirehathaway.com",
+    "BRK-A": "berkshirehathaway.com",
     "LLY": "lilly.com",
     "JPM": "jpmorganchase.com",
     "V": "visa.com",

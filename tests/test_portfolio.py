@@ -92,6 +92,9 @@ class FakePriceSource(PriceSource):
     def __init__(self, prices: dict):
         self._prices = prices
 
+    def get_quote(self, ticker):
+        raise NotImplementedError  # the portfolio uses current prices, not quotes
+
     def get_current_price(self, ticker):
         value = self._prices.get(ticker)
         if isinstance(value, Exception):

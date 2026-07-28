@@ -237,6 +237,27 @@ export interface Portfolio {
   totals: PortfolioTotals
 }
 
+/** QuoteOut — one company on the market page. */
+export interface Quote {
+  ticker: string
+  /** See Thesis.logo_url. */
+  logo_url: string | null
+  company_name: string | null
+  /**
+   * ⚠️ Null — never 0 — when the quote could not be fetched. A $0.00 price beside
+   * a real company name reads as a catastrophe rather than a failed HTTP call, so
+   * the UI renders "unavailable" and no call site may use `?? 0`.
+   */
+  price: number | null
+  previous_close: number | null
+  change: number | null
+  change_percent: number | null
+  market_cap: number | null
+  /** True when this company's quote failed. The card still appears. */
+  unavailable: boolean
+  error: string | null
+}
+
 /** HoldingCreateRequest. The backend uppercases the ticker and rejects
  *  shares <= 0 or average_cost < 0 with a 422. */
 export interface HoldingCreate {
@@ -557,4 +578,19 @@ export function updateHolding(id: string, fields: HoldingUpdate): Promise<Portfo
 /** Resolves with nothing (HTTP 204). The caller refetches for new allocations. */
 export function deleteHolding(id: string): Promise<void> {
   return request<void>(`/holdings/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+/* --- market --------------------------------------------------------------- */
+
+/**
+ * The ten curated market leaders, ranked by LIVE market cap.
+ *
+ * Membership is hand-maintained on the backend and can go stale; the quotes and
+ * the ranking are live. Always resolves with all ten — a company whose quote
+ * failed comes back flagged rather than missing, so a fetch failure can never be
+ * mistaken for a company leaving the ranking. Never rejects on a single bad
+ * ticker; the backend isolates those per company.
+ */
+export function listMarketLeaders(): Promise<Quote[]> {
+  return request<Quote[]>('/market/leaders')
 }
