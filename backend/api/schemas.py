@@ -180,3 +180,40 @@ class PricePointOut(BaseModel):
 class PriceHistoryOut(BaseModel):
     ticker: str
     points: list[PricePointOut]
+
+
+class ChartPricePointOut(BaseModel):
+    """Deliberately leaner than PricePointOut: a chart needs date and close, and the
+    change fields would be dead weight repeated across a year of rows."""
+
+    date: DateOnly
+    close: float
+
+
+class ChartEventOut(BaseModel):
+    """One annotation on the chart. `type` discriminates the two shapes — evidence
+    fields are null on a status change and vice versa, rather than two parallel arrays
+    the frontend would have to merge and re-sort itself."""
+
+    date: DateOnly
+    type: str  # "evidence" | "status_change"
+
+    # type == "evidence"
+    verdict: str | None = None
+    quote: str | None = None
+    claim_statement: str | None = None
+    confidence: float | None = None
+
+    # type == "status_change"
+    prev_status: str | None = None
+    new_status: str | None = None
+
+
+class ChartDataOut(BaseModel):
+    ticker: str
+    prices: list[ChartPricePointOut]
+    events: list[ChartEventOut]
+    # True when the price source failed. The events are still returned, so a broken
+    # upstream cannot hide the user's own evidence — the chart shows "price data
+    # unavailable" instead of a flat line at zero.
+    prices_unavailable: bool = False

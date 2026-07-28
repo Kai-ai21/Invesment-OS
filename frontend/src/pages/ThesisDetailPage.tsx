@@ -6,6 +6,7 @@ import { CompanyLogo } from '@/components/CompanyLogo'
 import { StatusBadge } from '@/components/StatusBadge'
 import { ThesisReflections } from '@/components/reflection/ThesisReflections'
 import { AddDocumentPanel } from '@/components/thesis/AddDocumentPanel'
+import { PriceChart } from '@/components/thesis/PriceChart'
 import { CheckNowControls, CheckNowResult } from '@/components/thesis/CheckNow'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -129,6 +130,10 @@ export function ThesisDetailPage() {
           matters, and burying it under the evidence would make it a chore. It is
           never blocking — the card carries its own "Skip for now". */}
       <ThesisReflections key={reflectionsKey} thesisId={thesis.id} />
+
+      {/* Below the header: the price line is the canvas, the evidence and status
+          markers on it are the point. */}
+      <PriceChart thesisId={thesis.id} />
 
       <div className="mb-10 flex flex-col gap-4">
         <CheckNowResult check={check} />

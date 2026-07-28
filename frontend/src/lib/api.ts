@@ -141,6 +141,37 @@ export interface NewsItem {
   ticker: string
 }
 
+/** ChartPricePointOut */
+export interface ChartPricePoint {
+  date: string
+  close: number
+}
+
+/** ChartEventOut — one annotation. `type` discriminates the two shapes. */
+export interface ChartEvent {
+  date: string
+  type: 'evidence' | 'status_change'
+  // type === 'evidence'
+  verdict: Verdict | null
+  quote: string | null
+  claim_statement: string | null
+  confidence: number | null
+  // type === 'status_change'
+  prev_status: ThesisStatus | null
+  new_status: ThesisStatus | null
+}
+
+/** ChartDataOut */
+export interface ChartData {
+  ticker: string
+  prices: ChartPricePoint[]
+  events: ChartEvent[]
+  /** True when the price source failed. Events are still present — a broken upstream
+   *  must never hide the user's own record, so the chart says so rather than drawing
+   *  a flat line at zero. */
+  prices_unavailable: boolean
+}
+
 /** CheckedFilingOut */
 export interface CheckedFiling {
   title: string
@@ -396,5 +427,12 @@ export function dismissPattern(patternId: string): Promise<Pattern> {
   return request<Pattern>(
     `/patterns/${encodeURIComponent(patternId)}/dismiss`,
     { method: "PATCH" },
+  )
+}
+
+/** Prices for a thesis's ticker, annotated with its evidence and status changes. */
+export function getChartData(thesisId: string, days = 365): Promise<ChartData> {
+  return request<ChartData>(
+    `/theses/${encodeURIComponent(thesisId)}/chart?days=${days}`,
   )
 }

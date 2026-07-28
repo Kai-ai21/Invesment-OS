@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from backend.adapters.edgar_source import EdgarError
 from backend.adapters.gemini_provider import GeminiProvider
 from backend.api.schemas import (
+    ChartDataOut,
     CheckResultOut,
     DocumentSubmitRequest,
     EvidenceEventOut,
@@ -19,6 +20,7 @@ from backend.repositories import (
     thesis_repository,
     user_repository,
 )
+from backend.services.chart_service import build_chart_data
 from backend.services.check_service import CheckError, check_thesis
 from backend.services.extraction_service import ExtractionError, extract_and_save_thesis
 from backend.services.verification_service import verify_document_against_thesis
@@ -108,6 +110,24 @@ def create_thesis_post_mortem(thesis_id: str, db: Session = Depends(get_db)):
         broken_claim_id=broken_core.id if broken_core is not None else None,
         status_at_break=thesis.status,
     )
+
+
+@router.get("/{thesis_id}/chart", response_model=ChartDataOut)
+def get_chart(
+    thesis_id: str,
+    days: int = Query(default=365, ge=1, le=1825),
+    db: Session = Depends(get_db),
+):
+    """Prices for the thesis's ticker, annotated with its evidence and status changes.
+
+    A price-source failure does NOT fail this request — it comes back with
+    prices_unavailable set and the events intact, because a broken third party must
+    never hide the user's own record.
+    """
+    chart = build_chart_data(db, thesis_id, days=days)
+    if chart is None:
+        raise HTTPException(status_code=404, detail="Thesis not found")
+    return chart
 
 
 @router.post("/{thesis_id}/check", response_model=CheckResultOut)
