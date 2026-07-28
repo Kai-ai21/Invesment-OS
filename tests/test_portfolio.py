@@ -168,6 +168,7 @@ def test_one_failing_ticker_does_not_break_the_rest(db):
     assert failed["pnl_percent"] is None
     assert failed["allocation_percent"] is None
     assert "unreachable" in failed["price_error"]
+    assert failed["price_status"] == "source_unavailable"
     # ...except what was paid, which never needed a price.
     assert failed["cost_basis"] == 1000.0
 
@@ -205,9 +206,11 @@ def test_unknown_ticker_is_excluded_and_distinguished_from_a_failure(db):
     portfolio = get_portfolio(db, source=source)
     rows = rows_by_ticker(portfolio)
 
-    # Assert
+    # Assert — same `price_unavailable`, DIFFERENT status, so the UI can say which.
     assert rows["NVDAA"]["price_unavailable"] is True
+    assert rows["NVDAA"]["price_status"] == "unknown_ticker"
     assert "No price data" in rows["NVDAA"]["price_error"]
+    assert rows["NVDA"]["price_status"] == "ok"
     assert portfolio["totals"]["holdings_excluded"] == 1
 
 

@@ -275,8 +275,12 @@ class HoldingOut(TickerLogoMixin):
     cost_basis: float
 
     price_unavailable: bool
-    # Why, in words the UI can show — and it distinguishes an unknown ticker from an
-    # unreachable source, which need different things from the user.
+    # WHY there is no price, as a value to branch on: "ok" | "unknown_ticker" |
+    # "source_unavailable". The two failures need different things from the user
+    # (fix the symbol vs. wait), and a UI telling them apart by matching on English
+    # prose would break the moment the wording changed.
+    price_status: str
+    # The same thing in words, for display. Null when the price came back fine.
     price_error: str | None
 
     # Null when the user owns something they never wrote a thesis about. Normal.

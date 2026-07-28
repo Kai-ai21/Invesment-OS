@@ -5,6 +5,7 @@ import {
   NotebookPen,
   PanelLeftClose,
   PanelLeftOpen,
+  Wallet,
 } from 'lucide-react'
 import { NavLink } from 'react-router'
 
@@ -15,6 +16,8 @@ import { cn } from '@/lib/utils'
 // data change rather than another branch in the render.
 const NAV_ITEMS = [
   { to: '/theses', label: 'Theses', icon: List, badge: null },
+  // Directly under Theses: what you own sits beside what you believe.
+  { to: '/portfolio', label: 'Portfolio', icon: Wallet, badge: null },
   { to: '/alerts', label: 'Alerts', icon: Bell, badge: 'unread' },
   { to: '/reflections', label: 'Reflections', icon: NotebookPen, badge: 'pending' },
 ] as const
@@ -62,13 +65,13 @@ export function Sidebar({
           aria-hidden
           className="grid size-8 shrink-0 place-items-center rounded-lg bg-surface-raised text-xs font-semibold text-text-primary"
         >
-          IO
+          KO
         </div>
         {/* Wordmark in the display font, weight 400 (no font-medium — Righteous
             is single-weight and would otherwise be synthetically bolded). */}
         {!collapsed && (
           <span className="truncate font-display text-sm tracking-[0.01em] text-text-primary">
-            Investment OS
+            Kailaas OS
           </span>
         )}
       </div>

@@ -1,1 +1,1 @@
-Investment OS — Phase 1: Thesis Tracking
+Kailaas OS — Phase 1: Thesis Tracking

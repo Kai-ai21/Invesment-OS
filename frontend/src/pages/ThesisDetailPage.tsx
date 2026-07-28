@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router'
 
 import { CompanyLogo } from '@/components/CompanyLogo'
 import { StatusBadge } from '@/components/StatusBadge'
+import { ThesisHoldingLine } from '@/components/portfolio/ThesisHoldingLine'
 import { ThesisReflections } from '@/components/reflection/ThesisReflections'
 import { AddDocumentPanel } from '@/components/thesis/AddDocumentPanel'
 import { PriceChart } from '@/components/thesis/PriceChart'
@@ -107,6 +108,10 @@ export function ThesisDetailPage() {
               Updating…
             </span>
           )}
+
+          {/* What you own of this ticker, if anything. Facts only, and absent
+              entirely when there is no holding — see ThesisHoldingLine. */}
+          <ThesisHoldingLine ticker={thesis.ticker} />
         </div>
 
         <div className="flex flex-col items-end gap-1.5">

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { ArrowLeft, Loader2 } from 'lucide-react'
-import { Link, useNavigate } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -16,8 +16,12 @@ The thesis breaks if a major hyperscaler moves meaningful inference volume to in
 
 export function NewThesisPage() {
   const navigate = useNavigate()
+  // Prefilled from ?ticker= so the portfolio's "No thesis" link lands on a form that
+  // already knows which ticker it is about. Initial state only — the field is the
+  // user's to change from that point on.
+  const [searchParams] = useSearchParams()
 
-  const [ticker, setTicker] = useState('')
+  const [ticker, setTicker] = useState(() => searchParams.get('ticker') ?? '')
   const [reasoning, setReasoning] = useState('')
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)

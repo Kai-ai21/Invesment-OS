@@ -28,6 +28,13 @@ from backend.ports.price_source import PriceSource
 from backend.repositories import holding_repository, user_repository
 from backend.services.price_service import get_price
 
+# Why a row has no price, as a value the frontend can BRANCH on. `price_error` carries
+# the human wording, but a UI that had to tell these two apart by matching on English
+# prose would break the moment the message is reworded.
+PRICE_OK = "ok"
+PRICE_UNKNOWN_TICKER = "unknown_ticker"
+PRICE_SOURCE_UNAVAILABLE = "source_unavailable"
+
 
 def get_portfolio(db: Session, source: PriceSource | None = None) -> dict:
     """Every holding with its computed values, plus totals over the priced ones."""
@@ -73,16 +80,19 @@ def _price_and_compute(holding, theses_by_ticker: dict, source: PriceSource | No
     """One holding's row. Never raises — a price failure becomes a flag on the row."""
     current_price: float | None = None
     price_error: str | None = None
+    price_status = PRICE_OK
 
     try:
         point = get_price(holding.ticker, source=source)
         if point is None:
             # A real answer, not a fault: no such ticker. Kept distinct from the
             # failure below because the fixes differ — correct the symbol vs. wait.
+            price_status = PRICE_UNKNOWN_TICKER
             price_error = f"No price data for {holding.ticker}"
         else:
             current_price = point.close
     except PriceError as exc:
+        price_status = PRICE_SOURCE_UNAVAILABLE
         price_error = str(exc)
 
     thesis = theses_by_ticker.get(holding.ticker)
@@ -105,6 +115,7 @@ def _price_and_compute(holding, theses_by_ticker: dict, source: PriceSource | No
         "pnl_percent": pnl_percent(holding.shares, holding.average_cost, current_price),
         "allocation_percent": None,  # filled in once the portfolio total is known
         "price_unavailable": current_price is None,
+        "price_status": price_status,
         "price_error": price_error,
         # Both None when the user owns something they never wrote a thesis about,
         # which is normal and not a problem to flag.

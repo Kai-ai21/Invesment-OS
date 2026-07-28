@@ -172,6 +172,90 @@ export interface ChartData {
   prices_unavailable: boolean
 }
 
+/** HoldingOut — one position, with everything the backend derived for it. */
+export interface Holding {
+  id: string
+  ticker: string
+  /** See Thesis.logo_url. */
+  logo_url: string | null
+  shares: number
+  /** Per share, not the total outlay. */
+  average_cost: number
+  purchased_at: string | null
+  note: string | null
+  created_at: string
+
+  /**
+   * ⚠️ EVERY ONE OF THESE IS null WHEN THE PRICE COULD NOT BE FETCHED — never 0.
+   * The backend is explicit about this (backend/domain/portfolio.py) because a 0
+   * renders as a real number and shows a healthy position as a total loss. The UI
+   * must render "—" for a null, never fall back to 0, and never use `?? 0`.
+   */
+  current_price: number | null
+  market_value: number | null
+  unrealised_pnl: number | null
+  pnl_percent: number | null
+  allocation_percent: number | null
+  /** The exception: what was PAID needs no live price and survives an outage. */
+  cost_basis: number
+
+  price_unavailable: boolean
+  /**
+   * WHY there is no price, as a value to BRANCH on. The two failures need different
+   * things from the user (fix the symbol vs. wait), and telling them apart by
+   * matching on `price_error`'s English would break the moment it was reworded.
+   */
+  price_status: 'ok' | 'unknown_ticker' | 'source_unavailable'
+  /** The same thing in words, for display. Null when the price came back fine. */
+  price_error: string | null
+
+  /** Both null when the user owns something they never wrote a thesis about.
+   *  That is normal, not a problem to flag. */
+  thesis_id: string | null
+  thesis_status: ThesisStatus | null
+}
+
+/** PortfolioTotalsOut — computed over the PRICED holdings only. */
+export interface PortfolioTotals {
+  market_value: number
+  cost_basis: number
+  unrealised_pnl: number
+  /** Null on a zero cost basis — no denominator to be a percentage of. */
+  pnl_percent: number | null
+  holdings_counted: number
+  /**
+   * How many holdings these totals LEAVE OUT because their price was unavailable.
+   * Non-zero means the totals are partial and the UI must say so — a total that
+   * looks complete when it isn't is the failure mode this field exists to prevent.
+   */
+  holdings_excluded: number
+}
+
+/** PortfolioOut */
+export interface Portfolio {
+  holdings: Holding[]
+  totals: PortfolioTotals
+}
+
+/** HoldingCreateRequest. The backend uppercases the ticker and rejects
+ *  shares <= 0 or average_cost < 0 with a 422. */
+export interface HoldingCreate {
+  ticker: string
+  shares: number
+  average_cost: number
+  /** ISO date (YYYY-MM-DD), or null when the user didn't record one. */
+  purchased_at?: string | null
+  note?: string | null
+}
+
+/** HoldingUpdateRequest. An omitted key is left alone; an explicit null on `note`
+ *  clears it, which is how a note gets deleted. */
+export interface HoldingUpdate {
+  shares?: number
+  average_cost?: number
+  note?: string | null
+}
+
 /** CheckedFilingOut */
 export interface CheckedFiling {
   title: string
@@ -435,4 +519,42 @@ export function getChartData(thesisId: string, days = 365): Promise<ChartData> {
   return request<ChartData>(
     `/theses/${encodeURIComponent(thesisId)}/chart?days=${days}`,
   )
+}
+
+/* --- holdings ------------------------------------------------------------- */
+
+/**
+ * The whole portfolio: every holding with its computed values, plus totals.
+ * Never fails on a price outage — a failed ticker is flagged on its own row and
+ * excluded from the totals, so one bad symbol cannot blank the page.
+ */
+export function listHoldings(): Promise<Portfolio> {
+  return request<Portfolio>('/holdings')
+}
+
+/**
+ * The three mutations all resolve with the WHOLE portfolio rather than the single
+ * row they touched, because adding, editing or removing a position changes every
+ * other row's allocation percentage. Callers swap in the returned portfolio; there
+ * is nothing to refetch.
+ */
+export function createHolding(fields: HoldingCreate): Promise<Portfolio> {
+  return request<Portfolio>('/holdings', {
+    method: 'POST',
+    body: JSON.stringify(fields),
+  })
+}
+
+export function updateHolding(id: string, fields: HoldingUpdate): Promise<Portfolio> {
+  return request<Portfolio>(`/holdings/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    // Sent as given: an omitted key must stay omitted, since the backend uses the
+    // presence of `note` to tell "leave it alone" from "clear it".
+    body: JSON.stringify(fields),
+  })
+}
+
+/** Resolves with nothing (HTTP 204). The caller refetches for new allocations. */
+export function deleteHolding(id: string): Promise<void> {
+  return request<void>(`/holdings/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }
