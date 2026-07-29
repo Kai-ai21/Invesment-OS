@@ -239,6 +239,57 @@ class QuoteOut(TickerLogoMixin):
     model_config = {"from_attributes": True}
 
 
+class CompanyProfileOut(BaseModel):
+    """Descriptive detail. Every field but the ticker is optional ON EVIDENCE — funds
+    and trusts return no sector, industry, headcount, website or market cap. Absent
+    means absent: the UI omits the row rather than printing "N/A"."""
+
+    name: str | None
+    sector: str | None
+    industry: str | None
+    employees: int | None
+    website: str | None
+    long_business_summary: str | None
+    market_cap: float | None
+    price: float | None
+    previous_close: float | None
+    change: float | None
+    change_percent: float | None
+
+    model_config = {"from_attributes": True}
+
+
+class ResearchSummaryOut(BaseModel):
+    """The filing, restated. Null fields mean the retrieved passages did not cover
+    that subject — the UI drops the card rather than showing a guess."""
+
+    what_the_company_does: str | None
+    how_it_makes_money: str | None
+    key_risks: list[str]
+
+    model_config = {"from_attributes": True}
+
+
+class ResearchOut(TickerLogoMixin):
+    """`ticker` and `logo_url` come from TickerLogoMixin."""
+
+    profile: CompanyProfileOut | None
+    summary: ResearchSummaryOut | None
+
+    # Which document the summary came from. This is what separates the page from a
+    # generic description, so it is always shown when a summary is.
+    source_filing_title: str | None
+    source_filing_date: str | None
+    source_filing_url: str | None
+
+    # True when the profile loaded but the filing summary did not. NOT an error: the
+    # page renders with the profile and a quiet note.
+    filing_summary_unavailable: bool
+    filing_summary_error: str | None
+
+    model_config = {"from_attributes": True}
+
+
 class HoldingCreateRequest(BaseModel):
     ticker: str
     # Constrained here rather than in the route: pydantic turns a violation into

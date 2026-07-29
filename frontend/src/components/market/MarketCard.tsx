@@ -44,7 +44,14 @@ export function MarketCard({
           <div className="flex min-w-0 items-center gap-2.5">
             <CompanyLogo ticker={quote.ticker} logoUrl={quote.logo_url} size={32} />
             <div className="min-w-0">
-              <div className="font-mono text-sm text-text-primary">{quote.ticker}</div>
+              {/* The ticker is the way in to research — the same affordance on
+                  every surface where a ticker appears. */}
+              <Link
+                to={`/research/${encodeURIComponent(quote.ticker)}`}
+                className="rounded font-mono text-sm text-text-primary underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+              >
+                {quote.ticker}
+              </Link>
               <div className="truncate text-xs text-text-secondary">
                 {/* Null while unavailable — the ticker above still names the card. */}
                 {quote.company_name ?? UNAVAILABLE}

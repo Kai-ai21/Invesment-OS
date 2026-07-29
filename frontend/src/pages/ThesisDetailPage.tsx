@@ -1,5 +1,5 @@
 import { useCallback, useState, type ReactNode } from 'react'
-import { ArrowLeft, Loader2, NotebookPen, RefreshCw } from 'lucide-react'
+import { ArrowLeft, BookOpen, Loader2, NotebookPen, RefreshCw } from 'lucide-react'
 import { Link, useParams } from 'react-router'
 
 import { CompanyLogo } from '@/components/CompanyLogo'
@@ -119,6 +119,13 @@ export function ThesisDetailPage() {
             <span className="text-sm text-text-secondary">
               Created {formatDate(thesis.created_at)}
             </span>
+            {/* The company behind the thesis, in its own words. */}
+            <Button asChild variant="ghost" size="sm">
+              <Link to={`/research/${encodeURIComponent(thesis.ticker)}`}>
+                <BookOpen aria-hidden />
+                Research
+              </Link>
+            </Button>
             <ReflectButton
               thesisId={thesis.id}
               onCreated={() => setReflectionsKey((key) => key + 1)}

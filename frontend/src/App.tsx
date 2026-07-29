@@ -8,6 +8,7 @@ import { NewsPage } from '@/pages/NewsPage'
 import { ReflectionsPage } from '@/pages/ReflectionsPage'
 import { NewThesisPage } from '@/pages/NewThesisPage'
 import { PortfolioPage } from '@/pages/PortfolioPage'
+import { ResearchPage } from '@/pages/ResearchPage'
 import { ThesesPage } from '@/pages/ThesesPage'
 import { ThesisDetailPage } from '@/pages/ThesisDetailPage'
 
@@ -26,6 +27,7 @@ function App() {
         <Route path="theses/:id" element={<ThesisDetailPage />} />
         <Route path="portfolio" element={<PortfolioPage />} />
         <Route path="market" element={<MarketPage />} />
+        <Route path="research/:ticker" element={<ResearchPage />} />
         <Route path="alerts" element={<AlertsPage />} />
         <Route path="news" element={<NewsPage />} />
         <Route path="reflections" element={<ReflectionsPage />} />

@@ -32,6 +32,9 @@ class FakeQuoteSource(PriceSource):
             market_cap=value,
         )
 
+    def get_company_profile(self, ticker):
+        raise NotImplementedError
+
     def get_current_price(self, ticker):
         raise NotImplementedError
 

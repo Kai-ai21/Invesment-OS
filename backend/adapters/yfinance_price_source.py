@@ -19,7 +19,7 @@ the same value, because the last daily row covers the open session.
 import warnings
 from datetime import date
 
-from backend.ports.price_source import PricePoint, PriceSource, Quote
+from backend.ports.price_source import CompanyProfile, PricePoint, PriceSource, Quote
 
 # yfinance performs network I/O with its own internal timeouts; this bounds the call we
 # make so a hung upstream cannot pin a request open indefinitely.
@@ -49,6 +49,67 @@ def _to_date(index_value) -> date:
 
 
 class YFinancePriceSource(PriceSource):
+    def _info(self, ticker: str) -> dict:
+        """One get_info() call, with library failures translated into our errors."""
+        import yfinance
+
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                return yfinance.Ticker(ticker).get_info()
+        except Exception as exc:  # noqa: BLE001 - yfinance raises a wide variety
+            raise PriceNetworkError(f"Could not fetch data for {ticker}: {exc}") from exc
+
+    def get_company_profile(self, ticker: str) -> CompanyProfile | None:
+        """Descriptive detail, from the same get_info() payload the quote uses.
+
+        Field coverage was probed on 2026-07-29 — see CompanyProfile for what is
+        reliably present and where it thins out. Nothing here substitutes a default
+        for a missing value: a fund genuinely has no sector, and inventing "N/A"
+        would put a non-answer where the UI expects a fact.
+        """
+        info = self._info(ticker)
+        if not info:
+            raise PriceUnavailableError(f"Empty profile response for {ticker}")
+
+        # The one-key dict is the unknown-symbol shape. A real company always carries
+        # at least a name; a fund with no sector still has one.
+        name = info.get("longName") or info.get("shortName")
+        if name is None and info.get("regularMarketPrice") is None:
+            return None
+
+        price = info.get("regularMarketPrice")
+        previous_close = info.get("regularMarketPreviousClose")
+        change = (
+            price - previous_close
+            if price is not None and previous_close is not None
+            else None
+        )
+
+        employees = info.get("fullTimeEmployees")
+
+        return CompanyProfile(
+            ticker=ticker.strip().upper(),
+            name=name,
+            # `or None` collapses the empty string to absent. The probe never saw ""
+            # from this provider, but a blank sector rendered as a labelled empty gap
+            # is worse than the field simply not being there.
+            sector=info.get("sector") or None,
+            industry=info.get("industry") or None,
+            employees=int(employees) if employees is not None else None,
+            website=info.get("website") or None,
+            long_business_summary=info.get("longBusinessSummary") or None,
+            market_cap=float(info["marketCap"]) if info.get("marketCap") else None,
+            price=float(price) if price is not None else None,
+            previous_close=float(previous_close) if previous_close is not None else None,
+            change=change,
+            change_percent=(
+                (change / previous_close * 100)
+                if change is not None and previous_close
+                else None
+            ),
+        )
+
     def get_quote(self, ticker: str) -> Quote | None:
         """A full quote, via get_info().
 
@@ -70,15 +131,7 @@ class YFinancePriceSource(PriceSource):
         Reliability check: marketCap came back populated for all 30 candidates
         probed, so this is not a field that goes missing for no clear reason.
         """
-        import yfinance
-
-        try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                info = yfinance.Ticker(ticker).get_info()
-        except Exception as exc:  # noqa: BLE001 - yfinance raises a wide variety
-            raise PriceNetworkError(f"Could not fetch a quote for {ticker}: {exc}") from exc
-
+        info = self._info(ticker)
         if not info:
             raise PriceUnavailableError(f"Empty quote response for {ticker}")
 

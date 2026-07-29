@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 
 from backend.domain.claim import ClaimData
 from backend.domain.pattern import PatternData
+from backend.domain.research import ResearchSummary
 from backend.domain.verification import VerdictData
 
 
@@ -30,6 +31,25 @@ class LLMProvider(ABC):
 
         Must reference the specific claim and at least one of `evidence_quotes`, and may
         reference nothing beyond what is passed in — the caller checks that.
+        """
+
+    @abstractmethod
+    def summarise_company(
+        self,
+        ticker: str,
+        profile_summary: str | None,
+        business_passages: list[str],
+        risk_passages: list[str],
+    ) -> ResearchSummary:
+        """Restate a company's own filing in plain language.
+
+        DESCRIBES ONLY. Never evaluates the company as an investment, and uses
+        nothing beyond the profile text and passages supplied — the passages come
+        from a retrieval pass over one filing, so anything outside them would be
+        the model's training data rather than the company's disclosure.
+
+        Any field the passages do not cover comes back None, and `key_risks` comes
+        back empty rather than padded.
         """
 
     @abstractmethod

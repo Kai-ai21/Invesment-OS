@@ -14,7 +14,7 @@ import {
 } from '@/lib/api'
 import {
   UNAVAILABLE,
-  formatDate,
+  formatPlainDate,
   formatMoney,
   formatPercent,
   formatShares,
@@ -134,11 +134,16 @@ function HoldingRow({
           <div className="flex items-center gap-2.5">
             <CompanyLogo ticker={holding.ticker} logoUrl={holding.logo_url} size={28} />
             <div className="min-w-0">
-              <div className="font-mono text-sm text-text-primary">{holding.ticker}</div>
+              <Link
+                to={`/research/${encodeURIComponent(holding.ticker)}`}
+                className="rounded font-mono text-sm text-text-primary underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+              >
+                {holding.ticker}
+              </Link>
               {holding.price_unavailable && <PriceProblem holding={holding} />}
               {holding.purchased_at && !holding.price_unavailable && (
                 <div className="text-xs text-text-muted">
-                  Bought {formatDate(holding.purchased_at)}
+                  Bought {formatPlainDate(holding.purchased_at)}
                 </div>
               )}
             </div>

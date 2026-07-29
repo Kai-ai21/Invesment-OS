@@ -20,6 +20,30 @@ export function formatDate(iso: string): string {
   })
 }
 
+/**
+ * A DATE-ONLY value ("2026-02-26"), rendered as the calendar date it is.
+ *
+ * These are not instants. A filing date, or the day someone bought shares, is a
+ * date on a calendar with no time and no timezone. Sending one through
+ * `formatDate` treats it as UTC midnight and then renders it locally, which is
+ * harmless east of Greenwich and WRONG west of it: a filing dated the 26th shows
+ * as the 25th in California. Constructing in local time keeps the date put.
+ */
+export function formatPlainDate(value: string): string {
+  const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  // Anything carrying a time is a real instant — hand it back to formatDate.
+  if (!parts) return formatDate(value)
+
+  const [, year, month, day] = parts
+  const date = new Date(Number(year), Number(month) - 1, Number(day))
+  if (Number.isNaN(date.getTime())) return 'unknown date'
+  return date.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
 export function formatDateTime(iso: string): string {
   const date = parseBackendDate(iso)
   if (Number.isNaN(date.getTime())) return 'unknown date'

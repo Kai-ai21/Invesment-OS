@@ -30,6 +30,9 @@ class FakePriceSource(PriceSource):
     def get_quote(self, ticker):
         raise NotImplementedError
 
+    def get_company_profile(self, ticker):
+        raise NotImplementedError
+
     def get_current_price(self, ticker):
         raise NotImplementedError
 

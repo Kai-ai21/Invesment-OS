@@ -10,6 +10,7 @@ from backend.api.market import router as market_router
 from backend.api.news import router as news_router
 from backend.api.patterns import router as patterns_router
 from backend.api.prices import router as prices_router
+from backend.api.research import router as research_router
 from backend.api.post_mortems import router as post_mortems_router
 from backend.api.theses import router as theses_router
 from backend.models.database import init_db, seed_demo_user
@@ -42,6 +43,7 @@ app.include_router(patterns_router)
 app.include_router(prices_router)
 app.include_router(holdings_router)
 app.include_router(market_router)
+app.include_router(research_router)
 
 
 @app.get("/health")

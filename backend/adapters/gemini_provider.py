@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from backend.domain.claim import ClaimData
 from backend.domain.pattern import PatternData
+from backend.domain.research import ResearchSummary
 from backend.domain.verification import VerdictData
 from backend.ports.llm_provider import LLMProvider
 
@@ -132,6 +133,53 @@ where the last is padding.
 Return the patterns as a list, or an empty list."""
 
 
+RESEARCH_PROMPT = """You are restating a company's own SEC filing in plain language, for \
+someone who wants to understand what {ticker} does before forming their own view.
+
+The company's profile description:
+\"\"\"{profile_summary}\"\"\"
+
+Passages retrieved from the filing about the BUSINESS:
+{business_passages}
+
+Passages retrieved from the filing about RISK FACTORS:
+{risk_passages}
+
+Produce:
+- what_the_company_does: 2 to 3 sentences, plain language
+- how_it_makes_money: 2 to 3 sentences on where revenue actually comes from
+- key_risks: 3 to 5 short bullet points, each drawn from the RISK passages above
+
+Rules:
+
+1. USE ONLY THE MATERIAL ABOVE. Every product, segment, customer, figure and risk you \
+mention must appear in the profile description or the passages. You may well recognise this \
+company — ignore everything you know about it. Invent no numbers, no dates, no market shares, \
+no customer names. If a figure is not in the text above, it does not go in your answer.
+
+2. NEVER EVALUATE THE COMPANY AS AN INVESTMENT. This is a hard rule with no exceptions. Do \
+not write "well-positioned", "attractive", "strong", "concerning", "impressive", "dominant", \
+"challenged", or any other word that grades the business. Do not say whether a risk is likely, \
+serious, or manageable. Do not compare the company favourably or unfavourably to competitors. \
+Do not mention valuation, price, whether shares are cheap or expensive, or what an investor \
+should do. Describe WHAT THE FILING SAYS and stop there.
+
+3. PLAIN LANGUAGE. Explain jargon instead of repeating it. If the filing says "hyperscale \
+CSPs", write "the largest cloud computing providers". If it says "design wins", explain that \
+a customer chose the company's chip for a product. Someone who does not work in the industry \
+should understand every sentence.
+
+4. OMIT WHAT IS NOT COVERED. If the passages do not explain how the company earns revenue, \
+return null for how_it_makes_money. If no risk passages were supplied, return an empty list. \
+A missing field is correct and expected; a guessed one is a failure. Never write "the filing \
+does not say" as the field's value — return null instead.
+
+5. RISKS ARE THE COMPANY'S OWN STATED RISKS, not yours. Each bullet paraphrases something the \
+risk passages actually raise. Do not add risks you think apply. Do not rank them.
+
+Return the structured summary."""
+
+
 class ClaimsResponse(BaseModel):
     claims: list[ClaimData]
 
@@ -220,6 +268,42 @@ class GeminiProvider(LLMProvider):
         )
 
         return ReflectionQuestion.model_validate_json(response.text).question
+
+    def summarise_company(
+        self,
+        ticker: str,
+        profile_summary: str | None,
+        business_passages: list[str],
+        risk_passages: list[str],
+    ) -> ResearchSummary:
+        def numbered(passages: list[str]) -> str:
+            # Numbered blocks so the model can tell the passages apart and cannot
+            # blur several into one invented composite.
+            return (
+                "\n\n".join(
+                    f"[{index}] {passage}"
+                    for index, passage in enumerate(passages, start=1)
+                )
+                or "(none retrieved)"
+            )
+
+        prompt = RESEARCH_PROMPT.format(
+            ticker=ticker,
+            profile_summary=profile_summary or "(none available)",
+            business_passages=numbered(business_passages),
+            risk_passages=numbered(risk_passages),
+        )
+
+        response = self._client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=ResearchSummary,
+            ),
+        )
+
+        return ResearchSummary.model_validate_json(response.text)
 
     def generate_patterns(self, post_mortems: list[dict]) -> list[PatternData]:
         # Rendered as a labelled block per reflection so the model can cite ids exactly.

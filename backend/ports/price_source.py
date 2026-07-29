@@ -66,7 +66,50 @@ class Quote(BaseModel):
     )
 
 
+class CompanyProfile(BaseModel):
+    """Who a company is, as its data provider describes it.
+
+    ⚠️ EVERYTHING EXCEPT `ticker` IS OPTIONAL, ON EVIDENCE. A probe on 2026-07-29
+    across ten operating companies (mega cap down to micro cap, a REIT, two ADRs, a
+    recent IPO) returned all eight fields every time — but ETFs and commodity trusts
+    are a different shape entirely: SPY and GLD came back with NO sector, industry,
+    employee count, website or market cap, carrying only a name, a summary and a
+    price. Nothing stops a user typing SPY into this URL.
+
+    An absent field is None and is RENDERED AS ABSENT — never as an empty string,
+    a zero, or "N/A" in a slot that looks like it should hold something. The probe
+    also confirmed the provider never returns "" for these, so None is the single
+    signal to check.
+    """
+
+    ticker: str
+    name: str | None = Field(default=None, description="Full legal name.")
+    sector: str | None = Field(default=None, description="Absent for funds and trusts.")
+    industry: str | None = Field(default=None, description="Absent for funds and trusts.")
+    employees: int | None = Field(
+        default=None, description="Full-time headcount. Absent for funds and trusts."
+    )
+    website: str | None = Field(default=None, description="Absent for funds and trusts.")
+    long_business_summary: str | None = Field(
+        default=None, description="The provider's own description of the business."
+    )
+    market_cap: float | None = Field(default=None, description="Absent for funds.")
+    price: float | None = Field(default=None, description="Latest regular-market price.")
+    previous_close: float | None = None
+    change: float | None = None
+    change_percent: float | None = None
+
+
 class PriceSource(ABC):
+    @abstractmethod
+    def get_company_profile(self, ticker: str) -> CompanyProfile | None:
+        """Descriptive detail for `ticker`, or None when the ticker is unknown.
+
+        Same contract as the rest of this port: None is the real answer "no such
+        symbol", while a failure raises. Unlike get_quote, a profile with missing
+        FIELDS is still a valid profile — see CompanyProfile on why.
+        """
+
     @abstractmethod
     def get_quote(self, ticker: str) -> Quote | None:
         """A full quote for `ticker`, or None when the ticker is unknown.

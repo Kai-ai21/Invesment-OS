@@ -258,6 +258,49 @@ export interface Quote {
   error: string | null
 }
 
+/** CompanyProfileOut. Every field is optional ON EVIDENCE — funds and trusts
+ *  return no sector, industry, headcount, website or market cap. Absent means
+ *  absent: render the row away, never "N/A" in a slot that looks like a fact. */
+export interface CompanyProfile {
+  name: string | null
+  sector: string | null
+  industry: string | null
+  employees: number | null
+  website: string | null
+  long_business_summary: string | null
+  market_cap: number | null
+  price: number | null
+  previous_close: number | null
+  change: number | null
+  change_percent: number | null
+}
+
+/** ResearchSummaryOut — the filing restated. A null field means the retrieved
+ *  passages did not cover it, so the UI drops that card rather than showing a
+ *  guess. Never contains an assessment; see backend/domain/research.py. */
+export interface ResearchSummary {
+  what_the_company_does: string | null
+  how_it_makes_money: string | null
+  key_risks: string[]
+}
+
+/** ResearchOut */
+export interface Research {
+  ticker: string
+  logo_url: string | null
+  profile: CompanyProfile | null
+  summary: ResearchSummary | null
+  /** Which document the summary came from — this is what makes the page credible
+   *  rather than generic, so it is shown whenever a summary is. */
+  source_filing_title: string | null
+  source_filing_date: string | null
+  source_filing_url: string | null
+  /** True when the profile loaded but the filing summary didn't. NOT an error —
+   *  the page renders the profile with a quiet note. */
+  filing_summary_unavailable: boolean
+  filing_summary_error: string | null
+}
+
 /** HoldingCreateRequest. The backend uppercases the ticker and rejects
  *  shares <= 0 or average_cost < 0 with a 422. */
 export interface HoldingCreate {
@@ -593,4 +636,22 @@ export function deleteHolding(id: string): Promise<void> {
  */
 export function listMarketLeaders(): Promise<Quote[]> {
   return request<Quote[]>('/market/leaders')
+}
+
+/* --- research ------------------------------------------------------------- */
+
+/**
+ * Company profile plus a plain-language summary of the latest SEC filing.
+ *
+ * ⚠️ SLOW on a cold cache — a filing fetch, two retrieval passes and one AI call,
+ * so 10-20 seconds is normal and the UI must say what it is doing rather than
+ * showing a bare spinner. Cached server-side per ticker for 24 hours.
+ *
+ * 404 means no such ticker; 502 means every upstream failed. A filing that could
+ * not be read is NEITHER — it resolves normally with the profile and
+ * `filing_summary_unavailable` set, so this rejecting always means the page has
+ * nothing at all to show.
+ */
+export function getResearch(ticker: string): Promise<Research> {
+  return request<Research>(`/research/${encodeURIComponent(ticker)}`)
 }

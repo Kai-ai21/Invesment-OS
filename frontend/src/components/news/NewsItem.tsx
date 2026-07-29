@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { ExternalLink } from 'lucide-react'
 
+import { Link } from 'react-router'
+
 import { CompanyLogo } from '@/components/CompanyLogo'
 import { formatRelative } from '@/lib/format'
 import type { NewsItem as NewsItemData } from '@/lib/api'
@@ -63,9 +65,12 @@ export function NewsItem({ item }: { item: NewsItemData }) {
             row: this is who the story is ABOUT, that is who reported it. */}
         <span className="flex items-center gap-1.5">
           <CompanyLogo ticker={item.ticker} logoUrl={item.logo_url} size={16} />
-          <span className="rounded-[4px] border border-border px-1.5 py-0.5 font-mono tracking-[0.08em] text-text-secondary uppercase">
+          <Link
+            to={`/research/${encodeURIComponent(item.ticker)}`}
+            className="rounded-[4px] border border-border px-1.5 py-0.5 font-mono tracking-[0.08em] text-text-secondary uppercase transition-colors hover:border-text-muted hover:text-text-primary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+          >
             {item.ticker}
-          </span>
+          </Link>
         </span>
         <span className="flex min-w-0 items-center gap-1.5">
           <SourceIcon src={item.favicon_url} />
