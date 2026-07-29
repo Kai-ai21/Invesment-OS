@@ -128,7 +128,13 @@
       "Bash(curl -s -o /tmp/r404.json -w \"HTTP %{http_code}\\\\n\" localhost:8000/research/ZZZZNOTREAL)",
       "Bash(time curl -s --max-time 300 localhost:8000/research/CRSR -o /tmp/r2.json -w \"HTTP %{http_code}\\\\n\")",
       "Bash(curl -s -o /dev/null -w \"warm AAPL cache first: %{http_code}\\\\n\" --max-time 300 localhost:8000/research/AAPL)",
-      "Bash(curl -s -o /dev/null -m 5 -w \"%{http_code}\" localhost:8000/research/MSFT)"
+      "Bash(curl -s -o /dev/null -m 5 -w \"%{http_code}\" localhost:8000/research/MSFT)",
+      "Bash(kill 48799)",
+      "Bash(lsof -ti:5173)",
+      "Bash(ps -p 47597 -o pid,command)",
+      "Bash(ps -p 50074 -o command=)",
+      "Bash(kill 50074)",
+      "Bash(lsof -nP -iTCP:5173 -sTCP:LISTEN)"
     ]
   }
 }

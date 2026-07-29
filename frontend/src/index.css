@@ -128,6 +128,28 @@
     --popover-foreground: #e8eaf0;
     --primary: #e8eaf0;
     --primary-foreground: #0f1115;
+
+    /* Soft glow behind the PRIMARY button on hover and keyboard focus.
+       Built from --primary, deliberately NOT from shadcn's --accent: in this
+       theme --accent is a dark surface colour (#1d212b), so a glow made from it
+       would be invisible against the background. Low alpha and a negative spread
+       so it reads as light bleeding out from under the button rather than as a
+       drop shadow lifting it off the page. */
+    --btn-glow: 0 4px 16px -4px color-mix(in srgb, var(--primary) 22%, transparent);
+
+    /* HERO button — the one main action on a page (today: New thesis).
+       Two shadows in each: an inset top highlight, which is what gives the button
+       a lit edge and a sense of mass at rest, plus an outer glow. The resting pair
+       is deliberately faint — present enough to mark the button as the primary
+       action before the cursor arrives, quiet enough not to read as hovered. */
+    --btn-hero-rest:
+      inset 0 1px 0 0 color-mix(in srgb, var(--primary) 8%, transparent),
+      0 2px 10px -6px color-mix(in srgb, var(--primary) 18%, transparent);
+    /* Hover/focus: a deeper, wider throw than --btn-glow above, so the hero reads
+       as heavier than an ordinary primary rather than merely brighter. */
+    --btn-hero-glow:
+      inset 0 1px 0 0 color-mix(in srgb, var(--primary) 12%, transparent),
+      0 6px 22px -6px color-mix(in srgb, var(--primary) 38%, transparent);
     --secondary: #1d212b;
     --secondary-foreground: #e8eaf0;
     --muted: #171a21;
@@ -197,6 +219,21 @@
   .btn-sweep {
     position: relative;
     overflow: hidden;
+    /* Colour transitions for EVERY variant. These used to come from a
+       `transition-all duration-300` utility on the component's base class, but a
+       utility sits in a later cascade layer than this one and would override the
+       asymmetric transform timing below — so all button motion now has one home,
+       here, and the utility was removed. */
+    transition:
+      background-color 300ms ease,
+      color 300ms ease,
+      border-color 300ms ease,
+      /* opacity and box-shadow were previously animated by the blanket
+         `transition-all`: opacity carries the fade to 50% when a button disables
+         mid-AI-call, box-shadow carries the focus ring. Listed explicitly so
+         removing that utility changed the TIMING SOURCE, not the behaviour. */
+      opacity 300ms ease,
+      box-shadow 300ms ease;
   }
   .btn-sweep::before {
     content: "";
@@ -209,7 +246,9 @@
     background-color: #fff;
     transform: translate(-50%, -50%);
     mix-blend-mode: difference;
-    transition: width 0.3s ease;
+    /* 250ms on a decelerating curve: the sweep arrives quickly and SETTLES,
+       rather than easing in and out and reading as still-moving on arrival. */
+    transition: width 250ms cubic-bezier(0.2, 0.8, 0.2, 1);
     pointer-events: none;
     /* Above the label so the difference blend inverts the text too, but the
        box-shadow focus ring sits outside the box and is unaffected. */
@@ -218,7 +257,8 @@
   .btn-sweep:hover:not(:disabled)::before {
     width: 250%;
   }
-  /* Softened from the original translate(5px, 5px) — too much for a dashboard. */
+  /* Softened from the original translate(5px, 5px) — too much for a dashboard.
+     The primary overrides this with a scale press below. */
   .btn-sweep:active:not(:disabled) {
     transform: translate(1px, 1px);
   }
@@ -227,6 +267,118 @@
   .btn-sweep:disabled::before {
     content: none;
   }
+
+  /* ---- primary only -------------------------------------------------------
+     Scoped to [data-variant="default"], which the Button component stamps on the
+     element (and which `asChild` forwards onto the rendered <a>). Ghost, outline
+     and link buttons stay flat on purpose: a lifting, glowing "Cancel" beside a
+     "Save", or a row's trash icon rising under the cursor, would compete with the
+     action it is meant to sit quietly next to.
+
+     ASYMMETRIC TIMING. The transition declared on the RESTING state governs the
+     LEAVE (260ms); the one under :hover governs the ENTER (200ms). Leaving more
+     slowly than it arrives is what makes the button read as settling back rather
+     than snapping away.
+
+     The glow itself is NOT set here — see button.tsx. It is a Tailwind shadow
+     utility so that it composes with the focus ring into a single box-shadow;
+     declaring box-shadow in this layer would simply be overridden by the ring
+     utility whenever the button was focused. */
+  .btn-sweep[data-variant="default"] {
+    transition:
+      background-color 300ms ease,
+      color 300ms ease,
+      border-color 300ms ease,
+      opacity 300ms ease,
+      transform 260ms cubic-bezier(0.22, 0.61, 0.36, 1),
+      box-shadow 260ms ease-out;
+  }
+  .btn-sweep[data-variant="default"]:not(:disabled):hover,
+  .btn-sweep[data-variant="default"]:not(:disabled):focus-visible {
+    transform: translateY(-1px);
+    transition:
+      background-color 300ms ease,
+      color 300ms ease,
+      border-color 300ms ease,
+      opacity 300ms ease,
+      transform 200ms cubic-bezier(0.22, 0.61, 0.36, 1),
+      /* Matches the 250ms sweep so the glow arrives WITH it, not after. */
+      box-shadow 200ms ease-out;
+  }
+  /* The press: lands back on the baseline and compresses, so it reads as the
+     button taking the weight. Fast, because a slow press feels unresponsive. */
+  .btn-sweep[data-variant="default"]:not(:disabled):active {
+    transform: translateY(0) scale(0.98);
+    transition-duration: 90ms;
+  }
+
+  /* ---- hero ---------------------------------------------------------------
+     The single main action on a page. Same contract as the primary above — lift
+     and glow on hover AND keyboard focus, sweep on hover only — but heavier, and
+     every duration is the primary's × 1.4, so the two read as the same gesture
+     performed with more weight rather than as two different animations.
+
+     The glow is again a shadow UTILITY (see button.tsx), not a box-shadow here:
+     declared in this layer it would be overridden by `focus-visible:ring-3` from
+     the later utilities layer, and keyboard focus is precisely where the glow has
+     to survive. */
+  .btn-sweep[data-variant="hero"]::before {
+    /* 350ms = 250 × 1.4. */
+    transition: width 350ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  /* LEAVE timing, 364ms = 260 × 1.4. */
+  .btn-sweep[data-variant="hero"] {
+    transition:
+      background-color 300ms ease,
+      color 300ms ease,
+      border-color 300ms ease,
+      opacity 300ms ease,
+      transform 364ms cubic-bezier(0.22, 0.61, 0.36, 1),
+      box-shadow 364ms ease-out;
+  }
+  /* ENTER timing, 280ms = 200 × 1.4. Deeper travel than the primary's -1px. */
+  .btn-sweep[data-variant="hero"]:not(:disabled):hover,
+  .btn-sweep[data-variant="hero"]:not(:disabled):focus-visible {
+    transform: translateY(-2px);
+    transition:
+      background-color 300ms ease,
+      color 300ms ease,
+      border-color 300ms ease,
+      opacity 300ms ease,
+      transform 280ms cubic-bezier(0.22, 0.61, 0.36, 1),
+      box-shadow 280ms ease-out;
+  }
+  /* 126ms = 90 × 1.4. Compresses slightly further than the primary's 0.98. */
+  .btn-sweep[data-variant="hero"]:not(:disabled):active {
+    transform: translateY(0) scale(0.97);
+    transition-duration: 126ms;
+  }
+
+  /* 45deg, not 90: a plus is rotationally symmetric at a quarter turn and would
+     land exactly where it started, so the hero turns it into an × instead — a
+     visible end state, which is the point of giving this button more weight. */
+  .btn-sweep[data-variant="hero"] .lucide-plus {
+    transform-origin: center;
+    transition: transform 280ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .btn-sweep[data-variant="hero"]:not(:disabled):hover .lucide-plus {
+    transform: rotate(45deg);
+  }
+
+  /* The "+" spins a quarter turn on hover.
+     A plus is rotationally symmetric at 90deg, so this LANDS exactly where it
+     started — the effect is entirely in the travel, which is the point: it makes
+     the button feel responsive without leaving the icon in a new state. Scoped to
+     `.lucide-plus` rather than every svg, because a quarter turn would leave an
+     arrow pointing the wrong way and a trash can on its side. */
+  .btn-sweep[data-variant="default"] .lucide-plus {
+    transform-origin: center;
+    transition: transform 200ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .btn-sweep[data-variant="default"]:not(:disabled):hover .lucide-plus {
+    transform: rotate(90deg);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .btn-sweep::before {
       transition: none;
@@ -236,6 +388,30 @@
     }
     .btn-sweep:active:not(:disabled) {
       transform: none;
+    }
+    /* No lift, no press travel, no icon rotation. The colour change and the glow
+       stay: neither moves anything, and they are the only hover affordance left.
+       The hero keeps its resting glow too, so it still reads as the main action. */
+    .btn-sweep[data-variant="default"]:not(:disabled):hover,
+    .btn-sweep[data-variant="default"]:not(:disabled):focus-visible,
+    .btn-sweep[data-variant="default"]:not(:disabled):active,
+    .btn-sweep[data-variant="hero"]:not(:disabled):hover,
+    .btn-sweep[data-variant="hero"]:not(:disabled):focus-visible,
+    .btn-sweep[data-variant="hero"]:not(:disabled):active {
+      transform: none;
+    }
+    .btn-sweep[data-variant="hero"]::before {
+      transition: none;
+    }
+    .btn-sweep[data-variant="hero"]:hover:not(:disabled)::before {
+      width: 0;
+    }
+    .btn-sweep[data-variant="default"] .lucide-plus,
+    .btn-sweep[data-variant="default"]:not(:disabled):hover .lucide-plus,
+    .btn-sweep[data-variant="hero"] .lucide-plus,
+    .btn-sweep[data-variant="hero"]:not(:disabled):hover .lucide-plus {
+      transform: none;
+      transition: none;
     }
   }
 

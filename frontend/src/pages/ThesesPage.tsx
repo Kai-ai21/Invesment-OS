@@ -19,7 +19,11 @@ export function ThesesPage() {
     <div>
       <header className="mb-8 flex items-center justify-between gap-4">
         <h1 className="font-display text-2xl tracking-[0.01em] text-text-primary">Theses</h1>
-        <Button asChild>
+        {/* The one hero on the page. The empty-state card below has its own
+            "New thesis" button and deliberately keeps the default variant —
+            two heroes on one screen would leave neither reading as the main
+            action. */}
+        <Button asChild variant="hero">
           <Link to="/theses/new">
             <Plus aria-hidden />
             New thesis
