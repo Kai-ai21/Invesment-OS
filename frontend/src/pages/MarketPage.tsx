@@ -29,7 +29,7 @@ export function MarketPage() {
 
     // The user's own theses and holdings are an OVERLAY on it. A failure in either
     // costs the badges, not the grid, so each degrades to empty rather than taking
-    // down ten perfectly good cards.
+    // down eleven perfectly good cards.
     const [theses, portfolio] = await Promise.all([
       listTheses().catch(() => [] as Thesis[]),
       listHoldings().catch(() => null),
@@ -125,7 +125,7 @@ export function MarketPage() {
 }
 
 /**
- * Says which half of this page is maintained by hand. Which ten companies appear
+ * Says which half of this page is maintained by hand. Which twelve companies appear
  * is curated and can go stale without anything noticing; the prices and the order
  * are live. Leaving that unsaid would let the list read as self-maintaining.
  */
@@ -144,7 +144,7 @@ function MarketSkeleton() {
       aria-busy="true"
       aria-label="Loading market data"
     >
-      {Array.from({ length: 9 }, (_, index) => (
+      {Array.from({ length: 12 }, (_, index) => (
         <li key={index}>
           <Card className="[--card-spacing:--spacing(5)]">
             <div className="flex flex-col gap-3 px-(--card-spacing)">

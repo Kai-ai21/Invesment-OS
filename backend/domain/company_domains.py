@@ -97,6 +97,25 @@ TICKER_DOMAINS: dict[str, str] = {
 _FAVICON_URL = "https://icons.duckduckgo.com/ip3/{domain}.ico"
 
 
+# Tickers whose domain below is CORRECT but whose icon from the favicon service is
+# not. Verified by downloading and looking at each one on 2026-07-30:
+#
+#   TSM   -> tsmc.com is genuinely TSMC's site, but the service returns a red BenQ
+#            wordmark for it — a different company entirely. www.tsmc.com gives the
+#            same wrong icon, and tsmc.com.tw / tsmc.com.cn fall back to the service's
+#            generic placeholder. There is no spelling of TSMC's domain that yields
+#            TSMC's mark, so the fault is in the service's database, not here.
+#   BRK-B -> berkshirehathaway.com serves NO favicon at all (its /favicon.ico is a
+#            real 404), so the service returns its generic grey chevron.
+#
+# Both were reaching the UI as confident, wrong marks: a rival's logo, and a
+# placeholder that reads as a real but unfamiliar brand. Initials are the honest
+# answer, and this list is the seam to delete an entry from if the service ever
+# fixes its data — the domains themselves stay above, because they are correct and
+# are what `domain_for_ticker` is for.
+ICONS_KNOWN_BAD: frozenset[str] = frozenset({"TSM", "BRK-B", "BRK.B", "BRK-A", "BRK.A"})
+
+
 def domain_for_ticker(ticker: str | None) -> str | None:
     """The company's primary domain, or None when the ticker is not in the map.
 
@@ -113,7 +132,11 @@ def logo_url_for_ticker(ticker: str | None) -> str | None:
     None means the UI should show its initials fallback. Note the icon service answers
     404 for a domain it has no icon for, but with a generic placeholder image in the
     BODY, which browsers render rather than treating as an error — so a mapped company
-    whose icon is missing shows a neutral placeholder rather than the initials.
+    whose icon is missing shows a neutral placeholder rather than the initials. That
+    is exactly why ICONS_KNOWN_BAD exists: the frontend cannot detect it, because as
+    far as the browser is concerned the image loaded fine.
     """
+    if ticker and ticker.strip().upper() in ICONS_KNOWN_BAD:
+        return None
     domain = domain_for_ticker(ticker)
     return _FAVICON_URL.format(domain=domain) if domain else None

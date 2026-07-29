@@ -63,11 +63,11 @@ def caps_for(**overrides) -> dict:
 # --- the curated list --------------------------------------------------------------
 
 
-def test_membership_is_ten_unique_tickers():
+def test_membership_is_twelve_unique_tickers():
     # Arrange / Act / Assert — a duplicate would render two identical cards, and the
     # count is the one thing the page's title claims.
-    assert len(MARKET_LEADERS) == 10
-    assert len(set(MARKET_LEADERS)) == 10
+    assert len(MARKET_LEADERS) == 12  # 12 fills the page's 3-column grid evenly
+    assert len(set(MARKET_LEADERS)) == 12
 
 
 def test_review_date_is_recorded():
@@ -111,7 +111,7 @@ def test_one_failing_ticker_does_not_empty_the_page():
     by_ticker = {quote.ticker: quote for quote in quotes}
 
     # Assert — the failure is confined to its own card.
-    assert len(quotes) == 10
+    assert len(quotes) == len(MARKET_LEADERS)
     assert by_ticker[failing].unavailable is True
     assert "yahoo down" in by_ticker[failing].error
     healthy = [q for q in quotes if q.ticker != failing]
@@ -160,16 +160,16 @@ def test_unavailable_quotes_sink_to_the_bottom():
     assert all(q.market_cap is not None for q in quotes[:-1])
 
 
-def test_every_ticker_failing_still_returns_all_ten():
+def test_every_ticker_failing_still_returns_every_leader():
     # Arrange — the worst case: the upstream is entirely down.
     source = FakeQuoteSource({t: PriceNetworkError("down") for t in MARKET_LEADERS})
 
     # Act
     quotes = get_market_leaders(source=source)
 
-    # Assert — ten cards saying "unavailable" is recoverable; an empty page is not
-    # distinguishable from "there are no large companies".
-    assert len(quotes) == 10
+    # Assert — twelve cards saying "unavailable" is recoverable; an empty page is
+    # not distinguishable from "there are no large companies".
+    assert len(quotes) == len(MARKET_LEADERS)
     assert all(q.unavailable for q in quotes)
 
 
@@ -184,8 +184,8 @@ def test_successful_quotes_are_served_from_cache():
     get_market_leaders(source=source)
     get_market_leaders(source=source)
 
-    # Assert — ten upstream calls total, not twenty.
-    assert len(source.calls) == 10
+    # Assert — one upstream call per leader, not two.
+    assert len(source.calls) == len(MARKET_LEADERS)
 
 
 def test_failures_are_not_cached():
@@ -197,7 +197,7 @@ def test_failures_are_not_cached():
     get_market_leaders(source=source)
     get_market_leaders(source=source)
 
-    # Assert — the nine successes were cached, the failure was retried.
+    # Assert — the other eleven were cached, the failure was retried.
     assert source.calls.count(failing) == 2
     assert source.calls.count(MARKET_LEADERS[1]) == 1
 
@@ -212,4 +212,4 @@ def test_clear_cache_forces_a_refetch():
     get_market_leaders(source=source)
 
     # Assert
-    assert len(source.calls) == 20
+    assert len(source.calls) == 2 * len(MARKET_LEADERS)

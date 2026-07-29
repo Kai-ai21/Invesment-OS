@@ -138,7 +138,7 @@ function Unavailable({ reason }: { reason: string | null }) {
  * The thesis and the position, or an invitation to start one.
  *
  * "Track this" is deliberately quiet — muted text, no button, no count badge.
- * Not having a thesis on one of the ten largest companies is a normal state, not
+ * Not having a thesis on one of the twelve largest companies is a normal state, not
  * an omission to be chased about.
  */
 function Connection({

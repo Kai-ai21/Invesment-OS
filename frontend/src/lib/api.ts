@@ -626,10 +626,10 @@ export function deleteHolding(id: string): Promise<void> {
 /* --- market --------------------------------------------------------------- */
 
 /**
- * The ten curated market leaders, ranked by LIVE market cap.
+ * The twelve curated market leaders, ranked by LIVE market cap.
  *
  * Membership is hand-maintained on the backend and can go stale; the quotes and
- * the ranking are live. Always resolves with all ten — a company whose quote
+ * the ranking are live. Always resolves with all twelve — a company whose quote
  * failed comes back flagged rather than missing, so a fetch failure can never be
  * mistaken for a company leaving the ranking. Never rejects on a single bad
  * ticker; the backend isolates those per company.
