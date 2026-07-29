@@ -59,9 +59,28 @@ export interface SpecularButtonProps {
 /**
  * WebGL specular surface behind a button label.
  *
- * Each instance allocates its own WebGL context, and browsers cap how many can
- * exist at once — keep this to the single landing CTA. Every in-app button is a
- * plain shadcn `Button`.
+ * ⚠️ NOT CURRENTLY USED. The landing CTA was moved to the shared `hero` Button
+ * variant on 2026-07-30 after a report of a rectangle flashing on click. Kept for
+ * reference; delete it (and the `ogl` dependency, which nothing else imports) if
+ * it is not going back.
+ *
+ * WHY IT WAS DROPPED — the shape is not real. The <canvas> has border-radius 0
+ * and its host span has overflow:visible, so nothing in the DOM clips it. The
+ * rounded pill exists ONLY because the fragment shader `discard`s pixels outside
+ * a rounded-box SDF. Any frame that does not render exactly as expected shows the
+ * true 164x44 rectangle, and there are several ways to get one:
+ *   - No `webglcontextlost` / `webglcontextrestored` handling at all, so a lost
+ *     context leaves whatever was last composited.
+ *   - Under prefers-reduced-motion a SINGLE frame is drawn at mount and the loop
+ *     never starts, so nothing ever repaints it.
+ *   - The rAF loop stops on tab-hide and only restarts via visibilitychange.
+ *
+ * If it is revived, the structural fix is to clip the host (overflow-hidden plus
+ * the matching radius) so the rounded shape is enforced by the compositor rather
+ * than by the shader, and to handle context loss.
+ *
+ * Each instance also allocates its own WebGL context, and browsers cap how many
+ * can exist at once — it was only ever meant for the single landing CTA.
  */
 export function SpecularButton({ children, onClick, className }: SpecularButtonProps) {
   const hostRef = useRef<HTMLSpanElement>(null)
