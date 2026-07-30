@@ -290,6 +290,16 @@ class ResearchOut(TickerLogoMixin):
     model_config = {"from_attributes": True}
 
 
+class TickerMatchOut(BaseModel):
+    """One autocomplete suggestion. No CIK: the frontend has no use for it, and an
+    autocomplete response is not the place to hand out internal identifiers."""
+
+    ticker: str
+    company_name: str
+
+    model_config = {"from_attributes": True}
+
+
 class HoldingCreateRequest(BaseModel):
     ticker: str
     # Constrained here rather than in the route: pydantic turns a violation into

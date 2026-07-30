@@ -2,9 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 
+import { TickerInput } from '@/components/ticker/TickerInput'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { createThesis } from '@/lib/api'
 
@@ -83,17 +83,9 @@ export function NewThesisPage() {
               <label htmlFor="ticker" className="text-sm font-medium text-text-primary">
                 Ticker
               </label>
-              <Input
-                id="ticker"
-                value={ticker}
-                onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                placeholder="NVDA"
-                autoComplete="off"
-                autoCapitalize="characters"
-                spellCheck={false}
-                maxLength={10}
-                className="w-32 font-heading tracking-wide"
-              />
+              {/* Wider than the field needs so the suggestion dropdown, which is
+                  anchored to it, has room for a company name. */}
+              <TickerInput id="ticker" value={ticker} onChange={setTicker} className="w-72" />
             </div>
 
             <div className="flex flex-col gap-2">

@@ -301,6 +301,12 @@ export interface Research {
   filing_summary_error: string | null
 }
 
+/** TickerMatchOut — one autocomplete suggestion. */
+export interface TickerMatch {
+  ticker: string
+  company_name: string
+}
+
 /** HoldingCreateRequest. The backend uppercases the ticker and rejects
  *  shares <= 0 or average_cost < 0 with a 422. */
 export interface HoldingCreate {
@@ -654,4 +660,22 @@ export function listMarketLeaders(): Promise<Quote[]> {
  */
 export function getResearch(ticker: string): Promise<Research> {
   return request<Research>(`/research/${encodeURIComponent(ticker)}`)
+}
+
+/* --- ticker autocomplete -------------------------------------------------- */
+
+/**
+ * Ticker suggestions from the SEC's company list (~10k rows, cached in the
+ * backend process, so this is a plain in-process filter rather than a lookup).
+ *
+ * An EMPTY array is a normal answer — a short query, or a symbol the SEC does not
+ * list. It is never a reason to block: the caller shows "no match, you can still
+ * submit". A REJECTION means the SEC map itself is unreachable, and the caller
+ * must fall back to a plain text field rather than surfacing an error, since
+ * autocomplete failing should never stop someone writing a thesis.
+ */
+export function searchTickers(query: string, limit = 8): Promise<TickerMatch[]> {
+  return request<TickerMatch[]>(
+    `/tickers/search?q=${encodeURIComponent(query)}&limit=${limit}`,
+  )
 }

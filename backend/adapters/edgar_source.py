@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 from backend.domain.document import DocumentData
+from backend.domain.ticker_search import TickerEntry
 from backend.ports.document_source import DocumentSource
 
 load_dotenv()
@@ -133,9 +134,47 @@ def _strip_page_furniture(lines: list[str]) -> list[str]:
     return [line for index, line in enumerate(lines) if index not in drop]
 
 
+# The SEC's ticker map, cached for the LIFETIME OF THE PROCESS rather than per
+# instance. It used to hang off `self`, but EdgarSource is constructed fresh on
+# every check and every research request, so that cache was re-fetching the whole
+# ~10k-row file each time. Autocomplete queries it per keystroke-batch, which made
+# a shared cache the difference between an in-process filter and hammering sec.gov.
+#
+# It now also KEEPS THE COMPANY TITLE, which the old ticker->cik map threw away.
+# That is what makes ticker search possible without a second fetch or a hardcoded
+# list: one file, fetched once, serving both CIK resolution and search.
+_ticker_index: dict[str, TickerEntry] | None = None
+
+
+def reset_ticker_index() -> None:
+    """Drop the cached SEC map. For tests, and for a manual refresh."""
+    global _ticker_index
+    _ticker_index = None
+
+
 class EdgarSource(DocumentSource):
-    def __init__(self) -> None:
-        self._ticker_map: dict[str, str] | None = None
+    def load_ticker_index(self) -> dict[str, TickerEntry]:
+        """Ticker -> entry for every company the SEC lists, fetched at most once.
+
+        Public because ticker search needs the same rows; going through here is
+        what guarantees there is only ever one copy and one fetch.
+        """
+        global _ticker_index
+        if _ticker_index is None:
+            # Payload is keyed by row index:
+            # {"0": {"cik_str": 1045810, "ticker": "NVDA", "title": "NVIDIA CORP"}}
+            # cik_str is a number, so it needs zero-padding to the 10-digit form.
+            payload = self._get(TICKERS_URL).json()
+            _ticker_index = {
+                entry["ticker"].upper(): TickerEntry(
+                    ticker=entry["ticker"].upper(),
+                    company_name=entry.get("title") or entry["ticker"].upper(),
+                    cik=f"{int(entry['cik_str']):010d}",
+                )
+                for entry in payload.values()
+                if entry.get("ticker")
+            }
+        return _ticker_index
 
     def _get(self, url: str) -> httpx.Response:
         time.sleep(RATE_LIMIT_DELAY)  # stay under the 10 req/sec ceiling
@@ -167,16 +206,8 @@ class EdgarSource(DocumentSource):
         return response
 
     def resolve_cik(self, ticker: str) -> str | None:
-        if self._ticker_map is None:
-            # Payload is keyed by row index: {"0": {"cik_str": 1045810, "ticker": "NVDA", ...}}
-            # cik_str is a number, so it needs zero-padding to the 10-digit form.
-            payload = self._get(TICKERS_URL).json()
-            self._ticker_map = {
-                entry["ticker"].upper(): f"{int(entry['cik_str']):010d}"
-                for entry in payload.values()
-            }
-
-        return self._ticker_map.get(ticker.upper())
+        entry = self.load_ticker_index().get(ticker.strip().upper())
+        return entry.cik if entry is not None else None
 
     def list_recent_filings(
         self,

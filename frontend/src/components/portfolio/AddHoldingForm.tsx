@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { ChevronDown, ChevronRight, Loader2, Plus } from 'lucide-react'
 
 import { Field } from '@/components/portfolio/HoldingsTable'
+import { TickerInput } from '@/components/ticker/TickerInput'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -109,14 +110,14 @@ export function AddHoldingForm({ onAdded }: { onAdded: (portfolio: Portfolio) =>
             className="mt-4 flex flex-wrap items-end gap-3"
           >
             <Field label="Ticker" htmlFor="add-ticker">
-              <Input
+              {/* Same component as the new-thesis form — one autocomplete, two
+                  call sites. Wider than the old 28-unit box so the dropdown it
+                  anchors has room for a company name beside the symbol. */}
+              <TickerInput
                 id="add-ticker"
                 value={ticker}
-                onChange={(event) => setTicker(event.target.value)}
-                placeholder="NVDA"
-                autoComplete="off"
-                spellCheck={false}
-                className="w-28 font-mono uppercase"
+                onChange={setTicker}
+                className="w-44"
               />
             </Field>
             <Field label="Shares" htmlFor="add-shares">
