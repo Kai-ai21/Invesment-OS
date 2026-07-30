@@ -133,6 +133,49 @@ where the last is padding.
 Return the patterns as a list, or an empty list."""
 
 
+ENHANCE_PROMPT = """An investor has written why they believe in {ticker}. Rewrite it so it \
+is sharper and more checkable — WITHOUT adding anything they did not say.
+
+Their reasoning:
+\"\"\"{raw_reasoning}\"\"\"
+
+Rules:
+
+1. SHARPEN, DO NOT INVENT. Every idea in your rewrite must be traceable to something \
+they actually wrote. Do not add a new reason, a new metric, a new competitor, a new \
+risk, or a new belief. If you are adding an idea rather than tightening one of theirs, \
+you have already broken this rule. You are editing their sentence, not writing yours.
+
+2. NEVER INVENT A NUMBER. This is the way this task goes wrong, so it gets its own \
+rule. Making "margins are good" into "gross margins remain high" is exactly right. \
+Making it "gross margins above 72%" is FORBIDDEN — 72% is a threshold they never chose, \
+and this app will later test their claims against reality, so a number you made up \
+becomes a bar they never set. If they gave no figure, your rewrite has no figure. If \
+they gave one, keep it exactly as they wrote it. The same goes for timeframes: do not \
+turn "for a while" into "over the next four quarters".
+
+3. THEIR VOICE, FIRST PERSON. This is their thesis and it stays theirs. Keep "I think", \
+"I expect", "I'm betting". Do not switch to "the investor believes" or to a neutral \
+report. Keep their vocabulary — if they wrote "chips", do not upgrade it to \
+"semiconductor products".
+
+4. SIMILAR LENGTH. A tightened version of their paragraph, not an essay built from it. \
+Roughly the same number of sentences. Never more than about 30% longer.
+
+5. NO ADVICE, NO VERDICT. Do not say whether the thesis is good, strong, weak, risky or \
+well-reasoned. Do not suggest buying, selling, sizing or hedging. Do not add \
+counterarguments or caveats they did not raise. You are not commenting on their \
+thinking, only sharpening how it is written.
+
+6. IF YOU CANNOT SHARPEN IT WITHOUT INVENTING, RETURN IT UNCHANGED. Some input is too \
+thin to work with — "amazon good" contains one idea and no reasoning, and any \
+"improvement" would be you writing a thesis for them. In that case return their text \
+EXACTLY as given, character for character. Returning the input unchanged is a correct, \
+expected answer and is always better than fabricating.
+
+Return only the rewritten reasoning."""
+
+
 RESEARCH_PROMPT = """You are restating a company's own SEC filing in plain language, for \
 someone who wants to understand what {ticker} does before forming their own view.
 
@@ -194,6 +237,13 @@ class ReflectionQuestion(BaseModel):
     """Structured output so the model returns the question alone, with no preamble."""
 
     question: str
+
+
+class EnhancedReasoning(BaseModel):
+    """Structured output so the model returns the rewrite alone — no "Here is a
+    sharper version:" preamble, which would otherwise end up in the user's thesis."""
+
+    reasoning: str
 
 
 class GeminiProvider(LLMProvider):
@@ -268,6 +318,20 @@ class GeminiProvider(LLMProvider):
         )
 
         return ReflectionQuestion.model_validate_json(response.text).question
+
+    def enhance_reasoning(self, ticker: str, raw_reasoning: str) -> str:
+        prompt = ENHANCE_PROMPT.format(ticker=ticker, raw_reasoning=raw_reasoning)
+
+        response = self._client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=EnhancedReasoning,
+            ),
+        )
+
+        return EnhancedReasoning.model_validate_json(response.text).reasoning
 
     def summarise_company(
         self,

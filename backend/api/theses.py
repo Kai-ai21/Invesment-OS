@@ -5,6 +5,8 @@ from backend.adapters.edgar_source import EdgarError
 from backend.adapters.gemini_provider import GeminiProvider
 from backend.api.schemas import (
     ChartDataOut,
+    EnhanceReasoningOut,
+    EnhanceReasoningRequest,
     CheckResultOut,
     DocumentSubmitRequest,
     EvidenceEventOut,
@@ -22,6 +24,7 @@ from backend.repositories import (
 )
 from backend.services.chart_service import build_chart_data
 from backend.services.check_service import CheckError, check_thesis
+from backend.services.enhancement_service import EnhancementError, enhance_reasoning
 from backend.services.extraction_service import ExtractionError, extract_and_save_thesis
 from backend.services.verification_service import verify_document_against_thesis
 
@@ -46,6 +49,25 @@ def create_thesis(
     except ExtractionError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     return thesis
+
+
+@router.post("/enhance-reasoning", response_model=EnhanceReasoningOut)
+def enhance_thesis_reasoning(
+    body: EnhanceReasoningRequest,
+    provider: GeminiProvider = Depends(get_llm_provider),
+):
+    """Sharpen the user's own wording. Returns a CANDIDATE — nothing is stored.
+
+    Declared before the `/{thesis_id}` routes only for readability; FastAPI ranks
+    static segments above dynamic ones regardless of order.
+
+    Creating a thesis never calls this. It is an optional aid, and the response is
+    shown beside the original for the user to accept or reject.
+    """
+    try:
+        return enhance_reasoning(body.ticker, body.reasoning, provider=provider)
+    except EnhancementError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
 
 @router.get("", response_model=list[ThesisOut])

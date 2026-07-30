@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 
+import { EnhanceReasoning } from '@/components/thesis/EnhanceReasoning'
 import { TickerInput } from '@/components/ticker/TickerInput'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -106,6 +107,14 @@ export function NewThesisPage() {
                 At least {MIN_REASONING_LENGTH} characters. Say what has to be true for
                 you to be right — and what would prove you wrong.
               </p>
+
+              {/* Entirely optional — Create thesis below neither calls nor waits for
+                  this, and an accepted rewrite is just another edit to the textarea. */}
+              <EnhanceReasoning
+                ticker={ticker}
+                reasoning={reasoning}
+                onAccept={setReasoning}
+              />
             </div>
           </fieldset>
 

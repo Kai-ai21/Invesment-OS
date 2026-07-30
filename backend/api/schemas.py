@@ -290,6 +290,22 @@ class ResearchOut(TickerLogoMixin):
     model_config = {"from_attributes": True}
 
 
+class EnhanceReasoningRequest(BaseModel):
+    ticker: str
+    reasoning: str
+
+
+class EnhanceReasoningOut(BaseModel):
+    """A CANDIDATE rewrite — never applied automatically. The frontend shows it
+    beside the original and the user picks."""
+
+    enhanced: str
+    # True when the model returned the input as-is because it could not sharpen it
+    # without inventing. The UI says "already specific enough" rather than
+    # pretending an edit happened.
+    unchanged: bool
+
+
 class TickerMatchOut(BaseModel):
     """One autocomplete suggestion. No CIK: the frontend has no use for it, and an
     autocomplete response is not the place to hand out internal identifiers."""

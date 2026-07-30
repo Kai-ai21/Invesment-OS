@@ -148,7 +148,10 @@
       "Bash(curl -s -o /dev/null -w \"seed holding: %{http_code}\\\\n\" -X POST localhost:8000/holdings -H 'Content-Type: application/json' -d '{\"ticker\":\"NVDA\",\"shares\":10,\"average_cost\":100}')",
       "Bash(./venv/bin/python -m pytest tests/test_ticker_search.py -q)",
       "Bash(ps -p 2421 -o command=)",
-      "Bash(kill 2421)"
+      "Bash(kill 2421)",
+      "Bash(./venv/bin/python -c \"import backend.main\")",
+      "Bash(./venv/bin/python -m pytest tests/test_enhancement.py -q)",
+      "Bash(sqlite3 backend/investment_os.db \"SELECT id, ticker, substr\\(reasoning_raw,1,45\\) FROM theses ORDER BY created_at;\")"
     ]
   }
 }

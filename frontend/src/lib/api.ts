@@ -301,6 +301,16 @@ export interface Research {
   filing_summary_error: string | null
 }
 
+/** EnhanceReasoningOut — a CANDIDATE rewrite, never applied automatically. */
+export interface EnhancedReasoning {
+  enhanced: string
+  /** True when the model handed the input back because it could not sharpen it
+   *  without inventing. Say "already specific enough" rather than pretending an
+   *  edit happened. Computed backend-side on normalised whitespace, so a re-flowed
+   *  line break does not read as a change. */
+  unchanged: boolean
+}
+
 /** TickerMatchOut — one autocomplete suggestion. */
 export interface TickerMatch {
   ticker: string
@@ -674,6 +684,25 @@ export function getResearch(ticker: string): Promise<Research> {
  * must fall back to a plain text field rather than surfacing an error, since
  * autocomplete failing should never stop someone writing a thesis.
  */
+/**
+ * Sharpen the user's own reasoning. Returns a CANDIDATE — nothing is stored and
+ * nothing is overwritten; the caller shows it beside the original and the user
+ * picks. Slow (an AI call, a few seconds). 422 when the text is too thin to
+ * sharpen without inventing.
+ *
+ * ⚠️ ENTIRELY OPTIONAL. createThesis never calls this, and a failure here must
+ * stay inline — the form submits with or without it.
+ */
+export function enhanceReasoning(
+  ticker: string,
+  reasoning: string,
+): Promise<EnhancedReasoning> {
+  return request<EnhancedReasoning>('/theses/enhance-reasoning', {
+    method: 'POST',
+    body: JSON.stringify({ ticker, reasoning }),
+  })
+}
+
 export function searchTickers(query: string, limit = 8): Promise<TickerMatch[]> {
   return request<TickerMatch[]>(
     `/tickers/search?q=${encodeURIComponent(query)}&limit=${limit}`,

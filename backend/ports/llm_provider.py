@@ -34,6 +34,20 @@ class LLMProvider(ABC):
         """
 
     @abstractmethod
+    def enhance_reasoning(self, ticker: str, raw_reasoning: str) -> str:
+        """Rewrite an investor's own reasoning to be sharper and more checkable.
+
+        EDITS, NEVER AUTHORS. Every idea in the result must be traceable to the
+        input: no new reasons, no new metrics, and above all no invented numbers or
+        timeframes — this app later tests the user's claims against reality, so a
+        threshold the model made up would become a bar the user never set.
+
+        Returns the input UNCHANGED when it is too thin to sharpen without
+        inventing. That is a correct answer, not a failure, and the caller reports
+        it as "already specific enough" rather than pretending something happened.
+        """
+
+    @abstractmethod
     def summarise_company(
         self,
         ticker: str,
