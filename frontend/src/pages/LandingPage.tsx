@@ -1,18 +1,10 @@
-import { Link } from 'react-router'
-
 import { NeuralBackground } from '@/components/effects/NeuralBackground'
 import { ShinyText } from '@/components/effects/ShinyText'
-import { Button } from '@/components/ui/button'
+import { LandingCta } from '@/components/landing/LandingCta'
 
 /**
  * The only route with particles. Everything past the CTA is flat, functional
  * chrome.
- *
- * The CTA used to be a WebGL specular button. It was replaced with the shared
- * `hero` Button: the canvas was square-cornered and unclipped, so its rounded
- * look depended entirely on a fragment shader discarding the corners, and any
- * frame that did not render as expected exposed the full rectangle. See the
- * note in SpecularButton.tsx.
  */
 export function LandingPage() {
   return (
@@ -57,23 +49,7 @@ export function LandingPage() {
         </p>
 
         <div className="mt-2">
-          {/* A LINK, not a button that navigates — this goes somewhere, so it
-              should middle-click, right-click and open in a new tab like any
-              other link. `hero` is the shared variant used for the app's main
-              action; the size bump is the only landing-specific styling, since a
-              full-page CTA carries more weight than one in a page header. */}
-          <Button
-            asChild
-            variant="hero"
-            // Size is now the ONLY landing-specific override. The colour override
-            // that used to be here forced an opaque light pill, which predates the
-            // glass restyle and would defeat it — and this page is where glass
-            // actually earns it, since there is a moving particle field behind the
-            // button for the backdrop blur to work on.
-            className="h-11 px-7 text-[15px]"
-          >
-            <Link to="/theses">Open dashboard</Link>
-          </Button>
+          <LandingCta />
         </div>
       </main>
     </div>

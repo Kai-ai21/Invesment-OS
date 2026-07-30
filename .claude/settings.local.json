@@ -151,7 +151,10 @@
       "Bash(kill 2421)",
       "Bash(./venv/bin/python -c \"import backend.main\")",
       "Bash(./venv/bin/python -m pytest tests/test_enhancement.py -q)",
-      "Bash(sqlite3 backend/investment_os.db \"SELECT id, ticker, substr\\(reasoning_raw,1,45\\) FROM theses ORDER BY created_at;\")"
+      "Bash(sqlite3 backend/investment_os.db \"SELECT id, ticker, substr\\(reasoning_raw,1,45\\) FROM theses ORDER BY created_at;\")",
+      "Bash(npm uninstall *)",
+      "Bash(npx vite *)",
+      "Bash(echo \"BUILD EXIT=$?\")"
     ]
   }
 }

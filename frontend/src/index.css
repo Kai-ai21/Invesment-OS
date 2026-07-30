@@ -480,6 +480,111 @@
       animation: none;
     }
   }
+
+  /* ---- landing CTA ---------------------------------------------------------
+     A gradient-border pill. The "border" is not a border — a real border cannot
+     hold a gradient. It is 1.5px of PADDING on an outer element whose background
+     IS the gradient, with an opaque inner surface painted on top; the padding is
+     the only part of the gradient left visible.
+
+     ⚠️ WHY THE ANGLE IS A REGISTERED PROPERTY. `background-image` is not an
+     animatable property. Keyframing or transitioning a linear-gradient() does
+     nothing — the engine has no way to interpolate between two gradient images,
+     so it snaps or ignores it outright. Registering the angle via @property
+     gives it a declared <angle> type, which the engine CAN interpolate, so
+     animating --cta-angle genuinely walks the light around the border. */
+  .landing-cta {
+    --cta-angle: 120deg;
+    display: inline-block;
+    padding: 1.5px;
+    border-radius: 999px;
+    /* Three stops rather than two: a bright edge, a near-dark middle and a
+       second bright arc read as light falling across the rim from one side,
+       where an even two-stop ramp just looks like a grey outline. */
+    background: linear-gradient(
+      var(--cta-angle),
+      rgb(255 255 255 / 0.9),
+      rgb(255 255 255 / 0.15) 45%,
+      rgb(255 255 255 / 0.7)
+    );
+    /* LEAVE timing (340ms). The enter override lives under :hover below — a
+       slower return reads as the button settling rather than snapping back. */
+    transition: transform 340ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  /* Lift on BOTH hover and keyboard focus... */
+  .landing-cta:hover,
+  .landing-cta:focus-visible {
+    transform: translateY(-2px);
+    transition: transform 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  /* ...but the travelling light on HOVER ONLY. Keyboard focus gets the lift and
+     the ring; making it also spin would leave the two states indistinguishable
+     for anyone tabbing through. */
+  .landing-cta:hover {
+    animation: landing-cta-sweep 3s linear infinite;
+  }
+
+  /* Declared after :hover so it wins when both match. */
+  .landing-cta:active {
+    transform: translateY(0) scale(0.98);
+    transition-duration: 120ms;
+  }
+
+  @keyframes landing-cta-sweep {
+    to {
+      --cta-angle: 480deg;
+    }
+  }
+
+  .landing-cta-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 999px;
+    /* Opaque, and matching the page — this is what masks the gradient down to
+       the 1.5px rim. Any transparency here and the whole face would glow. */
+    background: var(--background);
+    padding: 13px 32px;
+    font-size: 15px;
+    line-height: 1;
+    color: var(--text-primary);
+  }
+
+  .landing-cta-arrow {
+    transition: transform 340ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .landing-cta:hover .landing-cta-arrow {
+    transform: translateX(4px);
+    transition-duration: 260ms;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* The gradient border STAYS — it is decoration, not motion. What goes is
+       everything that moves: the sweep, the lift, the press and the arrow. */
+    .landing-cta,
+    .landing-cta:hover,
+    .landing-cta:focus-visible,
+    .landing-cta:active {
+      transform: none;
+      animation: none;
+      transition: none;
+    }
+    .landing-cta-arrow,
+    .landing-cta:hover .landing-cta-arrow {
+      transform: none;
+      transition: none;
+    }
+  }
+}
+
+/* Outside every layer: @property is not subject to the cascade, and registering
+   it is what makes --cta-angle animatable at all. See .landing-cta above. */
+@property --cta-angle {
+  syntax: "<angle>";
+  initial-value: 120deg;
+  inherits: false;
 }
 
 @layer base {
