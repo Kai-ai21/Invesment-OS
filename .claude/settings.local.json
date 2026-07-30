@@ -144,7 +144,8 @@
       "Bash(/Users/kailaasnair/Desktop/IOM/Investment-OS/venv/bin/python -)",
       "Bash(pkill -f \"uvicorn backend\")",
       "Bash(rm -rf /private/tmp/claude-501/-Users-kailaasnair-Desktop-IOM-Investment-OS/05c03aaa-74d7-44e0-ad46-ce80ef03bfe8/scratchpad/icons /private/tmp/claude-501/-Users-kailaasnair-Desktop-IOM-Investment-OS/05c03aaa-74d7-44e0-ad46-ce80ef03bfe8/scratchpad/probe_*.py)",
-      "Bash(./venv/bin/pip uninstall *)"
+      "Bash(./venv/bin/pip uninstall *)",
+      "Bash(curl -s -o /dev/null -w \"seed holding: %{http_code}\\\\n\" -X POST localhost:8000/holdings -H 'Content-Type: application/json' -d '{\"ticker\":\"NVDA\",\"shares\":10,\"average_cost\":100}')"
     ]
   }
 }

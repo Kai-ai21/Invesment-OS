@@ -65,13 +65,12 @@ export function LandingPage() {
           <Button
             asChild
             variant="hero"
-            // Size and colour are the only landing-specific overrides. The hero's
-            // default dark surface is right against a page of cards, but on this
-            // page it sits on near-black and all but disappears — the CTA it
-            // replaces was a light pill, and dropping the page's focal point to a
-            // low-contrast slab is not a change this fix should smuggle in. The
-            // motion, glow and focus handling all come from the variant.
-            className="h-11 bg-primary px-7 text-[15px] text-primary-foreground not-disabled:hover:bg-primary"
+            // Size is now the ONLY landing-specific override. The colour override
+            // that used to be here forced an opaque light pill, which predates the
+            // glass restyle and would defeat it — and this page is where glass
+            // actually earns it, since there is a moving particle field behind the
+            // button for the backdrop blur to work on.
+            className="h-11 px-7 text-[15px]"
           >
             <Link to="/theses">Open dashboard</Link>
           </Button>

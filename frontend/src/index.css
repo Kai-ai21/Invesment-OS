@@ -129,26 +129,58 @@
     --primary: #e8eaf0;
     --primary-foreground: #0f1115;
 
-    /* Soft glow behind the PRIMARY button on hover and keyboard focus.
-       Built from --primary, deliberately NOT from shadcn's --accent: in this
-       theme --accent is a dark surface colour (#1d212b), so a glow made from it
-       would be invisible against the background. Low alpha and a negative spread
-       so it reads as light bleeding out from under the button rather than as a
-       drop shadow lifting it off the page. */
-    --btn-glow: 0 4px 16px -4px color-mix(in srgb, var(--primary) 22%, transparent);
+    /* ---- glass buttons -------------------------------------------------------
+       Each of these is ONE box-shadow value carrying three separate jobs, because
+       box-shadow is a single property and the focus ring has to compose into the
+       same list (see button.tsx). In order, each token is:
 
-    /* HERO button — the one main action on a page (today: New thesis).
-       Two shadows in each: an inset top highlight, which is what gives the button
-       a lit edge and a sense of mass at rest, plus an outer glow. The resting pair
-       is deliberately faint — present enough to mark the button as the primary
-       action before the cursor arrives, quiet enough not to read as hovered. */
+         1. inset 0 1px 0    — the hard top-edge highlight. THIS is what reads as
+                               glass. On a dark page it does nearly all the work.
+         2. inset 0 Npx ...  — a soft inner falloff below it, so the highlight
+                               fades down the face instead of stopping dead at
+                               1px and looking like a plain border.
+         3. 0 Npx ... black  — the outer drop shadow that sits the pill above the
+                               page, and on the primaries a --primary-tinted glow.
+
+       ⚠️ WHY THE HIGHLIGHT AND NOT THE BLUR. backdrop-blur over a flat dark
+       background is very nearly a no-op — the same lesson the sidebar glass
+       taught. The blur is still applied (it earns its keep over the landing
+       particle field and the ambient backdrop), but the glass read here comes
+       from the highlight and the border, which work on any background. */
+
+    /* Quiet variants (ghost, outline): pill and a faint lit edge, nothing else.
+       No falloff, no drop shadow — these must stay clearly below the primaries. */
+    --btn-glass-quiet: inset 0 1px 0 0 rgb(255 255 255 / 0.07);
+
+    /* DEFAULT primary at rest. */
+    --btn-glass-rest:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.16),
+      inset 0 10px 18px -14px rgb(255 255 255 / 0.30),
+      0 2px 8px -3px rgb(0 0 0 / 0.45);
+
+    /* DEFAULT primary on hover and keyboard focus. The --primary tint is kept
+       from the pre-glass design: built from --primary, deliberately NOT from
+       shadcn's --accent, which in this theme is a dark surface colour (#1d212b)
+       and would be invisible as a glow. */
+    --btn-glow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.24),
+      inset 0 10px 18px -12px rgb(255 255 255 / 0.38),
+      0 4px 12px -3px rgb(0 0 0 / 0.5),
+      0 4px 16px -4px color-mix(in srgb, var(--primary) 22%, transparent);
+
+    /* HERO — the one main action on a page (today: New thesis). Brightest
+       highlight of the set, so it reads as heavier glass than an ordinary
+       primary rather than merely lighter. Faint enough at rest to mark the
+       button before the cursor arrives without looking already-hovered. */
     --btn-hero-rest:
-      inset 0 1px 0 0 color-mix(in srgb, var(--primary) 8%, transparent),
+      inset 0 1px 0 0 rgb(255 255 255 / 0.24),
+      inset 0 12px 20px -14px rgb(255 255 255 / 0.40),
+      0 3px 10px -3px rgb(0 0 0 / 0.5),
       0 2px 10px -6px color-mix(in srgb, var(--primary) 18%, transparent);
-    /* Hover/focus: a deeper, wider throw than --btn-glow above, so the hero reads
-       as heavier than an ordinary primary rather than merely brighter. */
     --btn-hero-glow:
-      inset 0 1px 0 0 color-mix(in srgb, var(--primary) 12%, transparent),
+      inset 0 1px 0 0 rgb(255 255 255 / 0.34),
+      inset 0 12px 22px -12px rgb(255 255 255 / 0.50),
+      0 6px 18px -4px rgb(0 0 0 / 0.55),
       0 6px 22px -6px color-mix(in srgb, var(--primary) 38%, transparent);
     --secondary: #1d212b;
     --secondary-foreground: #e8eaf0;
