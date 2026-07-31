@@ -3,6 +3,7 @@ import { Check, Loader2, RefreshCw } from 'lucide-react'
 import { Link } from 'react-router'
 
 import { StatusBadge } from '@/components/StatusBadge'
+import { StatusSpine } from '@/components/StatusSpine'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -128,12 +129,17 @@ function AlertCard({
   return (
     <Card
       className={cn(
-        '[--card-spacing:--spacing(5)] border-l-2 transition-colors',
-        alert.is_read
-          ? 'border-l-transparent bg-surface'
-          : 'border-l-text-secondary bg-surface-raised',
+        // The left edge used to carry READ/UNREAD as a grey bar. That slot now
+        // carries the thesis status, which is the more useful signal and matches
+        // every other status-bearing card. Read/unread is unaffected — it was
+        // already distinguished by the background, which is the difference below.
+        'relative [--card-spacing:--spacing(5)] border border-border transition-colors hover:border-border-strong',
+        alert.is_read ? 'bg-surface' : 'bg-surface-raised',
       )}
     >
+      {/* Coloured by the status the thesis moved INTO — the alert is about where
+          it ended up, not where it came from. */}
+      <StatusSpine status={alert.new_status} />
       <div className="flex items-start justify-between gap-4 px-(--card-spacing)">
         {/* The link wraps only the card body so the button isn't nested inside
             an anchor. */}

@@ -154,7 +154,9 @@
       "Bash(sqlite3 backend/investment_os.db \"SELECT id, ticker, substr\\(reasoning_raw,1,45\\) FROM theses ORDER BY created_at;\")",
       "Bash(npm uninstall *)",
       "Bash(npx vite *)",
-      "Bash(echo \"BUILD EXIT=$?\")"
+      "Bash(echo \"BUILD EXIT=$?\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} \" -X POST localhost:8000/holdings -H 'Content-Type: application/json' -d '{\"ticker\":\"MSFT\",\"shares\":5,\"average_cost\":300}')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -X POST localhost:8000/holdings -H 'Content-Type: application/json' -d '{\"ticker\":\"TSM\",\"shares\":3,\"average_cost\":200}')"
     ]
   }
 }

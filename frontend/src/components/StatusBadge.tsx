@@ -5,28 +5,44 @@ import type { ClaimStatus, ThesisStatus, Verdict } from '@/lib/api'
 export type BadgeStatus = ThesisStatus | ClaimStatus | Verdict
 
 /**
- * One home for status → colour. Outlined style: the status colour drives both the
- * text and a 50%-opacity border, over a transparent background. Every value in the
- * backend's vocabulary (backend/domain/status.py and the verification verdicts) is
- * listed explicitly, so adding a status there surfaces as a type error here rather
- * than a silent grey badge.
+ * THE ONE HOME FOR STATUS → COLOUR. Every consumer of a status colour reads this
+ * map — the badge below, the left spine on status-bearing cards, and the chart's
+ * annotations. Each value is a design token name, resolved to `var(--…)` by
+ * `statusColor()`, so nothing downstream hard-codes a hex or a Tailwind class.
+ *
+ * Every value in the backend's vocabulary (backend/domain/status.py and the
+ * verification verdicts) is listed explicitly, and the Record type makes that
+ * exhaustive — adding a status there surfaces as a type error here rather than
+ * as a silently grey badge and a colourless spine.
  */
-const STATUS_CLASSES: Record<BadgeStatus, string> = {
+const STATUS_TOKEN: Record<BadgeStatus, string> = {
   // Thesis statuses
-  strengthening: 'border-status-strengthening/50 text-status-strengthening',
-  weakening: 'border-status-weakening/50 text-status-weakening',
-  breaking: 'border-status-breaking/50 text-status-breaking',
+  strengthening: '--status-strengthening',
+  weakening: '--status-weakening',
+  breaking: '--status-broken',
 
   // Claim statuses ('weakening' and 'pending' are shared with the set above)
-  strongly_supported: 'border-status-supported/50 text-status-supported',
-  supported: 'border-status-supported/50 text-status-supported',
-  broken: 'border-status-broken/50 text-status-broken',
-  pending: 'border-status-pending/50 text-status-pending',
+  strongly_supported: '--status-supported',
+  supported: '--status-supported',
+  broken: '--status-broken',
+  pending: '--status-pending',
 
   // Evidence verdicts
-  supports: 'border-status-supported/50 text-status-supported',
-  contradicts: 'border-status-broken/50 text-status-broken',
-  neutral: 'border-status-pending/50 text-status-pending',
+  supports: '--status-supported',
+  contradicts: '--status-broken',
+  neutral: '--status-pending',
+}
+
+/**
+ * The CSS colour for a status, e.g. `var(--status-broken)`.
+ *
+ * Returns the pending (muted) colour for anything unrecognised rather than
+ * throwing or returning transparent — an unknown status should read as "no
+ * signal", never as invisible.
+ */
+export function statusColor(status: string | null | undefined): string {
+  const token = (status && STATUS_TOKEN[status as BadgeStatus]) || '--status-pending'
+  return `var(${token})`
 }
 
 /**
@@ -41,13 +57,19 @@ export function StatusBadge({
   status: BadgeStatus
   className?: string
 }) {
+  const color = statusColor(status)
+
   return (
     <span
       className={cn(
         'inline-flex w-fit shrink-0 items-center whitespace-nowrap rounded-[4px] border bg-transparent px-[9px] py-[3px] font-mono text-[10.5px] leading-none tracking-[0.08em] uppercase',
-        STATUS_CLASSES[status] ?? STATUS_CLASSES.pending,
         className,
       )}
+      // Inline rather than Tailwind classes so this reads from STATUS_TOKEN like
+      // every other consumer. A class map would be a second copy of the same
+      // mapping, and the two would drift the first time a status was added.
+      // The border keeps its previous 50% strength via color-mix.
+      style={{ color, borderColor: `color-mix(in srgb, ${color} 50%, transparent)` }}
     >
       {status.replace(/_/g, ' ')}
     </span>

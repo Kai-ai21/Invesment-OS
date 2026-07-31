@@ -3,6 +3,7 @@ import { Loader2, Trash2 } from 'lucide-react'
 
 import { CompanyLogo } from '@/components/CompanyLogo'
 import { StatusBadge } from '@/components/StatusBadge'
+import { StatusSpine } from '@/components/StatusSpine'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -92,7 +93,10 @@ export function ReflectionCard({
   const answered = item.user_response !== null
 
   return (
-    <Card className="[--card-spacing:--spacing(6)]">
+    <Card className="relative border border-border transition-colors [--card-spacing:--spacing(6)] hover:border-border-strong">
+      {/* The status the thesis was in when it broke — the reflection is about
+          that moment, and the thesis has kept moving since. */}
+      <StatusSpine status={item.status_at_break} />
       <div className="flex flex-col gap-4 px-(--card-spacing)">
         <header className="flex flex-wrap items-center gap-2">
           <CompanyLogo ticker={item.ticker} logoUrl={item.logo_url} size={24} />

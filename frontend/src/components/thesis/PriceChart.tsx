@@ -11,6 +11,7 @@ import {
   YAxis,
 } from 'recharts'
 
+import { statusColor } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -24,18 +25,6 @@ const RANGES = [
   { label: '1Y', days: 365 },
 ] as const
 
-/** Read from CSS so the chart cannot drift from the status tokens used elsewhere. */
-function statusColor(status: string | null): string {
-  const token =
-    status === 'strengthening' || status === 'supported' || status === 'supports'
-      ? '--status-strengthening'
-      : status === 'weakening'
-        ? '--status-weakening'
-        : status === 'breaking' || status === 'broken' || status === 'contradicts'
-          ? '--status-broken'
-          : '--status-pending'
-  return `var(${token})`
-}
 
 /** One row of the series: a price, plus any events landing on that date. */
 interface Row {
@@ -216,7 +205,7 @@ function EventDot(props: { cx?: number; cy?: number; payload?: Row }) {
   if (evidence.length === 0) return null
 
   const contradicts = evidence.some((event) => event.verdict === 'contradicts')
-  const color = contradicts ? 'var(--status-broken)' : 'var(--status-strengthening)'
+  const color = statusColor(contradicts ? 'contradicts' : 'supports')
   const radius = contradicts ? 5 : 3.5
 
   return (

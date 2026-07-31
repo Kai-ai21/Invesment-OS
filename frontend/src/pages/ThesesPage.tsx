@@ -4,6 +4,7 @@ import { Link } from 'react-router'
 
 import { CompanyLogo } from '@/components/CompanyLogo'
 import { StatusBadge } from '@/components/StatusBadge'
+import { StatusSpine } from '@/components/StatusSpine'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -58,7 +59,12 @@ function ThesisCard({ thesis }: { thesis: Thesis }) {
       to={`/theses/${thesis.id}`}
       className="block rounded-xl focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
     >
-      <Card className="[--card-spacing:--spacing(5)] transition-colors hover:bg-surface-raised">
+      {/* `relative` so the spine can pin to the edge; the Card's own
+          overflow-hidden clips it to the rounded corners. The hairline uses the
+          border token and brightens on hover — the spine does not, because it
+          carries meaning rather than interaction state. */}
+      <Card className="relative border border-border [--card-spacing:--spacing(5)] transition-colors hover:border-border-strong hover:bg-surface-raised">
+        <StatusSpine status={thesis.status} />
         <div className="flex items-center justify-between gap-4 px-(--card-spacing)">
           <div className="flex items-center gap-3">
             <CompanyLogo ticker={thesis.ticker} logoUrl={thesis.logo_url} size={32} />

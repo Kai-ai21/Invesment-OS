@@ -4,6 +4,7 @@ import { Link } from 'react-router'
 
 import { CompanyLogo } from '@/components/CompanyLogo'
 import { StatusBadge } from '@/components/StatusBadge'
+import { spineBorderStyle } from '@/components/StatusSpine'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -129,8 +130,10 @@ function HoldingRow({
   return (
     <>
       <tr className="border-b border-border/60 last:border-b-0 hover:bg-surface-raised/40">
-        {/* Holding */}
-        <td className="px-3 py-3">
+        {/* Holding. The left border is the status spine — same colour map as the
+            cards, transparent when this holding has no thesis so the column
+            stays aligned. */}
+        <td className="px-3 py-3" style={spineBorderStyle(holding.thesis_status)}>
           <div className="flex items-center gap-2.5">
             <CompanyLogo ticker={holding.ticker} logoUrl={holding.logo_url} size={28} />
             <div className="min-w-0">
