@@ -481,6 +481,85 @@
     }
   }
 
+  /* ---- gradient-border primary --------------------------------------------
+     ONE ELEMENT, not a wrapper. The classic way to get a gradient border is an
+     outer element whose background is the gradient, padded a couple of pixels,
+     wrapping an opaque inner one. That structure cannot be a Button variant:
+     Button renders exactly one element and `asChild` merges its props onto a
+     single child, so the inner wrapper would have to be repeated by hand at
+     every call site — and this button is an <a>, which the wrapper would push
+     down a level.
+
+     Two stacked backgrounds on one element give the identical result:
+       layer 1 — an opaque fill, clipped to the PADDING box (inside the border)
+       layer 2 — the gradient, filling the BORDER box
+     A transparent 2px border then shows layer 2 through it, and layer 1 covers
+     everything within. The border IS the gradient; nothing is nested.
+
+     ⚠️ `background-clip` is set as a utility on the variant, not here. This
+     block is @layer components and the base class carries `bg-clip-padding`
+     from @layer utilities, which would win and flatten the gradient away. */
+  .btn-sweep[data-variant="gradient"] {
+    --btn-angle: 120deg;
+    border-color: transparent;
+    /* border-width lives on the variant as `border-2` — set here it would lose
+       to the base class's `border` utility, which sits in a later layer. */
+    background-image:
+      linear-gradient(var(--surface), var(--surface)),
+      linear-gradient(
+        var(--btn-angle),
+        rgb(232 234 240 / 0.9),
+        rgb(232 234 240 / 0.14),
+        rgb(232 234 240 / 0.65)
+      );
+    background-origin: border-box;
+    /* LEAVE timing (340ms); the enter override is under :hover below. */
+    transition: transform 340ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  /* The difference-blend sweep would fight the gradient — this variant's motion
+     is the travelling light, nothing else. */
+  .btn-sweep[data-variant="gradient"]::before {
+    content: none;
+  }
+
+  /* Lift on hover AND keyboard focus... */
+  .btn-sweep[data-variant="gradient"]:not(:disabled):hover,
+  .btn-sweep[data-variant="gradient"]:not(:disabled):focus-visible {
+    transform: translateY(-2px);
+    transition: transform 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  /* ...but the rotation on HOVER ONLY, so tabbing to it never looks like
+     hovering it. */
+  .btn-sweep[data-variant="gradient"]:not(:disabled):hover {
+    animation: btn-gradient-sweep 3s linear infinite;
+  }
+
+  /* After :hover so it wins when both match. */
+  .btn-sweep[data-variant="gradient"]:not(:disabled):active {
+    transform: translateY(0) scale(0.98);
+    transition-duration: 120ms;
+  }
+
+  @keyframes btn-gradient-sweep {
+    to {
+      --btn-angle: 480deg;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* The gradient border stays — it is decoration. Only movement goes. */
+    .btn-sweep[data-variant="gradient"],
+    .btn-sweep[data-variant="gradient"]:not(:disabled):hover,
+    .btn-sweep[data-variant="gradient"]:not(:disabled):focus-visible,
+    .btn-sweep[data-variant="gradient"]:not(:disabled):active {
+      transform: none;
+      animation: none;
+      transition: none;
+    }
+  }
+
   /* ---- landing CTA ---------------------------------------------------------
      A gradient-border pill. The "border" is not a border — a real border cannot
      hold a gradient. It is 1.5px of PADDING on an outer element whose background
@@ -582,6 +661,15 @@
 /* Outside every layer: @property is not subject to the cascade, and registering
    it is what makes --cta-angle animatable at all. See .landing-cta above. */
 @property --cta-angle {
+  syntax: "<angle>";
+  initial-value: 120deg;
+  inherits: false;
+}
+
+/* Same reason as --cta-angle: background-image is not an animatable property, so
+   keyframing a linear-gradient() does nothing at all. Registering the angle with
+   a declared <angle> type is what lets the engine interpolate it. */
+@property --btn-angle {
   syntax: "<angle>";
   initial-value: 120deg;
   inherits: false;

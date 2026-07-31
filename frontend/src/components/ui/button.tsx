@@ -42,6 +42,25 @@ const buttonVariants = cva(
         // falloff, no drop shadow, no lift, no glow. These sit beside primaries
         // constantly (Cancel next to Save, icon actions in a table row) and have
         // to stay obviously subordinate, so they get the shape and nothing else.
+        // GRADIENT-BORDER PILL. One element: the border is a transparent 2px
+        // ring with the gradient showing through it, and an opaque fill clipped
+        // inside. All of that, plus the rotation, lives in index.css.
+        //
+        // Two overrides earn their keep here, both measured rather than assumed:
+        //
+        // `[background-clip:…]!` — the base class carries `bg-clip-padding`, and
+        // a utility beats a components-layer rule regardless of specificity.
+        // tailwind-merge does not treat an arbitrary property as conflicting
+        // with `bg-clip-*`, so BOTH are emitted and Tailwind's own ordering put
+        // `bg-clip-padding` last: the measured result was
+        // `padding-box, padding-box`, which clips the gradient away entirely.
+        // The important modifier is what actually settles it.
+        //
+        // `border-2` — the base sets `border` (1px). This one IS the same
+        // tailwind-merge group, so it cleanly replaces it; declaring the width
+        // in CSS lost to the utility the same way.
+        gradient:
+          "border-2 text-text-primary [background-clip:padding-box,border-box]!",
         outline:
           "border-white/12 bg-white/4 backdrop-blur-sm shadow-[var(--btn-glass-quiet)] not-disabled:hover:border-white/20 not-disabled:hover:bg-white/10 not-disabled:hover:text-foreground aria-expanded:bg-white/10 aria-expanded:text-foreground",
         secondary:
@@ -82,6 +101,14 @@ const buttonVariants = cva(
       {
         variant: "hero",
         class: "h-9 gap-2 px-5",
+      },
+      // Sized by padding rather than a fixed height, so the 2px gradient border
+      // adds to the pill instead of eating into the label's breathing room.
+      // Compound, not variant-level: cva emits base -> variant -> size ->
+      // compound, so a variant-level height would lose to the size axis.
+      {
+        variant: "gradient",
+        class: "h-auto gap-2 px-5 py-[9px] text-sm leading-none",
       },
     ],
     defaultVariants: {
