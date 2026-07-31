@@ -156,7 +156,8 @@
       "Bash(npx vite *)",
       "Bash(echo \"BUILD EXIT=$?\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code} \" -X POST localhost:8000/holdings -H 'Content-Type: application/json' -d '{\"ticker\":\"MSFT\",\"shares\":5,\"average_cost\":300}')",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -X POST localhost:8000/holdings -H 'Content-Type: application/json' -d '{\"ticker\":\"TSM\",\"shares\":3,\"average_cost\":200}')"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -X POST localhost:8000/holdings -H 'Content-Type: application/json' -d '{\"ticker\":\"TSM\",\"shares\":3,\"average_cost\":200}')",
+      "Bash(./venv/bin/python -m uvicorn backend.main:app --port 8000 --host 127.0.0.1)"
     ]
   }
 }

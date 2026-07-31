@@ -1,9 +1,9 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useId, useMemo, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import {
+  Area,
+  AreaChart,
   CartesianGrid,
-  Line,
-  LineChart,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -42,6 +42,11 @@ function xPosition(rows: Row[], date: string): number {
   if (rows.length < 2) return 0
   const index = rows.filter((row) => row.date <= date).length - 1
   return Math.min(Math.max(index, 0), rows.length - 1) / (rows.length - 1)
+}
+
+/** Entry animation is opt-out for users who asked for less motion. */
+function prefersReducedMotion(): boolean {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
 export function PriceChart({ thesisId }: { thesisId: string }) {
@@ -120,12 +125,44 @@ function ChartBody({
   rows: Row[]
   statusChanges: ChartEvent[]
 }) {
+  // Two charts can share a page (and SVG ids are document-global), so the gradient
+  // ids are per-instance. useId's own delimiters aren't safe inside url(#…), hence
+  // the strip.
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '')
+  const fillId = `price-fill-${uid}`
+  const strokeId = `price-stroke-${uid}`
+
   return (
     <div className="h-64 w-full">
       {/* ResponsiveContainer so the chart reflows when the sidebar collapses. */}
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
-          <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+        <AreaChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
+          <defs>
+            {/* VERTICAL — the area fill. Brightest just under the line, gone by the
+                baseline, so the fill gives the series weight without becoming a
+                block of tone the markers have to fight. */}
+            <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.22} />
+              <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
+            </linearGradient>
+
+            {/* HORIZONTAL — the stroke itself, oldest → newest, so recent data reads
+                brightest. The left end bottoms out at 0.35, never lower: history is
+                de-emphasised, not erased. */}
+            <linearGradient id={strokeId} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.35} />
+              <stop offset="100%" stopColor="var(--primary)" stopOpacity={1} />
+            </linearGradient>
+          </defs>
+
+          {/* Grid dimmed and dashed: against the fill, the previous weight read as
+              noise crossing the shaded band. */}
+          <CartesianGrid
+            stroke="var(--border)"
+            strokeDasharray="2 5"
+            strokeOpacity={0.5}
+            vertical={false}
+          />
           <XAxis
             dataKey="date"
             tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
@@ -142,6 +179,22 @@ function ChartBody({
             width={52}
           />
           <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--border)' }} />
+
+          {/* Declared BEFORE the reference lines so the fill sits underneath them —
+              recharts paints children in order, and a status line washed out by 22%
+              white would lose the colour that identifies which status it marks. */}
+          <Area
+            type="monotone"
+            dataKey="close"
+            fill={`url(#${fillId})`}
+            stroke={`url(#${strokeId})`}
+            strokeWidth={2}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            dot={<EventDot />}
+            activeDot={{ r: 3, fill: 'var(--text-secondary)' }}
+            isAnimationActive={!prefersReducedMotion()}
+          />
 
           {/* Status changes as vertical lines, coloured by the status moved INTO.
               Two things go wrong if the label is just dropped next to the line:
@@ -172,21 +225,7 @@ function ChartBody({
               />
             )
           })}
-
-          {/* The line is the CANVAS: thin and muted so markers read against it. */}
-          <Line
-            type="monotone"
-            dataKey="close"
-            stroke="var(--text-muted)"
-            strokeWidth={1.5}
-            dot={<EventDot />}
-            activeDot={{ r: 3, fill: 'var(--text-secondary)' }}
-            // No entry animation for users who asked for less motion.
-            isAnimationActive={
-              !window.matchMedia('(prefers-reduced-motion: reduce)').matches
-            }
-          />
-        </LineChart>
+        </AreaChart>
       </ResponsiveContainer>
     </div>
   )
