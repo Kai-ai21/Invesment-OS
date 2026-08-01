@@ -1,5 +1,6 @@
 import { RefreshCw } from 'lucide-react'
 
+import { EmptyIllustration } from '@/components/EmptyIllustration'
 import { NewsItem } from '@/components/news/NewsItem'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -32,7 +33,15 @@ export function NewsList({
   if (loading) return <NewsSkeleton />
   if (error) return <ErrorState message={error.message} onRetry={onRetry} />
   if (items.length === 0) {
-    return <p className="py-6 text-sm text-text-secondary">{emptyMessage}</p>
+    // No Card wrapper here, unlike the page-level empty states: this renders
+    // inside the news slide-over as well, which is already a panel — a card
+    // inside it would be a box in a box.
+    return (
+      <div className="flex flex-col items-center gap-3 py-8 text-center">
+        <EmptyIllustration variant="news" />
+        <p className="text-sm text-text-secondary">{emptyMessage}</p>
+      </div>
+    )
   }
 
   return (

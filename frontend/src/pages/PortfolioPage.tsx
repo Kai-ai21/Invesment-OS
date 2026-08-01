@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { Loader2, RefreshCw } from 'lucide-react'
 
+import { EmptyIllustration } from '@/components/EmptyIllustration'
 import { AddHoldingForm } from '@/components/portfolio/AddHoldingForm'
 import { HoldingsTable } from '@/components/portfolio/HoldingsTable'
 import { PortfolioSummary } from '@/components/portfolio/PortfolioSummary'
@@ -175,6 +176,7 @@ function EmptyState() {
   return (
     <Card className="[--card-spacing:--spacing(10)]">
       <div className="flex flex-col items-center gap-2 px-(--card-spacing) text-center">
+        <EmptyIllustration variant="holdings" className="mb-2" />
         <p className="font-heading text-base font-medium text-text-primary">
           No holdings yet
         </p>

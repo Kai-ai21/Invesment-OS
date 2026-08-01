@@ -26,6 +26,22 @@ export interface Claim {
   break_condition: string
   is_core: boolean
   status: ClaimStatus
+  /** How much evidence this claim has been judged on. */
+  evidence_count: number
+  /**
+   * The weighted score the status was derived from — supporting confidence minus
+   * contradicting confidence — computed by backend/domain/status.py.
+   *
+   * ⚠️ NULL, NOT ZERO, when there is no evidence: 0.0 is a real score meaning
+   * support and contradiction cancelled out, which is a different thing from
+   * never having been looked at. Never recompute this client-side; the status
+   * engine owns the maths and this is the number the status was decided on.
+   */
+  score: number | null
+  /** [floor, ceiling] the score is read against, from the same module. Sent
+   *  rather than hard-coded so a band change server-side cannot leave the bar
+   *  describing the old scale. Real scores can fall OUTSIDE it. */
+  score_scale: [number, number]
 }
 
 /** ThesisOut */
@@ -39,6 +55,17 @@ export interface Thesis {
   status: ThesisStatus
   created_at: string
   claims: Claim[]
+  /**
+   * Both DERIVED server-side from the evidence events, not stored on the thesis —
+   * so they cannot drift from the events they describe. Denormalised onto the
+   * thesis for the same reason AlertOut carries `ticker`: the list shows them on
+   * every card, and fetching evidence per card to count it would be one request
+   * per thesis.
+   */
+  evidence_count: number
+  /** When the newest evidence landed, i.e. when this was last actually checked
+   *  against anything. Null means never. */
+  last_evidence_at: string | null
 }
 
 /** EvidenceEventOut */
@@ -598,6 +625,29 @@ export function dismissPattern(patternId: string): Promise<Pattern> {
 export function getChartData(thesisId: string, days = 365): Promise<ChartData> {
   return request<ChartData>(
     `/theses/${encodeURIComponent(thesisId)}/chart?days=${days}`,
+  )
+}
+
+/** PriceHistoryOut — bare daily closes for a TICKER, with no thesis involved. */
+export interface PriceHistory {
+  ticker: string
+  points: Array<{ date: string; close: number }>
+}
+
+/**
+ * Daily closes for a ticker.
+ *
+ * Distinct from getChartData, which is thesis-scoped and carries the evidence
+ * annotations the detail chart draws. A sparkline on a market card has no thesis
+ * to hang off, so it reads the ticker endpoint — which is the same price service,
+ * behind the same cache, not a second source.
+ *
+ * 404s when the ticker has no history at all; see lib/priceHistory for the
+ * deduplicating cache every sparkline actually goes through.
+ */
+export function getPriceHistory(ticker: string, days = 30): Promise<PriceHistory> {
+  return request<PriceHistory>(
+    `/prices/${encodeURIComponent(ticker)}/history?days=${days}`,
   )
 }
 

@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 
 import { CompanyLogo } from '@/components/CompanyLogo'
+import { Sparkline } from '@/components/Sparkline'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Card } from '@/components/ui/card'
 import { TruncatedText } from '@/components/ui/tooltip'
@@ -40,7 +41,12 @@ export function MarketCard({
 
   return (
     <Card className="[--card-spacing:--spacing(5)]">
-      <div className="flex h-full flex-col gap-3 px-(--card-spacing)">
+      {/* A container, so the sparkline below can be dropped by how much room
+          THIS CARD has rather than by viewport width. The two are not the same
+          here: the grid's `sm:` breakpoint reads the viewport, but the sidebar
+          takes 240px out of it first, so a 640px window renders two columns into
+          a 400px strip and each card ends up ~148px wide. */}
+      <div className="@container flex h-full flex-col gap-3 px-(--card-spacing)">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
             <CompanyLogo ticker={quote.ticker} logoUrl={quote.logo_url} size={32} />
@@ -73,23 +79,41 @@ export function MarketCard({
         {quote.unavailable ? (
           <Unavailable reason={quote.error} />
         ) : (
-          <div className="flex items-baseline gap-2.5">
-            <span className="font-mono text-xl tabular-nums text-text-primary">
-              {formatMoney(quote.price)}
-            </span>
-            <span
-              className={cn(
-                'font-mono text-xs tabular-nums',
-                tone === 'positive'
-                  ? 'text-status-strengthening'
-                  : tone === 'negative'
-                    ? 'text-status-broken'
-                    : 'text-text-secondary',
-              )}
-            >
-              {/* Both carry their own sign, so colour is never the only signal. */}
-              {formatSignedMoney(quote.change)} ({formatSignedPercent(quote.change_percent)})
-            </span>
+          <div className="flex items-end justify-between gap-3">
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2.5">
+              <span className="font-mono text-xl tabular-nums text-text-primary">
+                {formatMoney(quote.price)}
+              </span>
+              <span
+                className={cn(
+                  'font-mono text-xs tabular-nums',
+                  tone === 'positive'
+                    ? 'text-status-strengthening'
+                    : tone === 'negative'
+                      ? 'text-status-broken'
+                      : 'text-text-secondary',
+                )}
+              >
+                {/* Both carry their own sign, so colour is never the only signal. */}
+                {formatSignedMoney(quote.change)} ({formatSignedPercent(quote.change_percent)})
+              </span>
+            </div>
+            {/* Beside today's move, which it puts in context: the coloured figure
+                is one session, the line behind it is thirty. The line itself is
+                NEVER coloured by direction — see Sparkline.
+
+                ⚠️ DROPPED ENTIRELY ON A NARROW CARD rather than squeezed. At 72px
+                it was taking half of a 148px card and crushing the price beside it
+                to 24px of overflowing text. The price is the card's reason for
+                existing and the sparkline is context for it, so when only one fits,
+                it is not the sparkline. */}
+            <Sparkline
+              ticker={quote.ticker}
+              days={30}
+              width={72}
+              height={24}
+              className="hidden @[240px]:inline-block"
+            />
           </div>
         )}
 

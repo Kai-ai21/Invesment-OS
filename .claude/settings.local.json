@@ -181,7 +181,13 @@
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('holdings:', [h['ticker'] for h in d['holdings']]\\)\")",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('theses:', [t['ticker'] for t in d]\\)\")",
       "Bash(curl -s localhost:8000/post-mortems)",
-      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('post-mortems:', len\\(d\\)\\)\")"
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('post-mortems:', len\\(d\\)\\)\")",
+      "Bash(./venv/bin/python -)",
+      "Bash(perl -pi -e 's/colSpan=\\\\{9\\\\}/colSpan={10}/g' src/components/portfolio/HoldingsTable.tsx)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(python3 -c \"import json,sys; print\\('remaining:', [h['ticker'] for h in json.load\\(sys.stdin\\)['holdings']]\\)\")",
+      "Bash(./venv/bin/python -m pytest tests/test_status.py -q)",
+      "Bash(echo \"lint clean of jsx-key: $?\")"
     ]
   }
 }

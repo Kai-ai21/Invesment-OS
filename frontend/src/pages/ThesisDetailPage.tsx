@@ -1,9 +1,19 @@
 import { useCallback, useState, type ReactNode } from 'react'
-import { ArrowLeft, BookOpen, Loader2, NotebookPen, RefreshCw } from 'lucide-react'
+import {
+  ArrowLeft,
+  BookOpen,
+  ChevronDown,
+  ChevronRight,
+  Loader2,
+  NotebookPen,
+  RefreshCw,
+  X,
+} from 'lucide-react'
 import { Link, useParams } from 'react-router'
 
 import { CompanyLogo } from '@/components/CompanyLogo'
 import { StatusBadge } from '@/components/StatusBadge'
+import { ClaimScoreBar } from '@/components/thesis/ClaimScoreBar'
 import { ThesisHoldingLine } from '@/components/portfolio/ThesisHoldingLine'
 import { ThesisReflections } from '@/components/reflection/ThesisReflections'
 import { AddDocumentPanel } from '@/components/thesis/AddDocumentPanel'
@@ -27,6 +37,7 @@ import {
   type Thesis,
 } from '@/lib/api'
 import { formatConfidence, formatDate, formatDateTime, timestamp } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
 interface DetailData {
   thesis: Thesis
@@ -53,6 +64,9 @@ export function ThesisDetailPage() {
   // lifting the fetch: the reflections block owns its own loading/error states and
   // there is no reason for the page to duplicate them.
   const [reflectionsKey, setReflectionsKey] = useState(0)
+  // Which claim the evidence list is narrowed to, or null for all of it. Lives
+  // here because the claims and the evidence are two sibling sections.
+  const [filterClaimId, setFilterClaimId] = useState<string | null>(null)
 
   // Refresh the thesis AND re-read its reflections. Both a check and a document
   // submission can break a claim, which opens a post-mortem server-side — refreshing
@@ -83,6 +97,14 @@ export function ThesisDetailPage() {
   const newestFirst = [...evidence].sort(
     (a, b) => timestamp(b.created_at) - timestamp(a.created_at),
   )
+
+  // A filter pointing at a claim that no longer exists would silently show an
+  // empty list, so it falls back to showing everything.
+  const filteredClaim =
+    thesis.claims.find((claim) => claim.id === filterClaimId) ?? null
+  const visibleEvidence = filteredClaim
+    ? newestFirst.filter((event) => event.claim_id === filteredClaim.id)
+    : newestFirst
 
   return (
     <div>
@@ -173,7 +195,11 @@ export function ThesisDetailPage() {
           <ul className="flex flex-col gap-4">
             {thesis.claims.map((claim) => (
               <li key={claim.id}>
-                <ClaimCard claim={claim} />
+                <ClaimCard
+                  claim={claim}
+                  filtered={filteredClaim?.id === claim.id}
+                  onFilter={setFilterClaimId}
+                />
               </li>
             ))}
           </ul>
@@ -183,13 +209,40 @@ export function ThesisDetailPage() {
       <section>
         <SectionHeading>
           Evidence{' '}
-          <span className="font-normal text-text-muted">({newestFirst.length})</span>
+          <span className="font-normal text-text-muted">
+            ({filteredClaim ? `${visibleEvidence.length} of ${newestFirst.length}` : newestFirst.length})
+          </span>
         </SectionHeading>
-        {newestFirst.length === 0 ? (
+
+        {/* The filter is set from a claim card further up the page, which may be
+            scrolled out of sight by the time the reader reaches the list — so the
+            list says what it is showing and offers its own way out. */}
+        {filteredClaim && (
+          <div
+            role="status"
+            className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg bg-surface-raised px-4 py-2.5 text-sm"
+          >
+            <span className="text-text-secondary">Showing evidence for one claim:</span>
+            <span className="font-serif text-text-primary">
+              “{filteredClaim.statement}”
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setFilterClaimId(null)}
+              className="ml-auto shrink-0 text-text-secondary hover:text-text-primary"
+            >
+              <X aria-hidden />
+              Show all
+            </Button>
+          </div>
+        )}
+
+        {visibleEvidence.length === 0 ? (
           <p className="text-sm text-text-secondary">No evidence yet.</p>
         ) : (
           <ul className="flex flex-col gap-4">
-            {newestFirst.map((event) => (
+            {visibleEvidence.map((event) => (
               <li key={event.id}>
                 <EvidenceCard event={event} />
               </li>
@@ -254,10 +307,22 @@ function ReflectButton({
 }
 
 
-function ClaimCard({ claim }: { claim: Claim }) {
+function ClaimCard({
+  claim,
+  filtered,
+  onFilter,
+}: {
+  claim: Claim
+  /** True when the evidence list below is currently narrowed to this claim. */
+  filtered: boolean
+  onFilter: (claimId: string | null) => void
+}) {
+  const [openConditions, setOpenConditions] = useState(false)
+  const conditionsId = `conditions-${claim.id}`
+
   return (
     <Card className="[--card-spacing:--spacing(5)]">
-      <div className="flex flex-col gap-4 px-(--card-spacing)">
+      <div className="flex flex-col gap-3 px-(--card-spacing)">
         <div className="flex items-start justify-between gap-4">
           {/* Claim statement is prose — serif, ~16px, weight 400, comfortable leading. */}
           <p className="font-serif text-[16px] leading-[1.5] text-text-primary">
@@ -271,12 +336,93 @@ function ClaimCard({ claim }: { claim: Claim }) {
           </div>
         </div>
 
-        <dl className="grid gap-3 sm:grid-cols-2">
-          <Condition label="Proof condition" value={claim.proof_condition} />
-          <Condition label="Break condition" value={claim.break_condition} />
-        </dl>
+        {/* The engine's working, on one line: what it scored, where that sits,
+            and how much it was judged on. */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <ClaimScoreBar
+            score={claim.score}
+            scale={claim.score_scale}
+            status={claim.status}
+          />
+
+          <EvidenceFilterButton claim={claim} active={filtered} onToggle={onFilter} />
+
+          {/* ⚠️ COLLAPSED BY DEFAULT. Proof and break conditions are the contract
+              the claim is judged against — reference material you consult when a
+              status surprises you, not something you scan a list of claims for.
+              Always-open, they tripled every card's height and pushed the actual
+              evidence off the screen. */}
+          <button
+            type="button"
+            onClick={() => setOpenConditions((open) => !open)}
+            aria-expanded={openConditions}
+            aria-controls={conditionsId}
+            className="ml-auto flex items-center gap-1 rounded-lg text-xs text-text-muted transition-colors hover:text-text-secondary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+          >
+            {openConditions ? (
+              <ChevronDown className="size-3.5" aria-hidden />
+            ) : (
+              <ChevronRight className="size-3.5" aria-hidden />
+            )}
+            Conditions
+          </button>
+        </div>
+
+        {openConditions && (
+          <dl id={conditionsId} className="grid gap-3 border-t border-border pt-3 sm:grid-cols-2">
+            <Condition label="Proof condition" value={claim.proof_condition} />
+            <Condition label="Break condition" value={claim.break_condition} />
+          </dl>
+        )}
       </div>
     </Card>
+  )
+}
+
+/**
+ * The claim's evidence count, as the control that filters the list below to it.
+ *
+ * A count with nothing behind it is a dead end — the reader's next question after
+ * "four events" is always "which four". Zero is NOT a button: there is nothing to
+ * filter to, and a control that does nothing when pressed is worse than plain text.
+ */
+function EvidenceFilterButton({
+  claim,
+  active,
+  onToggle,
+}: {
+  claim: Claim
+  active: boolean
+  onToggle: (claimId: string | null) => void
+}) {
+  const label = `${claim.evidence_count} evidence ${claim.evidence_count === 1 ? 'event' : 'events'}`
+
+  if (claim.evidence_count === 0) {
+    return <span className="text-xs text-text-muted">no evidence yet</span>
+  }
+
+  return (
+    <Tooltip
+      content={
+        active
+          ? 'Showing only this claim’s evidence. Click to show all again.'
+          : 'Show only this claim’s evidence below'
+      }
+    >
+      <button
+        type="button"
+        onClick={() => onToggle(active ? null : claim.id)}
+        aria-pressed={active}
+        className={cn(
+          'rounded-4xl border px-2 py-0.5 text-xs transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
+          active
+            ? 'border-border-strong bg-surface-raised text-text-primary'
+            : 'border-transparent text-text-muted hover:border-border hover:text-text-secondary',
+        )}
+      >
+        {label}
+      </button>
+    </Tooltip>
   )
 }
 

@@ -3,6 +3,7 @@ from datetime import date as DateOnly, datetime
 from pydantic import BaseModel, Field, computed_field, field_validator
 
 from backend.domain.company_domains import logo_url_for_ticker
+from backend.domain.status import CLAIM_SCORE_SCALE
 
 
 class TickerLogoMixin(BaseModel):
@@ -34,6 +35,24 @@ class ClaimOut(BaseModel):
     is_core: bool
     status: str
 
+    # How much evidence this claim has been judged on.
+    evidence_count: int = 0
+
+    # The weighted score the status was derived from: supporting confidence minus
+    # contradicting confidence, straight out of domain/status.py.
+    #
+    # ⚠️ NULL, NOT ZERO, when there is no evidence. Zero is a real score meaning
+    # "support and contradiction cancelled out" — a claim that has been examined
+    # and found balanced. A pending claim has not been examined at all, and
+    # showing it as 0.0 would put it on the bar next to genuinely contested
+    # claims. Same rule as the money formatters: an absent number is never a zero.
+    score: float | None = None
+
+    # The two ends of the range `score` is read against, so the bar drawn from it
+    # never hard-codes a threshold this service could change. Both come from
+    # domain/status.py.
+    score_scale: tuple[float, float] = CLAIM_SCORE_SCALE
+
     model_config = {"from_attributes": True}
 
 
@@ -43,6 +62,16 @@ class ThesisOut(TickerLogoMixin):
     status: str
     created_at: datetime
     claims: list[ClaimOut]
+
+    # Denormalised onto the thesis for the same reason AlertOut carries `ticker`:
+    # the list view shows both on every card, and fetching evidence per card to
+    # count it would be one request per thesis. Defaulted so a caller that has not
+    # attached a summary still validates — an unknown count reads as none, which is
+    # also what a brand-new thesis has.
+    evidence_count: int = 0
+    # When the newest evidence event landed, i.e. when this thesis was last
+    # actually checked against anything. None means never.
+    last_evidence_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 

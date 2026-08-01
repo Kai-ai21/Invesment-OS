@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { Check, Loader2, RefreshCw } from 'lucide-react'
 import { Link } from 'react-router'
 
+import { EmptyIllustration } from '@/components/EmptyIllustration'
 import { StatusBadge } from '@/components/StatusBadge'
 import { StatusSpine } from '@/components/StatusSpine'
 import { Button } from '@/components/ui/button'
@@ -247,9 +248,15 @@ function EmptyState({ filter }: { filter: Filter }) {
   return (
     <Card className="[--card-spacing:--spacing(10)]">
       <div className="flex flex-col items-center gap-1 px-(--card-spacing) text-center">
+        {/* mb-3 rather than a gap on the container: the two lines of copy below
+            are a tight pair and must stay tighter to each other than to this. */}
+        <EmptyIllustration variant="alerts" className="mb-3" />
         <p className="font-heading text-base font-medium text-text-primary">
           {filter === 'unread' ? 'No unread alerts' : 'No alerts'}
         </p>
+        {/* This sentence is the whole point of the empty state — it reframes an
+            absence as a result. The mark above it is punctuation, not a
+            replacement. */}
         <p className="text-sm text-text-secondary">
           Silence means nothing meaningful has changed.
         </p>

@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Loader2, RefreshCw, Sparkles } from 'lucide-react'
 
+import { EmptyIllustration } from '@/components/EmptyIllustration'
 import { PatternCard } from '@/components/pattern/PatternCard'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -172,6 +173,11 @@ function EmptyCard({ title, body }: { title: string; body: string }) {
   return (
     <Card className="[--card-spacing:--spacing(8)]">
       <div className="flex flex-col items-center gap-1 px-(--card-spacing) text-center">
+        {/* One mark for all three of the states above. They differ in what they
+            SAY — not enough material, looked and found nothing, not looked yet —
+            and three different graphics for one subject would read as three
+            different features. */}
+        <EmptyIllustration variant="patterns" className="mb-3" />
         <p className="font-display text-base tracking-[0.01em] text-text-primary">
           {title}
         </p>

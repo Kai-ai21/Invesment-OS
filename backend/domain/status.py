@@ -24,12 +24,31 @@ BROKEN_CLAIM_STATUS = "broken"
 
 PENDING = "pending"
 
+# The span a claim's score is READ AGAINST: the bottom of the lowest band it can
+# sit in before breaking, up to the point where it is strongly supported. Derived
+# from the table above rather than written out, so adding or moving a band cannot
+# leave the scale the UI draws describing the old one.
+#
+# Exported because the UI draws a bar between these two points. Every number in
+# that bar — the score and both ends of the range it is placed on — therefore
+# comes from this module, and there is no threshold hard-coded in a component
+# that a change here would silently invalidate.
+CLAIM_SCORE_SCALE: tuple[float, float] = (
+    CLAIM_STATUS_THRESHOLDS[-1][0],
+    CLAIM_STATUS_THRESHOLDS[0][0],
+)
 
-def compute_claim_status(events: list[ScoredEvent]) -> str:
-    """Score a claim's evidence and map that score onto a status band."""
-    if not events:
-        return PENDING
 
+def compute_claim_score(events: list[ScoredEvent]) -> float:
+    """Support minus contradiction, each weighted by the confidence behind it.
+
+    Split out of compute_claim_status so the number itself can be shown to the
+    user — the UI renders it beside the claim, which is what makes a status
+    legible ("+1.67" explains why a claim with one contradiction is still
+    supported). It is deliberately EXPORTED RATHER THAN REIMPLEMENTED anywhere
+    else: two copies of this loop would eventually disagree, and the one on
+    screen would be the one nobody could trace.
+    """
     score = 0.0
     for event in events:
         if event.verdict == "supports":
@@ -37,6 +56,15 @@ def compute_claim_status(events: list[ScoredEvent]) -> str:
         elif event.verdict == "contradicts":
             score -= event.confidence
         # any other verdict (e.g. "neutral") contributes nothing
+    return score
+
+
+def compute_claim_status(events: list[ScoredEvent]) -> str:
+    """Score a claim's evidence and map that score onto a status band."""
+    if not events:
+        return PENDING
+
+    score = compute_claim_score(events)
 
     for min_score, inclusive, status in CLAIM_STATUS_THRESHOLDS:
         if score >= min_score if inclusive else score > min_score:

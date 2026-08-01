@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { Loader2, RefreshCw } from 'lucide-react'
 
+import { EmptyIllustration } from '@/components/EmptyIllustration'
 import { PatternsSection } from '@/components/pattern/PatternsSection'
 import { ReflectionCard } from '@/components/reflection/ReflectionCard'
 import { Button } from '@/components/ui/button'
@@ -105,6 +106,7 @@ function EmptyState() {
   return (
     <Card className="[--card-spacing:--spacing(10)]">
       <div className="flex flex-col items-center gap-1 px-(--card-spacing) text-center">
+        <EmptyIllustration variant="reflections" className="mb-3" />
         <p className="font-display text-base tracking-[0.01em] text-text-primary">
           No reflections yet
         </p>

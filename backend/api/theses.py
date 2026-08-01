@@ -5,6 +5,7 @@ from backend.adapters.edgar_source import EdgarError
 from backend.adapters.gemini_provider import GeminiProvider
 from backend.api.schemas import (
     ChartDataOut,
+    ClaimOut,
     EnhanceReasoningOut,
     EnhanceReasoningRequest,
     CheckResultOut,
@@ -14,7 +15,7 @@ from backend.api.schemas import (
     ThesisCreateRequest,
     ThesisOut,
 )
-from backend.domain.status import BROKEN_CLAIM_STATUS
+from backend.domain.status import BROKEN_CLAIM_STATUS, compute_claim_score
 from backend.models.database import get_db
 from backend.repositories import (
     evidence_repository,
@@ -22,6 +23,7 @@ from backend.repositories import (
     thesis_repository,
     user_repository,
 )
+from backend.repositories.evidence_repository import EMPTY_SUMMARY, EvidenceSummary
 from backend.services.chart_service import build_chart_data
 from backend.services.check_service import CheckError, check_thesis
 from backend.services.enhancement_service import EnhancementError, enhance_reasoning
@@ -70,10 +72,55 @@ def enhance_thesis_reasoning(
         raise HTTPException(status_code=422, detail=str(exc))
 
 
+def _thesis_out(
+    thesis,
+    summaries: dict[str, EvidenceSummary],
+    events_by_claim: dict[str, list],
+) -> ThesisOut:
+    """A thesis with its evidence rollup, and each claim with its score.
+
+    Composed here rather than stored on the rows: every one of these is derived
+    from the append-only events table, so recomputing means they can never
+    disagree with the events themselves — and there is no counter or cached score
+    to forget to update when a check writes new evidence.
+
+    ⚠️ THE SCORE COMES FROM THE DOMAIN, not from a second loop here. This calls
+    the same compute_claim_score that compute_claim_status calls, so the number
+    shown to the user is by construction the number the status was decided on.
+    """
+    summary = summaries.get(thesis.id, EMPTY_SUMMARY)
+
+    claims = []
+    for claim in thesis.claims:
+        events = events_by_claim.get(claim.id, [])
+        claims.append(
+            ClaimOut.model_validate(claim).model_copy(
+                update={
+                    "evidence_count": len(events),
+                    # None, not 0.0, with nothing to score — see ClaimOut.
+                    "score": compute_claim_score(events) if events else None,
+                }
+            )
+        )
+
+    return ThesisOut.model_validate(thesis).model_copy(
+        update={
+            "claims": claims,
+            "evidence_count": summary.count,
+            "last_evidence_at": summary.last_at,
+        }
+    )
+
+
 @router.get("", response_model=list[ThesisOut])
 def list_theses(db: Session = Depends(get_db)):
     user = user_repository.get_demo_user(db)
-    return thesis_repository.list_theses_for_user(db, user_id=user.id)
+    theses = thesis_repository.list_theses_for_user(db, user_id=user.id)
+    ids = [thesis.id for thesis in theses]
+    # Two queries for the whole list, however many theses it holds.
+    summaries = evidence_repository.summarise_for_theses(db, ids)
+    events = evidence_repository.events_by_claim(db, ids)
+    return [_thesis_out(thesis, summaries, events) for thesis in theses]
 
 
 @router.get("/{thesis_id}", response_model=ThesisOut)
@@ -81,7 +128,11 @@ def get_thesis(thesis_id: str, db: Session = Depends(get_db)):
     thesis = thesis_repository.get_thesis(db, thesis_id)
     if thesis is None:
         raise HTTPException(status_code=404, detail="Thesis not found")
-    return thesis
+    return _thesis_out(
+        thesis,
+        evidence_repository.summarise_for_theses(db, [thesis.id]),
+        evidence_repository.events_by_claim(db, [thesis.id]),
+    )
 
 
 @router.post("/{thesis_id}/documents", response_model=list[EvidenceEventOut])

@@ -3,6 +3,7 @@ import { Loader2, Pencil, Trash2 } from 'lucide-react'
 import { Link } from 'react-router'
 
 import { CompanyLogo } from '@/components/CompanyLogo'
+import { Sparkline } from '@/components/Sparkline'
 import { StatusBadge } from '@/components/StatusBadge'
 import { spineBorderStyle } from '@/components/StatusSpine'
 import { Button } from '@/components/ui/button'
@@ -72,6 +73,10 @@ export function HoldingsTable({
             </th>
             <th scope="col" className={HEAD}>
               Price
+            </th>
+            {/* Beside Price, because it is the same fact over time. */}
+            <th scope="col" className={cn(HEAD, 'text-left')}>
+              30d
             </th>
             <th scope="col" className={HEAD}>
               Value
@@ -204,6 +209,11 @@ function HoldingRow({
             reason={reason}
           />
         </td>
+        {/* Renders nothing at all for an unpriced ticker, but keeps its box, so
+            the column stays aligned down the table. */}
+        <td className="px-3 py-3">
+          <Sparkline ticker={holding.ticker} days={30} />
+        </td>
         <td className={cn(NUM, 'text-text-primary')}>
           <OrUnavailable
             value={holding.market_value}
@@ -290,7 +300,7 @@ function HoldingRow({
 
       {error && (
         <tr>
-          <td colSpan={9} className="px-3 pb-3 text-sm text-status-broken">
+          <td colSpan={10} className="px-3 pb-3 text-sm text-status-broken">
             {error}
           </td>
         </tr>
@@ -298,7 +308,7 @@ function HoldingRow({
 
       {editing && (
         <tr className="border-b border-border/60 bg-surface-raised/30">
-          <td colSpan={9} className="px-3 py-4">
+          <td colSpan={10} className="px-3 py-4">
             <EditHoldingForm
               holding={holding}
               onCancel={() => setEditing(false)}

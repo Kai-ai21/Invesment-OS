@@ -1,6 +1,11 @@
 from dataclasses import dataclass
 
+import pytest
+
 from backend.domain.status import (
+    CLAIM_SCORE_SCALE,
+    CLAIM_STATUS_THRESHOLDS,
+    compute_claim_score,
     compute_claim_status,
     compute_thesis_status,
     is_meaningful_change,
@@ -185,3 +190,77 @@ def test_different_status_is_a_meaningful_change():
 
     # Assert
     assert changed is True
+
+
+# --- compute_claim_score ----------------------------------------------------------
+#
+# The score is now SHOWN to the user beside the status, so it is part of the
+# contract rather than an internal step. These pin the two properties that matter:
+# it is the number the status was decided on, and it can leave the band range.
+
+
+def test_score_is_support_minus_contradiction_weighted_by_confidence():
+    # Arrange
+    events = [
+        FakeEvent("supports", 0.9),
+        FakeEvent("supports", 0.8),
+        FakeEvent("contradicts", 0.5),
+    ]
+
+    # Act
+    score = compute_claim_score(events)
+
+    # Assert
+    assert score == pytest.approx(1.2)
+
+
+def test_neutral_evidence_moves_the_score_neither_way():
+    # Arrange
+    scored = [FakeEvent("supports", 0.6)]
+    with_neutral = [*scored, FakeEvent("neutral", 0.95)]
+
+    # Act / Assert — a neutral read is still evidence, but it is not a vote.
+    assert compute_claim_score(with_neutral) == compute_claim_score(scored)
+
+
+def test_score_agrees_with_the_status_it_produced():
+    # Arrange — the case the UI exists to explain: a contradiction on the record,
+    # and a claim that is supported anyway because the support outweighed it.
+    events = [
+        FakeEvent("supports", 0.9),
+        FakeEvent("supports", 0.85),
+        FakeEvent("contradicts", 0.7),
+    ]
+
+    # Act
+    score = compute_claim_score(events)
+    status = compute_claim_status(events)
+
+    # Assert
+    assert score == pytest.approx(1.05)
+    assert status == "supported"
+    floor, ceiling = CLAIM_SCORE_SCALE
+    assert floor < score < ceiling
+
+
+def test_score_can_fall_outside_the_band_scale():
+    # Arrange — four confident contradictions. The scale bottoms out at -1.0, but
+    # the score keeps going; the bar clamps its marker, the number never does.
+    events = [FakeEvent("contradicts", 0.95) for _ in range(4)]
+
+    # Act
+    score = compute_claim_score(events)
+
+    # Assert
+    assert score == pytest.approx(-3.8)
+    assert score < CLAIM_SCORE_SCALE[0]
+    assert compute_claim_status(events) == "broken"
+
+
+def test_scale_is_derived_from_the_threshold_table():
+    # The UI draws its bar between these two points, so they must track the bands
+    # rather than being a second copy of them.
+    assert CLAIM_SCORE_SCALE == (
+        CLAIM_STATUS_THRESHOLDS[-1][0],
+        CLAIM_STATUS_THRESHOLDS[0][0],
+    )
