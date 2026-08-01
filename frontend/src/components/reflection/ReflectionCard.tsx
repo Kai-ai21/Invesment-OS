@@ -14,6 +14,7 @@ import {
   type PostMortem,
 } from '@/lib/api'
 import { formatRelative } from '@/lib/format'
+import { entryProps } from '@/lib/motion'
 
 /**
  * Asked for a MANUALLY opened reflection. There is no broken claim to be specific
@@ -29,11 +30,14 @@ function isManual(postMortem: PostMortem): boolean {
 export function ReflectionCard({
   postMortem,
   onChanged,
+  index,
 }: {
   postMortem: PostMortem
   /** Called after save or delete so the container can refetch and the sidebar
    *  badge can be re-counted. */
   onChanged?: () => void
+  /** Position in a staggered list. Omitted where these render outside one. */
+  index?: number
 }) {
   // Local copy so a save updates in place without waiting for a parent refetch.
   const [item, setItem] = useState(postMortem)
@@ -93,7 +97,15 @@ export function ReflectionCard({
   const answered = item.user_response !== null
 
   return (
-    <Card className="relative border border-border transition-colors [--card-spacing:--spacing(6)] hover:border-border-strong">
+    // Applied to the Card rather than a wrapper, because this component renders
+    // null when dismissed — a wrapper would stay behind as an empty box holding
+    // the column's gap open.
+    <Card
+      {...entryProps(
+        index,
+        'relative border border-border transition-colors [--card-spacing:--spacing(6)] hover:border-border-strong',
+      )}
+    >
       {/* The status the thesis was in when it broke — the reflection is about
           that moment, and the thesis has kept moving since. */}
       <StatusSpine status={item.status_at_break} />

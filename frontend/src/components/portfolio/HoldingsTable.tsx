@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { spineBorderStyle } from '@/components/StatusSpine'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useStaggerIndex } from '@/hooks/useStaggerIndex'
 import {
   deleteHolding,
   updateHolding,
@@ -23,6 +24,7 @@ import {
   formatSignedPercent,
   signOf,
 } from '@/lib/format'
+import { entryProps } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
 /** Right-aligned, mono, tabular — so digits line up column-wise for scanning. */
@@ -41,6 +43,8 @@ export function HoldingsTable({
   /** For DELETE, which answers 204 and so carries no new portfolio. */
   onRefetch: () => Promise<void>
 }) {
+  const staggerIndex = useStaggerIndex(holdings.length > 0)
+
   return (
     // The table is wide by nature; it scrolls inside its own box rather than
     // pushing the page sideways.
@@ -82,10 +86,14 @@ export function HoldingsTable({
           </tr>
         </thead>
         <tbody>
-          {holdings.map((holding) => (
+          {/* Re-sorting MOVES these rows. A move is a DOM remove-and-reinsert,
+              which restarts a CSS animation — see useStaggerIndex, which is what
+              stops a re-sort from replaying every row's entrance. */}
+          {holdings.map((holding, index) => (
             <HoldingRow
               key={holding.id}
               holding={holding}
+              index={staggerIndex(index)}
               onPortfolio={onPortfolio}
               onRefetch={onRefetch}
             />
@@ -98,10 +106,13 @@ export function HoldingsTable({
 
 function HoldingRow({
   holding,
+  index,
   onPortfolio,
   onRefetch,
 }: {
   holding: Holding
+  /** Position in the staggered entry. */
+  index?: number
   onPortfolio: (portfolio: Portfolio) => void
   onRefetch: () => Promise<void>
 }) {
@@ -129,7 +140,14 @@ function HoldingRow({
 
   return (
     <>
-      <tr className="border-b border-border/60 last:border-b-0 hover:bg-surface-raised/40">
+      {/* Only the data row animates. The error and edit rows below open in
+          response to a click and would be a second, unrelated entrance. */}
+      <tr
+        {...entryProps(
+          index,
+          'border-b border-border/60 last:border-b-0 hover:bg-surface-raised/40',
+        )}
+      >
         {/* Holding. The left border is the status spine — same colour map as the
             cards, transparent when this holding has no thesis so the column
             stays aligned. */}

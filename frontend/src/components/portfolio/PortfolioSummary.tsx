@@ -1,6 +1,7 @@
 import { Info } from 'lucide-react'
 
 import { Card } from '@/components/ui/card'
+import { useCountUp } from '@/hooks/useCountUp'
 import type { PortfolioTotals } from '@/lib/api'
 import {
   formatMoney,
@@ -20,25 +21,38 @@ import { cn } from '@/lib/utils'
 export function PortfolioSummary({ totals }: { totals: PortfolioTotals }) {
   const excluded = totals.holdings_excluded
 
+  // Swept up from zero on the first load only — see useCountUp for the rules,
+  // including the two that matter most here: an unavailable figure is never
+  // animated, and a loss counts DOWN from zero rather than up out of itself.
+  const marketValue = useCountUp(totals.market_value)
+  const costBasis = useCountUp(totals.cost_basis)
+  const unrealisedPnl = useCountUp(totals.unrealised_pnl)
+  const pnlPercent = useCountUp(totals.pnl_percent)
+
   return (
     <Card className="mb-8 [--card-spacing:--spacing(6)]">
       <div className="flex flex-col gap-5 px-(--card-spacing)">
         <dl className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-          <Figure label="Market value" value={formatMoney(totals.market_value)} />
-          <Figure label="Cost basis" value={formatMoney(totals.cost_basis)} />
+          <Figure label="Market value" value={formatMoney(marketValue)} />
+          <Figure label="Cost basis" value={formatMoney(costBasis)} />
           <Figure
             label="Unrealised P&L"
-            value={formatSignedMoney(totals.unrealised_pnl)}
+            value={formatSignedMoney(unrealisedPnl)}
             // Omitted entirely rather than rendered as a dash when there is no
             // percentage (an empty portfolio, or a zero cost basis): "$0.00 —"
             // reads as a broken figure, where "$0.00" alone is simply the truth.
             // The row-level cells still spell unavailability out, because there
             // the dash sits in a column of numbers and has a column heading.
+            //
+            // Branches on the SOURCE value, not the animated one, so the decision
+            // to show a percentage at all can never depend on a frame of the sweep.
             secondary={
               totals.pnl_percent === null
                 ? undefined
-                : formatSignedPercent(totals.pnl_percent)
+                : formatSignedPercent(pnlPercent)
             }
+            // Likewise the colour: taken from the settled figure so a sweep
+            // through zero cannot flicker red and green on the way past.
             tone={signOf(totals.unrealised_pnl)}
           />
         </dl>

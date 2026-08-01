@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
 
 import { DashboardBackground } from '@/components/effects/DashboardBackground'
+import { usePageLeaving } from '@/components/layout/PageTransition'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { NewsPanel } from '@/components/news/NewsPanel'
 import type { ShellContext } from '@/hooks/useShellContext'
 import { listAlerts, listPostMortems } from '@/lib/api'
+import { cn } from '@/lib/utils'
 
 /**
  * Persistent chrome around every route. Because this is a layout route, the
@@ -13,7 +15,10 @@ import { listAlerts, listPostMortems } from '@/lib/api'
  * state only, so it resets on reload.
  */
 export function AppShell() {
+  // The HELD location — inside PageTransition's <Routes location=…> this is the
+  // route actually on screen, which is what the key below must follow.
   const location = useLocation()
+  const leaving = usePageLeaving()
   const [collapsed, setCollapsed] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [pendingReflections, setPendingReflections] = useState(0)
@@ -71,10 +76,16 @@ export function AppShell() {
         newsOpen={newsOpen}
       />
       <main className="relative z-10 flex-1 overflow-y-auto">
-        {/* Keyed on the path so the fade replays on every route change. */}
+        {/* Keyed on the path so the entry animation replays on every route
+            change. While `leaving` the key has NOT changed yet — this is still
+            the outgoing page, and it swaps its entry animation for the exit one
+            on the element already in place. */}
         <div
           key={location.pathname}
-          className="page-enter mx-auto max-w-[1100px] px-10 py-10"
+          className={cn(
+            leaving ? 'page-leave' : 'page-enter',
+            'mx-auto max-w-[1100px] px-10 py-10',
+          )}
         >
           <Outlet context={context} />
         </div>

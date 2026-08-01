@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAsync } from '@/hooks/useAsync'
+import { useStaggerIndex } from '@/hooks/useStaggerIndex'
 import {
   listHoldings,
   listMarketLeaders,
@@ -14,6 +15,7 @@ import {
   type Quote,
   type Thesis,
 } from '@/lib/api'
+import { entryProps } from '@/lib/motion'
 
 interface MarketData {
   quotes: Quote[]
@@ -69,6 +71,7 @@ export function MarketPage() {
   }, [refresh])
 
   const cards = useMemo(() => data?.quotes ?? [], [data])
+  const staggerIndex = useStaggerIndex(cards.length > 0)
 
   return (
     <div>
@@ -107,8 +110,8 @@ export function MarketPage() {
       ) : (
         <>
           <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {cards.map((quote) => (
-              <li key={quote.ticker} className="h-full">
+            {cards.map((quote, index) => (
+              <li key={quote.ticker} {...entryProps(staggerIndex(index), 'h-full')}>
                 <MarketCard
                   quote={quote}
                   thesis={data?.thesesByTicker.get(quote.ticker) ?? null}

@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router'
 
 import { AppShell } from '@/components/layout/AppShell'
+import { PageTransition } from '@/components/layout/PageTransition'
 import { AlertsPage } from '@/pages/AlertsPage'
 import { LandingPage } from '@/pages/LandingPage'
 import { MarketPage } from '@/pages/MarketPage'
@@ -14,26 +15,33 @@ import { ThesisDetailPage } from '@/pages/ThesisDetailPage'
 
 function App() {
   return (
-    <Routes>
-      {/* Landing sits outside the shell — no sidebar, and the particle field
-          never renders behind the dashboard. */}
-      <Route path="/" element={<LandingPage />} />
+    // The route table is matched against the location PageTransition is holding,
+    // which lags the real one by the length of the outgoing fade. See the notes
+    // there — this is what lets the page being left render itself out.
+    <PageTransition>
+      {(location) => (
+        <Routes location={location}>
+          {/* Landing sits outside the shell — no sidebar, and the particle field
+              never renders behind the dashboard. */}
+          <Route path="/" element={<LandingPage />} />
 
-      <Route element={<AppShell />}>
-        <Route path="theses" element={<ThesesPage />} />
-        {/* "new" is declared before ":id" for readability; React Router ranks
-            static segments above dynamic ones regardless of order. */}
-        <Route path="theses/new" element={<NewThesisPage />} />
-        <Route path="theses/:id" element={<ThesisDetailPage />} />
-        <Route path="portfolio" element={<PortfolioPage />} />
-        <Route path="market" element={<MarketPage />} />
-        <Route path="research/:ticker" element={<ResearchPage />} />
-        <Route path="alerts" element={<AlertsPage />} />
-        <Route path="news" element={<NewsPage />} />
-        <Route path="reflections" element={<ReflectionsPage />} />
-        <Route path="*" element={<Navigate to="/theses" replace />} />
-      </Route>
-    </Routes>
+          <Route element={<AppShell />}>
+            <Route path="theses" element={<ThesesPage />} />
+            {/* "new" is declared before ":id" for readability; React Router ranks
+                static segments above dynamic ones regardless of order. */}
+            <Route path="theses/new" element={<NewThesisPage />} />
+            <Route path="theses/:id" element={<ThesisDetailPage />} />
+            <Route path="portfolio" element={<PortfolioPage />} />
+            <Route path="market" element={<MarketPage />} />
+            <Route path="research/:ticker" element={<ResearchPage />} />
+            <Route path="alerts" element={<AlertsPage />} />
+            <Route path="news" element={<NewsPage />} />
+            <Route path="reflections" element={<ReflectionsPage />} />
+            <Route path="*" element={<Navigate to="/theses" replace />} />
+          </Route>
+        </Routes>
+      )}
+    </PageTransition>
   )
 }
 

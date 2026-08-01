@@ -9,12 +9,15 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAsync } from '@/hooks/useAsync'
+import { useStaggerIndex } from '@/hooks/useStaggerIndex'
 import { listTheses, type Thesis } from '@/lib/api'
 import { formatDate } from '@/lib/format'
+import { entryProps } from '@/lib/motion'
 
 export function ThesesPage() {
   const load = useCallback(() => listTheses(), [])
   const { data: theses, error, loading, reload } = useAsync<Thesis[]>(load)
+  const staggerIndex = useStaggerIndex(Boolean(theses?.length))
 
   return (
     <div>
@@ -38,8 +41,8 @@ export function ThesesPage() {
         <ErrorState message={error.message} onRetry={reload} />
       ) : theses && theses.length > 0 ? (
         <ul className="flex flex-col gap-4">
-          {theses.map((thesis) => (
-            <li key={thesis.id}>
+          {theses.map((thesis, index) => (
+            <li key={thesis.id} {...entryProps(staggerIndex(index))}>
               <ThesisCard thesis={thesis} />
             </li>
           ))}

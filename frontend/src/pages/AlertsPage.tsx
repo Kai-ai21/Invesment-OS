@@ -9,8 +9,10 @@ import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAsync } from '@/hooks/useAsync'
 import { useShellContext } from '@/hooks/useShellContext'
+import { useStaggerIndex } from '@/hooks/useStaggerIndex'
 import { listAlerts, markAlertRead, type Alert } from '@/lib/api'
 import { formatRelative } from '@/lib/format'
+import { entryProps } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
 type Filter = 'all' | 'unread'
@@ -21,6 +23,7 @@ export function AlertsPage() {
 
   const load = useCallback(() => listAlerts(filter === 'unread'), [filter])
   const { data: alerts, setData, error, loading, reload } = useAsync<Alert[]>(load)
+  const staggerIndex = useStaggerIndex(Boolean(alerts?.length))
 
   // Ids currently being marked read — doubles as the double-click guard.
   const [marking, setMarking] = useState<ReadonlySet<string>>(new Set())
@@ -70,8 +73,10 @@ export function AlertsPage() {
         <ErrorState message={error.message} onRetry={reload} />
       ) : alerts && alerts.length > 0 ? (
         <ul className="flex flex-col gap-3">
-          {alerts.map((alert) => (
-            <li key={alert.id}>
+          {/* The key is the alert id, so marking one read swaps its contents in
+              a row that never left the DOM — nothing re-animates. */}
+          {alerts.map((alert, index) => (
+            <li key={alert.id} {...entryProps(staggerIndex(index))}>
               <AlertCard
                 alert={alert}
                 marking={marking.has(alert.id)}

@@ -465,22 +465,127 @@
       radial-gradient(32rem 60rem at -6% 52%, rgb(140 162 208 / 7%), transparent 66%);
   }
 
-  /* Page-level fade on route change. Fade only — no slides. */
+  /* ---- route change --------------------------------------------------------
+     A handover in two beats: the page being left drops out quickly, then its
+     replacement fades up from 6px below. The rise is deliberately smaller than
+     the list stagger's 8px — this is the whole viewport moving, and anything
+     larger reads as the page sliding rather than settling.
+
+     Both phases are opacity and transform only. The outgoing beat is the shorter
+     of the two so navigation still feels immediate; PageTransition holds the old
+     route on screen for exactly .page-leave's duration. */
   .page-enter {
-    animation: page-fade-in 180ms ease-out both;
+    animation: page-in 240ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
   }
 
-  @keyframes page-fade-in {
+  .page-leave {
+    animation: page-out 140ms ease-in both;
+  }
+
+  @keyframes page-in {
     from {
       opacity: 0;
+      transform: translateY(6px);
     }
     to {
       opacity: 1;
+      transform: none;
     }
   }
 
+  @keyframes page-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+
+  /* ---- list entry ----------------------------------------------------------
+     Rows fade up in sequence. The per-item delay is inline (see lib/motion.ts),
+     which is also where the cap and the reasoning live.
+
+     `both` fill is what keeps a delayed row INVISIBLE until its turn instead of
+     showing at full opacity and then flicking back to the start. */
+  .stagger-in {
+    animation: stagger-in 320ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  }
+
+  @keyframes stagger-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* ---- status change -------------------------------------------------------
+     One pulse when a badge's status changes under the reader — see StatusBadge,
+     which only applies this after comparing against the previous value, never on
+     first render.
+
+     ⚠️ THE GLOW IS A PSEUDO-ELEMENT WHOSE OPACITY ANIMATES, not a box-shadow that
+     grows. Animating a shadow's spread repaints and relayouts on every frame; a
+     static shadow on an ::after that fades from 1 to 0 composites. --status-glow
+     is set inline by the badge, so the flash is always the colour of the status
+     just arrived at. */
+  .status-pulse {
+    animation: status-pulse 400ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  .status-pulse::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    box-shadow:
+      0 0 0 2px var(--status-glow),
+      0 0 10px 2px var(--status-glow);
+    opacity: 0;
+    pointer-events: none;
+    animation: status-glow 400ms ease-out;
+  }
+
+  @keyframes status-pulse {
+    0% {
+      transform: scale(1);
+    }
+    45% {
+      transform: scale(1.08);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  @keyframes status-glow {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+
+  /* ⚠️ THE ONE SWITCH FOR ALL FOUR. Every rule above animates only opacity and
+     transform, and every one of them ends at the element's natural state — so
+     removing the animation outright leaves the content exactly where it belongs,
+     visible, on the first frame. No fallback transition, no fade at a shorter
+     duration: content simply appears.
+
+     The JS-driven halves have their own guards, both via
+     usePrefersReducedMotion: the number roll-up returns its final value, and
+     PageTransition drops the hold so routes swap on the spot. */
   @media (prefers-reduced-motion: reduce) {
-    .page-enter {
+    .page-enter,
+    .page-leave,
+    .stagger-in,
+    .status-pulse,
+    .status-pulse::after {
       animation: none;
     }
   }

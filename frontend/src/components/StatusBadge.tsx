@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
+
 import { cn } from '@/lib/utils'
 import type { ClaimStatus, ThesisStatus, Verdict } from '@/lib/api'
 
@@ -46,6 +48,33 @@ export function statusColor(status: string | null | undefined): string {
 }
 
 /**
+ * Fires once when `status` becomes something it was not, and never on the way in.
+ *
+ * ⚠️ THE PREVIOUS VALUE IS SEEDED WITH THE FIRST ONE, so the opening render can
+ * never look like a change. Without that, arriving on a page would set every
+ * badge on it pulsing at once — which would say "these all just changed" about
+ * data that has simply been loaded.
+ *
+ * The flag clears on animationend rather than a timer, so it can never be left
+ * set by a badge that unmounted mid-pulse.
+ */
+function useStatusPulse(status: BadgeStatus): {
+  pulsing: boolean
+  onAnimationEnd: () => void
+} {
+  const [pulsing, setPulsing] = useState(false)
+  const previous = useRef(status)
+
+  useEffect(() => {
+    if (previous.current === status) return
+    previous.current = status
+    setPulsing(true)
+  }, [status])
+
+  return { pulsing, onAnimationEnd: () => setPulsing(false) }
+}
+
+/**
  * Outlined, uppercase, mono status pill. Colour is never the only signal — the
  * label always spells the status out (`whitespace-nowrap` keeps "STRONGLY
  * SUPPORTED" on one line).
@@ -58,18 +87,30 @@ export function StatusBadge({
   className?: string
 }) {
   const color = statusColor(status)
+  const { pulsing, onAnimationEnd } = useStatusPulse(status)
 
   return (
     <span
       className={cn(
-        'inline-flex w-fit shrink-0 items-center whitespace-nowrap rounded-[4px] border bg-transparent px-[9px] py-[3px] font-mono text-[10.5px] leading-none tracking-[0.08em] uppercase',
+        // `relative` anchors the pulse's glow pseudo-element; it is inert
+        // otherwise.
+        'relative inline-flex w-fit shrink-0 items-center whitespace-nowrap rounded-[4px] border bg-transparent px-[9px] py-[3px] font-mono text-[10.5px] leading-none tracking-[0.08em] uppercase',
+        pulsing && 'status-pulse',
         className,
       )}
       // Inline rather than Tailwind classes so this reads from STATUS_TOKEN like
       // every other consumer. A class map would be a second copy of the same
       // mapping, and the two would drift the first time a status was added.
       // The border keeps its previous 50% strength via color-mix.
-      style={{ color, borderColor: `color-mix(in srgb, ${color} 50%, transparent)` }}
+      style={
+        {
+          color,
+          borderColor: `color-mix(in srgb, ${color} 50%, transparent)`,
+          // Read by .status-pulse::after — the flash is the colour just arrived at.
+          '--status-glow': `color-mix(in srgb, ${color} 45%, transparent)`,
+        } as CSSProperties
+      }
+      onAnimationEnd={onAnimationEnd}
     >
       {status.replace(/_/g, ' ')}
     </span>

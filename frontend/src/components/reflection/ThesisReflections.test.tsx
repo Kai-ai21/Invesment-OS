@@ -84,8 +84,10 @@ describe('ThesisReflections', () => {
     render(<ThesisReflections thesisId={THESIS_ID} />)
     await screen.findByText(CLAIM_STATEMENT)
 
-    // Assert
-    expect(screen.getByText(/preparing your question/i)).toBeInTheDocument()
+    // Assert. findBy, not getBy: "Preparing…" is set by the generation EFFECT, which
+    // React runs after the commit that put the claim on screen — so the card can be
+    // present for a tick before the flag it depends on is.
+    expect(await screen.findByText(/preparing your question/i)).toBeInTheDocument()
     expect(generateQuestion).toHaveBeenCalledWith('pm-1')
   })
 

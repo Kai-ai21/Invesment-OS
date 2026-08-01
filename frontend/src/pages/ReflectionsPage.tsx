@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { sortReflections, usePostMortems } from '@/hooks/usePostMortems'
 import { useShellContext } from '@/hooks/useShellContext'
+import { useStaggerIndex } from '@/hooks/useStaggerIndex'
 
 export function ReflectionsPage() {
   const { items, loading, error, refreshing, refresh, reload } = usePostMortems()
@@ -19,6 +20,7 @@ export function ReflectionsPage() {
   }, [refresh, refreshPendingReflections])
 
   const ordered = sortReflections(items)
+  const staggerIndex = useStaggerIndex(ordered.length > 0)
 
   return (
     <div>
@@ -56,8 +58,13 @@ export function ReflectionsPage() {
         <EmptyState />
       ) : (
         <div className="flex flex-col gap-4">
-          {ordered.map((item) => (
-            <ReflectionCard key={item.id} postMortem={item} onChanged={handleChanged} />
+          {ordered.map((item, index) => (
+            <ReflectionCard
+              key={item.id}
+              postMortem={item}
+              onChanged={handleChanged}
+              index={staggerIndex(index)}
+            />
           ))}
         </div>
       )}

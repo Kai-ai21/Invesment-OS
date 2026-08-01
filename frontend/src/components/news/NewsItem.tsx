@@ -5,6 +5,7 @@ import { Link } from 'react-router'
 
 import { CompanyLogo } from '@/components/CompanyLogo'
 import { formatRelative } from '@/lib/format'
+import { entryProps } from '@/lib/motion'
 import type { NewsItem as NewsItemData } from '@/lib/api'
 
 /**
@@ -43,9 +44,17 @@ function SourceIcon({ src }: { src: string | null }) {
  * One headline row. Flat — no glass, no card chrome — because this renders inside
  * both the panel and the page and must stay the most legible surface in each.
  */
-export function NewsItem({ item }: { item: NewsItemData }) {
+export function NewsItem({ item, index }: { item: NewsItemData; index?: number }) {
   return (
-    <article className="flex flex-col gap-1.5 border-b border-border py-3 last:border-b-0">
+    // The entry animation goes on the <article> itself rather than a wrapper:
+    // `last:border-b-0` is a :last-child rule, and boxing every row would make
+    // each one the last of its own wrapper and strip every divider in the list.
+    <article
+      {...entryProps(
+        index,
+        'flex flex-col gap-1.5 border-b border-border py-3 last:border-b-0',
+      )}
+    >
       <a
         href={item.url}
         target="_blank"

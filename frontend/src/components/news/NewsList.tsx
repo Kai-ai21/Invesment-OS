@@ -3,6 +3,7 @@ import { RefreshCw } from 'lucide-react'
 import { NewsItem } from '@/components/news/NewsItem'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useStaggerIndex } from '@/hooks/useStaggerIndex'
 import type { NewsItem as NewsItemData } from '@/lib/api'
 
 /**
@@ -25,6 +26,9 @@ export function NewsList({
    *  filter" doesn't read as "the feed is empty". */
   emptyMessage?: string
 }) {
+  // Before the early returns: hooks cannot sit behind a branch.
+  const staggerIndex = useStaggerIndex(!loading && !error && items.length > 0)
+
   if (loading) return <NewsSkeleton />
   if (error) return <ErrorState message={error.message} onRetry={onRetry} />
   if (items.length === 0) {
@@ -33,9 +37,13 @@ export function NewsList({
 
   return (
     <div className="flex flex-col">
-      {items.map((item) => (
+      {items.map((item, index) => (
         // Feeds can repeat a URL across tickers, so the ticker is part of the key.
-        <NewsItem key={`${item.ticker}:${item.url}`} item={item} />
+        <NewsItem
+          key={`${item.ticker}:${item.url}`}
+          item={item}
+          index={staggerIndex(index)}
+        />
       ))}
     </div>
   )
