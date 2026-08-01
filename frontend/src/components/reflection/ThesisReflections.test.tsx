@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { PostMortem } from '@/lib/api'
@@ -23,6 +23,9 @@ vi.mock('@/hooks/useShellContext', () => ({
 
 import { generateQuestion, listPostMortemsForThesis } from '@/lib/api'
 import { ThesisReflections } from '@/components/reflection/ThesisReflections'
+// Reflection cards raise a toast on save and delete, and their status badges
+// carry tooltips — both need their providers mounted.
+import { renderWithProviders } from '@/test/renderWithProviders'
 
 const THESIS_ID = 'thesis-1'
 const CLAIM_STATEMENT = 'Nvidia sustains high gross margins.'
@@ -62,7 +65,7 @@ describe('ThesisReflections', () => {
     vi.mocked(listPostMortemsForThesis).mockResolvedValue([pendingPostMortem()])
 
     // Act
-    render(<ThesisReflections thesisId={THESIS_ID} />)
+    renderWithProviders(<ThesisReflections thesisId={THESIS_ID} />)
 
     // Assert — the card is present, showing the claim it is about...
     expect(await screen.findByText(CLAIM_STATEMENT)).toBeInTheDocument()
@@ -81,7 +84,7 @@ describe('ThesisReflections', () => {
     vi.mocked(listPostMortemsForThesis).mockResolvedValue([pendingPostMortem()])
 
     // Act
-    render(<ThesisReflections thesisId={THESIS_ID} />)
+    renderWithProviders(<ThesisReflections thesisId={THESIS_ID} />)
     await screen.findByText(CLAIM_STATEMENT)
 
     // Assert. findBy, not getBy: "Preparing…" is set by the generation EFFECT, which
@@ -97,7 +100,7 @@ describe('ThesisReflections', () => {
     // re-reads by remounting this block with a changed key, which is what the key
     // change below reproduces.
     vi.mocked(listPostMortemsForThesis).mockResolvedValue([])
-    const { rerender } = render(
+    const { rerender } = renderWithProviders(
       <ThesisReflections key="0" thesisId={THESIS_ID} />,
     )
 
@@ -126,7 +129,7 @@ describe('ThesisReflections', () => {
     ])
 
     // Act
-    render(<ThesisReflections thesisId={THESIS_ID} />)
+    renderWithProviders(<ThesisReflections thesisId={THESIS_ID} />)
 
     // Assert — collapsed behind "Past reflections", with no answer box.
     expect(await screen.findByText(/past reflections \(1\)/i)).toBeInTheDocument()

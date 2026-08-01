@@ -7,6 +7,8 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { spineBorderStyle } from '@/components/StatusSpine'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useToast } from '@/components/ui/toast'
+import { Tooltip } from '@/components/ui/tooltip'
 import { useStaggerIndex } from '@/hooks/useStaggerIndex'
 import {
   deleteHolding,
@@ -116,12 +118,17 @@ function HoldingRow({
   onPortfolio: (portfolio: Portfolio) => void
   onRefetch: () => Promise<void>
 }) {
+  const toast = useToast()
   const [editing, setEditing] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [busy, setBusy] = useState(false)
+  // Stays INLINE, under the row it belongs to: a delete that failed leaves the
+  // row on screen, and which row failed is half the message.
   const [error, setError] = useState<string | null>(null)
 
   const tone = signOf(holding.unrealised_pnl)
+  // One reason, shared by every dash in the row — they all have the same cause.
+  const reason = unavailableReason(holding)
 
   async function handleDelete() {
     setBusy(true)
@@ -131,6 +138,8 @@ function HoldingRow({
       // A refetch, not a local splice: removing a position changes every other
       // row's allocation percentage.
       await onRefetch()
+      // The row is gone by now, so the confirmation cannot live in it.
+      toast.success(`${holding.ticker} removed from your portfolio`)
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message : String(cause))
       setBusy(false)
@@ -186,12 +195,21 @@ function HoldingRow({
           {formatMoney(holding.average_cost)}
         </td>
 
-        {/* Every cell below is null — never 0 — when the price could not be fetched. */}
+        {/* Every cell below is null — never 0 — when the price could not be
+            fetched, and each dash carries the reason on hover. */}
         <td className={cn(NUM, 'text-text-secondary')}>
-          <OrUnavailable value={holding.current_price} render={formatMoney} />
+          <OrUnavailable
+            value={holding.current_price}
+            render={formatMoney}
+            reason={reason}
+          />
         </td>
         <td className={cn(NUM, 'text-text-primary')}>
-          <OrUnavailable value={holding.market_value} render={formatMoney} />
+          <OrUnavailable
+            value={holding.market_value}
+            render={formatMoney}
+            reason={reason}
+          />
         </td>
         <td
           className={cn(
@@ -204,7 +222,7 @@ function HoldingRow({
           )}
         >
           {holding.unrealised_pnl === null ? (
-            <Unavailable />
+            <Unavailable reason={reason} />
           ) : (
             <>
               <div>{formatSignedMoney(holding.unrealised_pnl)}</div>
@@ -215,7 +233,11 @@ function HoldingRow({
           )}
         </td>
         <td className={cn(NUM, 'text-text-secondary')}>
-          <OrUnavailable value={holding.allocation_percent} render={formatPercent} />
+          <OrUnavailable
+            value={holding.allocation_percent}
+            render={formatPercent}
+            reason={reason}
+          />
         </td>
 
         <td className="px-3 py-3 text-right whitespace-nowrap">
@@ -283,6 +305,9 @@ function HoldingRow({
               onSaved={(portfolio) => {
                 onPortfolio(portfolio)
                 setEditing(false)
+                // Same reason as the delete: the edit form closes on success, so
+                // the confirmation has nowhere on the row left to live.
+                toast.success(`${holding.ticker} updated`)
               }}
             />
           </td>
@@ -293,27 +318,61 @@ function HoldingRow({
 }
 
 /**
+ * Why a cell has no number, in the reader's terms.
+ *
+ * ⚠️ Branches on `price_status` from the backend, never on the wording of
+ * `price_error` — same rule as PriceProblem below. The backend's own message is
+ * appended when there is one, because for a network failure it is the only thing
+ * that says WHAT failed.
+ */
+function unavailableReason(holding: Holding): string {
+  if (holding.price_status === 'unknown_ticker') {
+    return `No price source recognises ${holding.ticker}, so nothing here can be valued. Check the symbol.`
+  }
+  if (holding.price_unavailable) {
+    return holding.price_error
+      ? `The price source could not be reached, so this could not be valued: ${holding.price_error}`
+      : 'The price source could not be reached, so this could not be valued.'
+  }
+  // The row priced fine and a single figure is still missing — a zero cost basis
+  // leaves P&L with no percentage to be one of.
+  return 'There is no figure to show here — not a value of zero.'
+}
+
+/**
  * The em dash for an unavailable number, with the reason spelled out for screen
  * readers. Never "0", and never a hyphen — beside a column of figures a hyphen
  * reads as a minus sign.
+ *
+ * ⚠️ THE DASH NOW SAYS WHY. The em dash is honest about there being no number
+ * but silent about the cause, and "my position shows no value" is precisely the
+ * moment a reader needs to know whether the ticker is wrong or the price feed is
+ * down — one is theirs to fix, the other is not. `cursor-help` marks it as
+ * having something to say, since a dash gives no other hint.
  */
-function Unavailable() {
-  return (
-    <span className="text-text-muted">
+function Unavailable({ reason }: { reason?: string }) {
+  const dash = (
+    <span className={cn('text-text-muted', reason && 'cursor-help')}>
       <span aria-hidden>{UNAVAILABLE}</span>
-      <span className="sr-only">unavailable</span>
+      {/* The reason is in the accessible name too, not only the tooltip: Radix
+          hides tooltip content from screen readers by design. */}
+      <span className="sr-only">unavailable{reason ? `. ${reason}` : ''}</span>
     </span>
   )
+
+  return reason ? <Tooltip content={reason}>{dash}</Tooltip> : dash
 }
 
 function OrUnavailable({
   value,
   render,
+  reason,
 }: {
   value: number | null
   render: (value: number) => string
+  reason?: string
 }) {
-  return value === null ? <Unavailable /> : <>{render(value)}</>
+  return value === null ? <Unavailable reason={reason} /> : <>{render(value)}</>
 }
 
 /**

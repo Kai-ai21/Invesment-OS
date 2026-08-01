@@ -6,6 +6,7 @@ import { TickerInput } from '@/components/ticker/TickerInput'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { useToast } from '@/components/ui/toast'
 import { createHolding, type Portfolio } from '@/lib/api'
 
 /**
@@ -13,6 +14,7 @@ import { createHolding, type Portfolio } from '@/lib/api'
  * the time, and a permanently open form would push the table down the page.
  */
 export function AddHoldingForm({ onAdded }: { onAdded: (portfolio: Portfolio) => void }) {
+  const toast = useToast()
   const [open, setOpen] = useState(false)
   const [ticker, setTicker] = useState('')
   const [shares, setShares] = useState('')
@@ -71,6 +73,9 @@ export function AddHoldingForm({ onAdded }: { onAdded: (portfolio: Portfolio) =>
       onAdded(portfolio)
       reset()
       setOpen(false)
+      // The form COLLAPSES on success, so without this the only feedback is the
+      // panel closing — which looks the same as changing your mind and closing it.
+      toast.success(`${ticker.trim().toUpperCase()} added to your portfolio`)
     } catch (cause: unknown) {
       // Values are left intact so nothing typed is lost.
       setProblem(cause instanceof Error ? cause.message : String(cause))

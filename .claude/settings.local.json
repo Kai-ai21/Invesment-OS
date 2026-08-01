@@ -164,7 +164,24 @@
       "Bash(git stash *)",
       "Bash(node -e \"console.log\\(require\\('./node_modules/@testing-library/react/package.json'\\).version\\)\")",
       "Bash(node -e \"console.log\\(require\\('@testing-library/react/package.json'\\).version\\)\")",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(node -e \"const p=require\\('radix-ui/package.json'\\); console.log\\(Object.keys\\(p.dependencies||{}\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(node -e \"const p=require\\('radix-ui/package.json'\\); console.log\\(Object.keys\\(p.dependencies||{}\\).filter\\(k=>/tooltip|toast/.test\\(k\\)\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(grep -E \"'|\\\\\"|\\\\`\")",
+      "Bash(npm run *)",
+      "Bash(perl -pi -e 's/\\\\brender\\\\\\(/renderWithProviders\\(/g unless /^import|renderWithProviders/' src/components/StatusBadge.test.tsx src/components/reflection/ThesisReflections.test.tsx)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8000/theses)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('remaining:', [h['ticker'] for h in d['holdings']]\\)\")",
+      "Bash(curl -s \"localhost:8000/alerts?unread_only=true\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('unread:', len\\(d\\)\\)\")",
+      "Bash(curl -s \"localhost:8000/alerts\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\([\\(a['id'][:8], a['ticker'], a['is_read']\\) for a in d]\\)\")",
+      "Bash(curl -s localhost:8000/theses)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d[0]['id']\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('holdings:', [h['ticker'] for h in d['holdings']]\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('theses:', [t['ticker'] for t in d]\\)\")",
+      "Bash(curl -s localhost:8000/post-mortems)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('post-mortems:', len\\(d\\)\\)\")"
     ]
   }
 }

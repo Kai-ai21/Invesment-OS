@@ -11,6 +11,7 @@ import {
 import { NavLink } from 'react-router'
 
 import { Button } from '@/components/ui/button'
+import { Tooltip } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
 // `badge` names which count decorates the item, so adding a badged nav item is a
@@ -88,66 +89,79 @@ export function Sidebar({
           const badgeNoun = badgeKey === 'pending' ? 'pending' : 'unread'
 
           return (
-            <NavLink
+            // Collapsed, the rail is icons alone and the tooltip carries the
+            // only label there is — so it replaces the native `title`, which
+            // waits about a second, cannot be reached by keyboard, and renders
+            // in the OS style rather than this one.
+            <Tooltip
               key={to}
-              to={to}
-              title={
-                collapsed
-                  ? badge
-                    ? `${label} (${badge} ${badgeNoun})`
-                    : label
-                  : undefined
+              side="right"
+              content={
+                collapsed ? (badge ? `${label} — ${badge} ${badgeNoun}` : label) : null
               }
-              className={({ isActive }) => navItemClasses(collapsed, isActive)}
             >
-              <span className="relative shrink-0">
-                <Icon className="size-4" aria-hidden />
-                {/* Collapsed to an icon rail there's no room for the count, so
-                    it degrades to a dot; the tooltip still carries the number. */}
-                {badge !== null && collapsed && (
-                  <span
-                    aria-hidden
-                    className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-text-primary"
-                  />
-                )}
-              </span>
-
-              {!collapsed && (
-                <>
-                  <span className="truncate">{label}</span>
-                  {/* bg-background, not surface-raised — the active nav item is
-                      already surface-raised and would swallow it. */}
-                  {badge !== null && (
-                    <span className="ml-auto min-w-5 rounded-4xl bg-background px-1.5 py-0.5 text-center text-xs text-text-primary">
-                      {badge}
-                    </span>
+              <NavLink
+                to={to}
+                className={({ isActive }) => navItemClasses(collapsed, isActive)}
+              >
+                <span className="relative shrink-0">
+                  <Icon className="size-4" aria-hidden />
+                  {/* Collapsed to an icon rail there's no room for the count, so
+                      it degrades to a dot; the tooltip still carries the number. */}
+                  {badge !== null && collapsed && (
+                    <span
+                      aria-hidden
+                      className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-text-primary"
+                    />
                   )}
-                </>
-              )}
-
-              {badge !== null && (
-                <span className="sr-only">
-                  {badge} {badgeNoun}
                 </span>
-              )}
-            </NavLink>
+
+                {!collapsed && (
+                  <>
+                    <span className="truncate">{label}</span>
+                    {/* bg-background, not surface-raised — the active nav item is
+                        already surface-raised and would swallow it. */}
+                    {badge !== null && (
+                      <span className="ml-auto min-w-5 rounded-4xl bg-background px-1.5 py-0.5 text-center text-xs text-text-primary">
+                        {badge}
+                      </span>
+                    )}
+                  </>
+                )}
+
+                {/* Collapsed, this is the item's ONLY accessible name — the
+                    tooltip is decoration and screen readers never see it. */}
+                {collapsed && <span className="sr-only">{label}</span>}
+
+                {badge !== null && (
+                  <span className="sr-only">
+                    {badge} {badgeNoun}
+                  </span>
+                )}
+              </NavLink>
+            </Tooltip>
           )
         })}
 
         {/* A button, not a NavLink: News opens a slide-over on top of whatever page
             you are on rather than navigating away. The /news route still exists and
             the panel's "See all" goes there. */}
-        <button
-          type="button"
-          onClick={onOpenNews}
-          title={collapsed ? 'News' : undefined}
-          aria-haspopup="dialog"
-          aria-expanded={newsOpen}
-          className={navItemClasses(collapsed, newsOpen)}
-        >
-          <Newspaper className="size-4 shrink-0" aria-hidden />
-          {!collapsed && <span className="truncate">News</span>}
-        </button>
+        <Tooltip side="right" content={collapsed ? 'News' : null}>
+          <button
+            type="button"
+            onClick={onOpenNews}
+            aria-haspopup="dialog"
+            aria-expanded={newsOpen}
+            className={navItemClasses(collapsed, newsOpen)}
+          >
+            <Newspaper className="size-4 shrink-0" aria-hidden />
+            {collapsed ? (
+              <span className="sr-only">News</span>
+            ) : (
+              <span className="truncate">News</span>
+            )}
+          </button>
+        </Tooltip>
       </nav>
 
       <div className={cn('mt-auto', collapsed ? 'flex justify-center' : '')}>

@@ -7,6 +7,7 @@ import { StatusSpine } from '@/components/StatusSpine'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
+import { useToast } from '@/components/ui/toast'
 import {
   answerPostMortem,
   deletePostMortem,
@@ -39,6 +40,7 @@ export function ReflectionCard({
   /** Position in a staggered list. Omitted where these render outside one. */
   index?: number
 }) {
+  const toast = useToast()
   // Local copy so a save updates in place without waiting for a parent refetch.
   const [item, setItem] = useState(postMortem)
   const [dismissed, setDismissed] = useState(false)
@@ -83,13 +85,15 @@ export function ReflectionCard({
     try {
       setItem(await answerPostMortem(item.id, response.trim()))
       onChanged?.()
+      toast.success('Reflection saved')
     } catch (cause: unknown) {
-      // The typed response stays in the textarea — nothing written is lost.
+      // Stays INLINE: the typed response is still in the textarea above this
+      // message, and a failure to save is read next to the words at risk.
       setError(cause instanceof Error ? cause.message : String(cause))
     } finally {
       setSaving(false)
     }
-  }, [saving, response, item.id, onChanged])
+  }, [saving, response, item.id, onChanged, toast])
 
   if (dismissed) return null
 
@@ -191,6 +195,7 @@ function AnsweredBody({
   item: PostMortem
   onDeleted?: () => void
 }) {
+  const toast = useToast()
   const [confirming, setConfirming] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -204,6 +209,8 @@ function AnsweredBody({
       await deletePostMortem(item.id)
       setGone(true)
       onDeleted?.()
+      // The card unmounts on success — there is nowhere left to say so.
+      toast.success('Reflection deleted')
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message : String(cause))
       setDeleting(false)

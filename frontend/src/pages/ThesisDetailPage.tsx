@@ -12,6 +12,8 @@ import { CheckNowControls, CheckNowResult } from '@/components/thesis/CheckNow'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useToast } from '@/components/ui/toast'
+import { Tooltip, TooltipValue } from '@/components/ui/tooltip'
 import { useAsync } from '@/hooks/useAsync'
 import { useCheckNow } from '@/hooks/useCheckNow'
 import { useShellContext } from '@/hooks/useShellContext'
@@ -207,39 +209,37 @@ function ReflectButton({
   onCreated: () => void
 }) {
   const { refreshPendingReflections } = useShellContext()
+  const toast = useToast()
   const [pending, setPending] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   async function handleClick() {
     if (pending) return
     setPending(true)
-    setError(null)
     try {
       await createManualPostMortem(thesisId)
       onCreated()
       void refreshPendingReflections()
+      toast.success('Reflection opened — find it below')
     } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause.message : String(cause))
+      // Was an inline message INSIDE the page header, which grew the header and
+      // shifted the whole page down the moment it appeared.
+      toast.error(
+        `Couldn't open a reflection: ${cause instanceof Error ? cause.message : String(cause)}`,
+      )
     } finally {
       setPending(false)
     }
   }
 
   return (
-    <span className="flex items-center gap-2">
-      {error && (
-        <span role="alert" className="text-xs text-status-broken">
-          {error}
-        </span>
-      )}
-      {/* Available at ANY status, not just breaking — rethinking a thesis is useful
-          long before it falls apart. */}
+    // Available at ANY status, not just breaking — rethinking a thesis is useful
+    // long before it falls apart.
+    <Tooltip content="Open a reflection on this thesis">
       <Button
         variant="ghost"
         size="sm"
         onClick={handleClick}
         disabled={pending}
-        title="Open a reflection on this thesis"
         className="text-text-secondary hover:text-text-primary"
       >
         {pending ? (
@@ -249,7 +249,7 @@ function ReflectButton({
         )}
         Reflect
       </Button>
-    </span>
+    </Tooltip>
   )
 }
 
@@ -299,9 +299,22 @@ function EvidenceCard({ event }: { event: EvidenceEvent }) {
       <div className="flex flex-col gap-3 px-(--card-spacing)">
         <div className="flex flex-wrap items-center gap-3">
           <StatusBadge status={event.verdict} />
-          <span className="text-xs text-text-muted">
-            {formatConfidence(event.confidence)} confidence
-          </span>
+          {/* The badge rounds to whole percent for scanning; the score behind it
+              is what the claim's status was actually computed from, and two
+              events that both read "83%" can carry different weight. The tooltip
+              is where that unrounded number lives. */}
+          <Tooltip
+            content={
+              <>
+                Raw score <TooltipValue>{event.confidence.toFixed(4)}</TooltipValue> —
+                how strongly this evidence counts toward the claim's status.
+              </>
+            }
+          >
+            <span className="cursor-help text-xs text-text-muted underline decoration-dotted decoration-text-muted/40 underline-offset-4">
+              {formatConfidence(event.confidence)} confidence
+            </span>
+          </Tooltip>
           <span className="ml-auto text-xs text-text-muted">
             {formatDateTime(event.created_at)}
           </span>

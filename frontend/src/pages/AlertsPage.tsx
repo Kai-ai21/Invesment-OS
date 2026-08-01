@@ -7,6 +7,7 @@ import { StatusSpine } from '@/components/StatusSpine'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useToast } from '@/components/ui/toast'
 import { useAsync } from '@/hooks/useAsync'
 import { useShellContext } from '@/hooks/useShellContext'
 import { useStaggerIndex } from '@/hooks/useStaggerIndex'
@@ -19,6 +20,7 @@ type Filter = 'all' | 'unread'
 
 export function AlertsPage() {
   const { refreshUnreadCount } = useShellContext()
+  const toast = useToast()
   const [filter, setFilter] = useState<Filter>('all')
 
   const load = useCallback(() => listAlerts(filter === 'unread'), [filter])
@@ -27,12 +29,10 @@ export function AlertsPage() {
 
   // Ids currently being marked read — doubles as the double-click guard.
   const [marking, setMarking] = useState<ReadonlySet<string>>(new Set())
-  const [markError, setMarkError] = useState<string | null>(null)
 
   async function handleMarkRead(id: string) {
     if (marking.has(id)) return
     setMarking((prev) => new Set(prev).add(id))
-    setMarkError(null)
 
     try {
       const updated = await markAlertRead(id)
@@ -43,8 +43,14 @@ export function AlertsPage() {
         prev ? prev.map((a) => (a.id === updated.id ? updated : a)) : prev,
       )
       await refreshUnreadCount()
+      toast.success(`${updated.ticker} alert marked as read`)
     } catch (cause: unknown) {
-      setMarkError(cause instanceof Error ? cause.message : String(cause))
+      // Was a banner above the list, which pushed every card down the page on
+      // appearing and pulled them back up on the next attempt. Nothing here needs
+      // studying — the row is still there and the button still works.
+      toast.error(
+        `Couldn't mark as read: ${cause instanceof Error ? cause.message : String(cause)}`,
+      )
     } finally {
       setMarking((prev) => {
         const next = new Set(prev)
@@ -60,12 +66,6 @@ export function AlertsPage() {
         <h1 className="font-display text-2xl tracking-[0.01em] text-text-primary">Alerts</h1>
         <FilterToggle value={filter} onChange={setFilter} />
       </header>
-
-      {markError && (
-        <p role="alert" className="mb-4 text-sm text-status-broken">
-          Couldn't mark as read: {markError}
-        </p>
-      )}
 
       {loading ? (
         <AlertsSkeleton />

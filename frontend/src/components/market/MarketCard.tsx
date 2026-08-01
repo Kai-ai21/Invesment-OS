@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Card } from '@/components/ui/card'
+import { TruncatedText } from '@/components/ui/tooltip'
 import type { Holding, Quote, Thesis } from '@/lib/api'
 import {
   UNAVAILABLE,
@@ -52,10 +53,18 @@ export function MarketCard({
               >
                 {quote.ticker}
               </Link>
-              <div className="truncate text-xs text-text-secondary">
-                {/* Null while unavailable — the ticker above still names the card. */}
-                {quote.company_name ?? UNAVAILABLE}
-              </div>
+              {/* Null while unavailable — the ticker above still names the card. */}
+              {quote.company_name ? (
+                // The card is a grid cell, so a long name ("Taiwan Semiconductor
+                // Manufacturing Company Limited") is always clipped. TruncatedText
+                // only offers the tooltip when it measures as actually clipped.
+                <TruncatedText
+                  text={quote.company_name}
+                  className="text-xs text-text-secondary"
+                />
+              ) : (
+                <div className="truncate text-xs text-text-secondary">{UNAVAILABLE}</div>
+              )}
             </div>
           </div>
           <MarketCap value={quote.market_cap} />
