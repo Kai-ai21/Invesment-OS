@@ -2,9 +2,38 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- The pre-mount title. Every route replaces it once React runs; see
+         hooks/useDocumentTitle. -->
     <title>Kailaas OS</title>
+    <meta
+      name="description"
+      content="Kailaas OS remembers why you invested and checks whether it still holds. Write a thesis as testable claims, then have filings read against them."
+    />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Matches --background (#0f1115). Without it, mobile Chrome paints its
+         address bar the default light grey above a near-black page, which reads
+         as a rendering fault rather than a theme. -->
+    <meta name="theme-color" content="#0f1115" />
+    <!-- Tells the browser the page is dark, so native form controls, scrollbars
+         and the flash before first paint follow the theme rather than fight it.
+         Dark is the only theme the app has — see the palette note in index.css. -->
+    <meta name="color-scheme" content="dark" />
+
+    <!-- Link previews. These are the app-level fallback: the app is
+         client-rendered, so a crawler following a deep link sees these rather
+         than the route's own title. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Kailaas OS" />
+    <meta property="og:title" content="Kailaas OS" />
+    <meta
+      property="og:description"
+      content="Remembers why you invested. Checks if it still holds."
+    />
+    <meta name="twitter:card" content="summary" />
   </head>
   <body>
     <div id="root"></div>

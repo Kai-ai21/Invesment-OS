@@ -67,7 +67,7 @@ export function Sidebar({
       <div className={cn('flex items-center gap-2.5', collapsed && 'justify-center')}>
         <div
           aria-hidden
-          className="grid size-8 shrink-0 place-items-center rounded-lg bg-surface-raised text-xs font-semibold text-text-primary"
+          className="grid size-8 shrink-0 place-items-center rounded-lg bg-surface-raised text-xs font-medium text-text-primary"
         >
           KO
         </div>
@@ -122,7 +122,7 @@ export function Sidebar({
                     {/* bg-background, not surface-raised — the active nav item is
                         already surface-raised and would swallow it. */}
                     {badge !== null && (
-                      <span className="ml-auto min-w-5 rounded-4xl bg-background px-1.5 py-0.5 text-center text-xs text-text-primary">
+                      <span className="ml-auto min-w-5 rounded-full bg-background px-1.5 py-0.5 text-center text-xs tabular-nums text-text-primary">
                         {badge}
                       </span>
                     )}

@@ -44,7 +44,7 @@ export function ResearchLoading({ ticker }: { ticker: string }) {
 
   return (
     <div aria-busy="true" aria-live="polite">
-      <Card className="mb-6 [--card-spacing:--spacing(6)]">
+      <Card className="mb-6">
         <div className="flex flex-col gap-3 px-(--card-spacing)">
           <div className="flex items-center gap-2.5 text-sm text-text-primary">
             <Loader2 className="size-4 animate-spin text-text-secondary" aria-hidden />
@@ -60,7 +60,7 @@ export function ResearchLoading({ ticker }: { ticker: string }) {
       {/* Card-shaped placeholders, so the page does not jump when they resolve. */}
       <div className="flex flex-col gap-4">
         {[0, 1, 2].map((index) => (
-          <Card key={index} className="[--card-spacing:--spacing(6)]">
+          <Card key={index}>
             <div className="flex flex-col gap-2.5 px-(--card-spacing)">
               <Skeleton className="h-3 w-40" />
               <Skeleton className="h-4 w-full" />

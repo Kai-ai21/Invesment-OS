@@ -6,12 +6,15 @@ import {
   ChevronRight,
   Loader2,
   NotebookPen,
-  RefreshCw,
   X,
 } from 'lucide-react'
 import { Link, useParams } from 'react-router'
 
 import { CompanyLogo } from '@/components/CompanyLogo'
+import { Count } from '@/components/Count'
+import { RelativeTime } from '@/components/RelativeTime'
+import { TickerNewsSection } from '@/components/news/TickerNewsSection'
+import { ErrorState } from '@/components/ErrorState'
 import { StatusBadge } from '@/components/StatusBadge'
 import { ClaimScoreBar } from '@/components/thesis/ClaimScoreBar'
 import { ThesisHoldingLine } from '@/components/portfolio/ThesisHoldingLine'
@@ -23,9 +26,10 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/toast'
-import { Tooltip, TooltipValue } from '@/components/ui/tooltip'
+import { Tooltip, TooltipValue, TruncatedText } from '@/components/ui/tooltip'
 import { useAsync } from '@/hooks/useAsync'
 import { useCheckNow } from '@/hooks/useCheckNow'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useShellContext } from '@/hooks/useShellContext'
 import {
   ApiError,
@@ -36,7 +40,8 @@ import {
   type EvidenceEvent,
   type Thesis,
 } from '@/lib/api'
-import { formatConfidence, formatDate, formatDateTime, timestamp } from '@/lib/format'
+import { describeError } from '@/lib/errors'
+import { formatConfidence, timestamp } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 interface DetailData {
@@ -82,13 +87,17 @@ export function ThesisDetailPage() {
   }, [refresh])
 
   const check = useCheckNow(id, refreshAll)
+  // Null until the thesis loads — the id in the URL is a uuid, which would be a
+  // worse tab label than the plain app name. Distinct from the research page's
+  // "NVDA" so the two are told apart in history.
+  useDocumentTitle(data ? `${data.thesis.ticker} thesis` : null)
 
   if (loading) return <DetailSkeleton />
   if (error) {
     return error instanceof ApiError && error.status === 404 ? (
       <NotFoundState />
     ) : (
-      <ErrorState message={error.message} onRetry={reload} />
+      <DetailErrorState error={error} onRetry={reload} />
     )
   }
   if (!data) return <NotFoundState />
@@ -114,7 +123,11 @@ export function ThesisDetailPage() {
           evidence list — which is why it gets the glass treatment. The negative
           margins bleed it to the container edges so content passes underneath
           the blur rather than beside it. */}
-      <header className="glass-chrome sticky top-0 z-10 -mx-10 mt-6 mb-6 flex flex-wrap items-start justify-between gap-4 border-b px-10 py-4">
+      {/* `min-h-22` is the box the skeleton reserves. Pinning it here too means the
+          header is one fixed height whether or not ThesisHoldingLine has anything
+          to render — that line arrives on its own request, and without this it
+          grew the header under the reader a second after the page painted. */}
+      <header className="glass-chrome sticky top-0 z-10 -mx-12 mt-6 mb-6 flex min-h-22 flex-wrap items-start justify-between gap-4 border-b px-12 py-4">
         <div className="flex flex-wrap items-center gap-3">
           {/* Detail-page ticker in the display font (weight 400). The list-card
               tickers stay on the sans — display font is for titles, not data rows. */}
@@ -140,9 +153,11 @@ export function ThesisDetailPage() {
 
         <div className="flex flex-col items-end gap-1.5">
           <div className="flex items-center gap-3">
-            <span className="text-sm text-text-secondary">
-              Created {formatDate(thesis.created_at)}
-            </span>
+            <RelativeTime
+              iso={thesis.created_at}
+              prefix="Created"
+              className="text-sm text-text-secondary"
+            />
             {/* The company behind the thesis, in its own words. */}
             <Button asChild variant="ghost" size="sm">
               <Link to={`/research/${encodeURIComponent(thesis.ticker)}`}>
@@ -171,23 +186,23 @@ export function ThesisDetailPage() {
           markers on it are the point. */}
       <PriceChart thesisId={thesis.id} />
 
-      <div className="mb-10 flex flex-col gap-4">
+      <div className="mb-12 flex flex-col gap-4">
         <CheckNowResult check={check} />
         <AddDocumentPanel thesisId={thesis.id} onSubmitted={refreshAll} />
       </div>
 
-      <section className="mb-10">
+      <section className="mb-12">
         <SectionHeading>Original reasoning</SectionHeading>
         {/* Original reasoning is prose too — same serif family as the statements. */}
-        <blockquote className="border-l-2 border-border pl-4 font-serif text-[15px] leading-relaxed whitespace-pre-wrap text-text-secondary">
+        <blockquote className="border-l-2 border-border pl-4 font-serif text-base leading-relaxed whitespace-pre-wrap text-text-secondary">
           {thesis.reasoning_raw}
         </blockquote>
       </section>
 
-      <section className="mb-10">
+      <section className="mb-12">
         <SectionHeading>
-          Claims{' '}
-          <span className="font-normal text-text-muted">({thesis.claims.length})</span>
+          Claims
+          <Count value={thesis.claims.length} />
         </SectionHeading>
         {thesis.claims.length === 0 ? (
           <p className="text-sm text-text-secondary">No claims were extracted.</p>
@@ -208,10 +223,19 @@ export function ThesisDetailPage() {
 
       <section>
         <SectionHeading>
-          Evidence{' '}
-          <span className="font-normal text-text-muted">
-            ({filteredClaim ? `${visibleEvidence.length} of ${newestFirst.length}` : newestFirst.length})
-          </span>
+          Evidence
+          {/* "N of M" while a claim filter is on, so the number in the heading is
+              never at odds with the number of rows underneath it. */}
+          {filteredClaim && newestFirst.length > 0 ? (
+            <>
+              {' '}
+              <span className="font-normal tabular-nums text-text-muted">
+                ({visibleEvidence.length} of {newestFirst.length})
+              </span>
+            </>
+          ) : (
+            <Count value={newestFirst.length} />
+          )}
         </SectionHeading>
 
         {/* The filter is set from a claim card further up the page, which may be
@@ -222,10 +246,18 @@ export function ThesisDetailPage() {
             role="status"
             className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg bg-surface-raised px-4 py-2.5 text-sm"
           >
-            <span className="text-text-secondary">Showing evidence for one claim:</span>
-            <span className="font-serif text-text-primary">
-              “{filteredClaim.statement}”
+            <span className="shrink-0 text-text-secondary">
+              Showing evidence for one claim:
             </span>
+            {/* TRUNCATED, not wrapped. This banner is a single status line above a
+                list, and interpolating a claim of unknown length into it made its
+                height depend on which claim you filtered by — so the whole evidence
+                list below jumped as you switched between them. TruncatedText only
+                attaches the tooltip when it measures as actually clipped. */}
+            <TruncatedText
+              text={`“${filteredClaim.statement}”`}
+              className="min-w-0 flex-1 font-serif text-text-primary"
+            />
             <Button
               variant="ghost"
               size="sm"
@@ -250,6 +282,19 @@ export function ThesisDetailPage() {
           </ul>
         )}
       </section>
+
+      {/* ⚠️ AFTER the evidence log, and deliberately unlike it. The cards above are
+          quoted from a document, scored against a claim and badged with a verdict;
+          these are headlines nobody has checked. Adjacent on the page is exactly
+          where they would be mistaken for each other, so this section keeps its own
+          heading, its own note, and flat rows with no badges on them. */}
+      <TickerNewsSection
+        ticker={thesis.ticker}
+        limit={5}
+        moreHref={`/research/${encodeURIComponent(thesis.ticker)}`}
+        moreLabel="Company research"
+        className="mt-12"
+      />
     </div>
   )
 }
@@ -277,7 +322,7 @@ function ReflectButton({
       // Was an inline message INSIDE the page header, which grew the header and
       // shifted the whole page down the moment it appeared.
       toast.error(
-        `Couldn't open a reflection: ${cause instanceof Error ? cause.message : String(cause)}`,
+        `Couldn't open a reflection. ${describeError(cause, 'this reflection').detail}`,
       )
     } finally {
       setPending(false)
@@ -321,18 +366,24 @@ function ClaimCard({
   const conditionsId = `conditions-${claim.id}`
 
   return (
-    <Card className="[--card-spacing:--spacing(5)]">
+    <Card>
       <div className="flex flex-col gap-3 px-(--card-spacing)">
         <div className="flex items-start justify-between gap-4">
           {/* Claim statement is prose — serif, ~16px, weight 400, comfortable leading. */}
-          <p className="font-serif text-[16px] leading-[1.5] text-text-primary">
+          <p className="font-serif text-base leading-[1.5] text-text-primary">
             {claim.statement}
           </p>
-          <div className="flex shrink-0 items-center gap-2">
-            <span className="rounded-4xl bg-surface-raised px-2 py-0.5 text-xs text-text-muted">
+          {/* ⚠️ THE BADGE COLUMN IS A FIXED WIDTH. This is the one place the
+              badge's 63px–153px range changed more than itself: it sits beside a
+              wrapping serif statement, so a claim re-scoring from BROKEN to
+              STRONGLY SUPPORTED took 90px away from the paragraph, re-flowed it
+              onto an extra line and grew the card. `min-w-40` (160px) clears the
+              widest label, so the statement's measure is constant. */}
+          <div className="flex shrink-0 items-center justify-end gap-2">
+            <span className="min-w-12 rounded-full bg-surface-raised px-2 py-0.5 text-center text-xs text-text-muted">
               {claim.is_core ? 'core' : 'minor'}
             </span>
-            <StatusBadge status={claim.status} />
+            <StatusBadge status={claim.status} className="min-w-40" />
           </div>
         </div>
 
@@ -414,7 +465,7 @@ function EvidenceFilterButton({
         onClick={() => onToggle(active ? null : claim.id)}
         aria-pressed={active}
         className={cn(
-          'rounded-4xl border px-2 py-0.5 text-xs transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
+          'rounded-full border px-2 py-0.5 text-xs tabular-nums transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
           active
             ? 'border-border-strong bg-surface-raised text-text-primary'
             : 'border-transparent text-text-muted hover:border-border hover:text-text-secondary',
@@ -432,7 +483,7 @@ function Condition({ label, value }: { label: string; value: string }) {
       {/* Label stays small uppercase muted sans; the VALUE goes mono (a spec/rule),
           ~12.5px, a touch tighter than the serif statements. */}
       <dt className="text-xs tracking-wide text-text-muted uppercase">{label}</dt>
-      <dd className="mt-1 font-mono text-[12.5px] leading-[1.4] text-text-secondary">
+      <dd className="mt-1 font-mono text-xs leading-[1.4] text-text-secondary">
         {value}
       </dd>
     </div>
@@ -441,7 +492,7 @@ function Condition({ label, value }: { label: string; value: string }) {
 
 function EvidenceCard({ event }: { event: EvidenceEvent }) {
   return (
-    <Card className="[--card-spacing:--spacing(5)]">
+    <Card>
       <div className="flex flex-col gap-3 px-(--card-spacing)">
         <div className="flex flex-wrap items-center gap-3">
           <StatusBadge status={event.verdict} />
@@ -457,13 +508,11 @@ function EvidenceCard({ event }: { event: EvidenceEvent }) {
               </>
             }
           >
-            <span className="cursor-help text-xs text-text-muted underline decoration-dotted decoration-text-muted/40 underline-offset-4">
+            <span className="cursor-help font-mono text-xs tabular-nums text-text-muted underline decoration-dotted decoration-text-muted/40 underline-offset-4">
               {formatConfidence(event.confidence)} confidence
             </span>
           </Tooltip>
-          <span className="ml-auto text-xs text-text-muted">
-            {formatDateTime(event.created_at)}
-          </span>
+          <RelativeTime iso={event.created_at} className="ml-auto text-xs text-text-muted" />
         </div>
 
         <blockquote className="border-l-2 border-border pl-4 text-sm leading-relaxed text-text-secondary italic">
@@ -488,7 +537,7 @@ function BackLink() {
   return (
     <Link
       to="/theses"
-      className="inline-flex items-center gap-1.5 rounded-lg text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+      className="flex w-fit items-center gap-1.5 rounded-lg text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
     >
       <ArrowLeft className="size-4" aria-hidden />
       All theses
@@ -496,15 +545,27 @@ function BackLink() {
   )
 }
 
+/**
+ * ⚠️ THE HEADER IS THE PART THAT HAS TO BE EXACT.
+ *
+ * A detail page cannot predict how tall its body will be — the claim count and the
+ * evidence log are whatever the thesis has — so matching the whole page is not on
+ * offer. What IS predictable is everything above the first card, and that is what
+ * the reader is looking at when the data lands. The loaded header is a 40px logo
+ * and a 30px title inside `py-4`, measuring 87px, with `mt-6 mb-6` around it; the
+ * skeleton now reserves the same box instead of the 36px row it used to, which was
+ * pulling the entire page up by 51px at the moment it painted.
+ */
 function DetailSkeleton() {
   return (
     <div aria-busy="true" aria-label="Loading thesis">
-      <Skeleton className="h-4 w-24" />
-      <div className="mt-6 mb-8 flex items-center gap-3">
-        <Skeleton className="h-9 w-28" />
-        <Skeleton className="h-5 w-24 rounded-4xl" />
+      <Skeleton className="h-5 w-24" />
+      <div className="-mx-12 mt-6 mb-6 flex min-h-22 items-center gap-3 border-b border-border px-12 py-4">
+        <Skeleton className="size-10 rounded-lg" />
+        <Skeleton className="h-8 w-28" />
+        <Skeleton className="h-5 w-24 rounded-xs" />
       </div>
-      <Skeleton className="mb-10 h-20 w-full" />
+      <Skeleton className="mb-12 h-20 w-full" />
       <div className="flex flex-col gap-4">
         {[0, 1].map((i) => (
           <Skeleton key={i} className="h-32 w-full rounded-xl" />
@@ -518,7 +579,7 @@ function NotFoundState() {
   return (
     <div>
       <BackLink />
-      <Card className="mt-6 [--card-spacing:--spacing(10)]">
+      <Card className="mt-6 [--card-spacing:--spacing(12)]">
         <div className="flex flex-col items-center gap-4 px-(--card-spacing) text-center">
           <div>
             <p className="font-heading text-base font-medium text-text-primary">
@@ -537,22 +598,16 @@ function NotFoundState() {
   )
 }
 
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+function DetailErrorState({ error, onRetry }: { error: unknown; onRetry: () => void }) {
   return (
     <div>
       <BackLink />
-      <Card className="mt-6 [--card-spacing:--spacing(6)]">
-        <div className="flex flex-col items-start gap-4 px-(--card-spacing)">
-          <div>
-            <p className="text-sm font-medium text-text-primary">Couldn't load thesis</p>
-            <p className="mt-1 text-sm text-status-broken">{message}</p>
-          </div>
-          <Button variant="outline" onClick={onRetry}>
-            <RefreshCw aria-hidden />
-            Retry
-          </Button>
-        </div>
-      </Card>
+      <ErrorState
+        error={error}
+        subject="this thesis"
+        onRetry={onRetry}
+        className="mt-6"
+      />
     </div>
   )
 }

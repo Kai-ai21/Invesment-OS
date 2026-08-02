@@ -1,6 +1,7 @@
-"""Global news feed across every ticker the user holds a thesis on."""
+"""News feeds: one ticker at a time, and merged across every thesis the user holds."""
 
 import logging
+import re
 import time
 
 from sqlalchemy.orm import Session
@@ -12,6 +13,13 @@ from backend.repositories import thesis_repository, user_repository
 logger = logging.getLogger(__name__)
 
 CACHE_TTL_SECONDS = 15 * 60  # 15 minutes
+
+# What can be a symbol at all: letters and digits, allowing the dot and hyphen that
+# real class-share tickers carry (BRK.B, RDS-A). Deliberately SHAPE-ONLY — it is not
+# a list of real companies, because "ZZZZ" is a well-formed ticker nobody has written
+# about, and that is an empty feed rather than a bad request. This only rejects input
+# that could never name one: blank, prose, a path fragment.
+_TICKER_PATTERN = re.compile(r"[A-Z0-9][A-Z0-9.\-]{0,9}")
 
 # In-memory TTL cache, keyed by (ticker, limit).
 #
@@ -54,6 +62,40 @@ def _sort_key(item: NewsItem) -> tuple[int, float]:
     if item.published_at is None:
         return (1, 0.0)
     return (0, -item.published_at.timestamp())
+
+
+def get_news_for_ticker(
+    ticker: str,
+    limit: int = 10,
+    source: NewsSource | None = None,
+) -> list[NewsItem] | None:
+    """Headlines for ONE ticker, newest first. None when that is not a symbol.
+
+    ⚠️ None and [] ARE DIFFERENT ANSWERS, which is the whole reason this returns an
+    optional list. None means the caller asked about something that could not name a
+    company; [] means a real symbol the feed had nothing about this week. The former
+    is a 404 at the edge, the latter is a page section that says "no recent news" —
+    collapsing them would tell someone their ticker was wrong when it was fine.
+
+    Goes through the SAME cache and the SAME adapter as the portfolio-wide feed
+    below; there is no second fetch path. A ticker the news panel already pulled at
+    this limit is served from memory here.
+
+    Also unlike that feed, a fetch failure is NOT swallowed. It isolates per-ticker
+    failures so the OTHER tickers still render — here there are no others, and
+    answering [] would say "no news" when the truth is "we could not look".
+    """
+    normalised = ticker.strip().upper()
+    if not _TICKER_PATTERN.fullmatch(normalised):
+        return None
+
+    if source is None:
+        source = RssNewsSource()
+
+    # Sorted with the same key as the merged feed, so an undated headline sinks to
+    # the bottom in both places rather than sitting wherever the feed happened to
+    # put it.
+    return sorted(_cached_headlines(source, normalised, limit), key=_sort_key)
 
 
 def get_news_for_all_theses(

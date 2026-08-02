@@ -1,5 +1,5 @@
-import { useCallback } from 'react'
-import { Plus, RefreshCw } from 'lucide-react'
+import { useCallback, type ReactNode } from 'react'
+import { Plus } from 'lucide-react'
 import { Link } from 'react-router'
 
 import { ClaimBreakdown } from '@/components/ClaimBreakdown'
@@ -8,13 +8,16 @@ import { EmptyIllustration } from '@/components/EmptyIllustration'
 import { Sparkline } from '@/components/Sparkline'
 import { StatusBadge } from '@/components/StatusBadge'
 import { StatusSpine } from '@/components/StatusSpine'
+import { ErrorState } from '@/components/ErrorState'
+import { RelativeTime } from '@/components/RelativeTime'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useAsync } from '@/hooks/useAsync'
 import { useStaggerIndex } from '@/hooks/useStaggerIndex'
 import { listHoldings, listTheses, type Thesis } from '@/lib/api'
-import { formatDate, formatMoney, formatRelative } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import { entryProps } from '@/lib/motion'
 
 interface ThesesData {
@@ -24,6 +27,7 @@ interface ThesesData {
 }
 
 export function ThesesPage() {
+  useDocumentTitle('Theses')
   const load = useCallback(async (): Promise<ThesesData> => {
     // The theses ARE the page, so a failure here is the page's failure.
     const theses = await listTheses()
@@ -67,7 +71,7 @@ export function ThesesPage() {
       {loading ? (
         <ThesesSkeleton />
       ) : error ? (
-        <ErrorState message={error.message} onRetry={reload} />
+        <ErrorState error={error} subject="your theses" onRetry={reload} />
       ) : theses && theses.length > 0 ? (
         <ul className="flex flex-col gap-4">
           {theses.map((thesis, index) => (
@@ -116,7 +120,7 @@ function ThesisCard({
           overflow-hidden clips it to the rounded corners. The hairline uses the
           border token and brightens on hover — the spine does not, because it
           carries meaning rather than interaction state. */}
-      <Card className="relative border border-border [--card-spacing:--spacing(5)] transition-colors hover:border-border-strong hover:bg-surface-raised">
+      <Card className="relative border border-border transition-colors hover:border-border-strong hover:bg-surface-raised">
         <StatusSpine status={thesis.status} />
         <div className="flex flex-col gap-2.5 px-(--card-spacing)">
           {/* PRIMARY.
@@ -143,46 +147,76 @@ function ThesisCard({
           {/* SECONDARY — one wrapping line, all of it 12px and muted. */}
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-text-muted">
             <ClaimBreakdown claims={thesis.claims} />
-            {/* Each entry is a KEY plus its text, rather than bare nodes in an
-                array: the keys are then stable identities rather than positions,
-                so the holding line appearing does not re-key everything after it. */}
+            {/* Each entry is a KEY plus a RENDER FUNCTION, rather than bare nodes
+                in an array. Two reasons, both deliberate:
+
+                The key makes each item a stable identity rather than a position,
+                so the holding line appearing does not re-key everything after it.
+
+                The thunk keeps the JSX out of the array literal. The content has
+                to be a node rather than a string — the two timestamps below are
+                <RelativeTime>, which carries a tooltip an interpolated string
+                cannot hold — and JSX sitting directly in an array reads to a
+                linter as a list needing keys, which these are not: the key lives
+                on the wrapper below. */}
             {(
               [
-                ['claims', `${claimCount} ${claimCount === 1 ? 'claim' : 'claims'}`],
-                [
-                  'evidence',
-                  `${evidenceCount} evidence ${evidenceCount === 1 ? 'event' : 'events'}`,
-                ],
+                {
+                  key: 'claims',
+                  render: () => (
+                    <span className="tabular-nums">
+                      {claimCount} {claimCount === 1 ? 'claim' : 'claims'}
+                    </span>
+                  ),
+                },
+                {
+                  key: 'evidence',
+                  render: () => (
+                    <span className="tabular-nums">
+                      {evidenceCount} evidence{' '}
+                      {evidenceCount === 1 ? 'event' : 'events'}
+                    </span>
+                  ),
+                },
                 // Derived from the newest evidence event, because that IS the last
                 // time anything was read against this thesis. Said plainly when it
                 // has never happened — "checked never" would be worse than useless.
-                [
-                  'checked',
-                  lastChecked ? `checked ${formatRelative(lastChecked)}` : 'never checked',
-                ],
+                {
+                  key: 'checked',
+                  render: () =>
+                    lastChecked ? (
+                      <RelativeTime iso={lastChecked} prefix="checked" />
+                    ) : (
+                      <span>never checked</span>
+                    ),
+                },
                 // The one figure on the line, so it goes mono and one step brighter
                 // — it is a number to read, not a label to skim.
                 holdingValue === null
                   ? null
-                  : ['held', `${formatMoney(holdingValue)} held`, 'money'],
-                ['created', formatDate(thesis.created_at)],
-              ] as Array<[string, string, string?] | null>
+                  : {
+                      key: 'held',
+                      render: () => (
+                        <span className="font-mono tabular-nums text-text-secondary">
+                          {formatMoney(holdingValue)} held
+                        </span>
+                      ),
+                    },
+                {
+                  key: 'created',
+                  render: () => (
+                    <RelativeTime iso={thesis.created_at} prefix="created" />
+                  ),
+                },
+              ] as Array<{ key: string; render: () => ReactNode } | null>
             )
               .filter((item) => item !== null)
-              .map(([key, text, tone], index) => (
+              .map(({ key, render }, index) => (
                 // Each separator lives INSIDE the item it precedes, so a wrap
                 // carries the two together and no line ever ends on a stray dot.
                 <span key={key} className="flex items-center gap-2.5 whitespace-nowrap">
                   {index > 0 && <Dot />}
-                  <span
-                    className={
-                      tone === 'money'
-                        ? 'font-mono tabular-nums text-text-secondary'
-                        : undefined
-                    }
-                  >
-                    {text}
-                  </span>
+                  {render()}
                 </span>
               ))}
           </div>
@@ -208,24 +242,28 @@ function ThesesSkeleton() {
       {/* Mirrors the loaded card's TWO tiers, not just its top one — a skeleton
           a line shorter than what replaces it makes the whole list jump. */}
       {[0, 1, 2].map((i) => (
-        <Card key={i} className="[--card-spacing:--spacing(5)]">
+        // `border border-border` matches the loaded card's border exactly. Without
+        // it the skeleton was 2px shorter than what replaced it, on every card.
+        <Card key={i} className="border border-border">
           <div className="flex flex-col gap-2.5 px-(--card-spacing)">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 {/* Matches CompanyLogo's 32px box so the row does not jump. */}
                 <Skeleton className="size-8 rounded-lg" />
                 <Skeleton className="h-6 w-16" />
-                <Skeleton className="h-5 w-24 rounded-4xl" />
+                <Skeleton className="h-5 w-24 rounded-full" />
               </div>
               {/* The sparkline's reserved 64x20 box. */}
               <Skeleton className="h-5 w-16" />
             </div>
+            {/* h-4, not h-3: this row stands in for a `text-xs` line, which lays
+                out at 16px. At 12px the skeleton was 4px short per card. */}
             <div className="flex items-center gap-2.5">
               <Skeleton className="h-1 w-16 rounded-full" />
-              <Skeleton className="h-3 w-14" />
-              <Skeleton className="h-3 w-24" />
-              <Skeleton className="h-3 w-28" />
-              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-4 w-14" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-4 w-20" />
             </div>
           </div>
         </Card>
@@ -234,26 +272,10 @@ function ThesesSkeleton() {
   )
 }
 
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <Card className="[--card-spacing:--spacing(6)]">
-      <div className="flex flex-col items-start gap-4 px-(--card-spacing)">
-        <div>
-          <p className="text-sm font-medium text-text-primary">Couldn't load theses</p>
-          <p className="mt-1 text-sm text-status-broken">{message}</p>
-        </div>
-        <Button variant="outline" onClick={onRetry}>
-          <RefreshCw aria-hidden />
-          Retry
-        </Button>
-      </div>
-    </Card>
-  )
-}
 
 function EmptyState() {
   return (
-    <Card className="[--card-spacing:--spacing(10)]">
+    <Card className="[--card-spacing:--spacing(12)]">
       <div className="flex flex-col items-center gap-4 px-(--card-spacing) text-center">
         <EmptyIllustration variant="theses" />
         <div>

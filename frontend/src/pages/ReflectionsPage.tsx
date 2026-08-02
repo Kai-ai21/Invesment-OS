@@ -4,14 +4,18 @@ import { Loader2, RefreshCw } from 'lucide-react'
 import { EmptyIllustration } from '@/components/EmptyIllustration'
 import { PatternsSection } from '@/components/pattern/PatternsSection'
 import { ReflectionCard } from '@/components/reflection/ReflectionCard'
+import { Count } from '@/components/Count'
+import { ErrorState } from '@/components/ErrorState'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { sortReflections, usePostMortems } from '@/hooks/usePostMortems'
 import { useShellContext } from '@/hooks/useShellContext'
 import { useStaggerIndex } from '@/hooks/useStaggerIndex'
 
 export function ReflectionsPage() {
+  useDocumentTitle('Reflections')
   const { items, loading, error, refreshing, refresh, reload } = usePostMortems()
   const { refreshPendingReflections } = useShellContext()
 
@@ -49,12 +53,13 @@ export function ReflectionsPage() {
 
       <h2 className="mb-4 font-display text-xl tracking-[0.01em] text-text-primary">
         Your reflections
+        <Count value={ordered.length} />
       </h2>
 
       {loading ? (
         <ReflectionsSkeleton />
       ) : error ? (
-        <ErrorState message={error.message} onRetry={reload} />
+        <ErrorState error={error} subject="your reflections" onRetry={reload} />
       ) : ordered.length === 0 ? (
         <EmptyState />
       ) : (
@@ -76,35 +81,23 @@ export function ReflectionsPage() {
 function ReflectionsSkeleton() {
   return (
     <div className="flex flex-col gap-4" aria-busy="true" aria-label="Loading reflections">
+      {/* 236px is the measured height of an ANSWERED reflection card — the steady
+          state, and the shortest real card. A pending one runs to 434px because it
+          carries an AI-written question of unknown length plus the answer box, so
+          no fixed skeleton can match both. Sized to the shorter of the two on
+          purpose: undershooting settles content downward once, where overshooting
+          would yank it upward, and upward is the movement that loses your place. */}
       {[0, 1].map((row) => (
-        <Skeleton key={row} className="h-56 w-full rounded-xl" />
+        <Skeleton key={row} className="h-59 w-full rounded-xl" />
       ))}
     </div>
   )
 }
 
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <Card className="[--card-spacing:--spacing(6)]">
-      <div className="flex flex-col items-start gap-4 px-(--card-spacing)">
-        <div>
-          <p className="text-sm font-medium text-text-primary">
-            Couldn't load reflections
-          </p>
-          <p className="mt-1 text-sm text-status-broken">{message}</p>
-        </div>
-        <Button variant="outline" onClick={onRetry}>
-          <RefreshCw aria-hidden />
-          Retry
-        </Button>
-      </div>
-    </Card>
-  )
-}
 
 function EmptyState() {
   return (
-    <Card className="[--card-spacing:--spacing(10)]">
+    <Card className="[--card-spacing:--spacing(12)]">
       <div className="flex flex-col items-center gap-1 px-(--card-spacing) text-center">
         <EmptyIllustration variant="reflections" className="mb-3" />
         <p className="font-display text-base tracking-[0.01em] text-text-primary">

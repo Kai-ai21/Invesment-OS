@@ -1,12 +1,14 @@
 import { NeuralBackground } from '@/components/effects/NeuralBackground'
 import { ShinyText } from '@/components/effects/ShinyText'
 import { LandingCta } from '@/components/landing/LandingCta'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 /**
  * The only route with particles. Everything past the CTA is flat, functional
  * chrome.
  */
 export function LandingPage() {
+  useDocumentTitle(null)
   return (
     <div className="relative h-screen overflow-hidden bg-background">
       <div className="absolute inset-0">

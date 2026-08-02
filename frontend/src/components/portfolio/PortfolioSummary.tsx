@@ -30,9 +30,9 @@ export function PortfolioSummary({ totals }: { totals: PortfolioTotals }) {
   const pnlPercent = useCountUp(totals.pnl_percent)
 
   return (
-    <Card className="mb-8 [--card-spacing:--spacing(6)]">
-      <div className="flex flex-col gap-5 px-(--card-spacing)">
-        <dl className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+    <Card className="mb-8">
+      <div className="flex flex-col gap-6 px-(--card-spacing)">
+        <dl className="grid grid-cols-1 gap-6 sm:grid-cols-3">
           <Figure label="Market value" value={formatMoney(marketValue)} />
           <Figure label="Cost basis" value={formatMoney(costBasis)} />
           <Figure
@@ -93,7 +93,7 @@ function Figure({
 }) {
   return (
     <div>
-      <dt className="font-mono text-[11px] tracking-[0.08em] text-text-muted uppercase">
+      <dt className="font-mono text-2xs tracking-[0.08em] text-text-muted uppercase">
         {label}
       </dt>
       {/* Mono and tabular so the three figures line up digit-for-digit. */}

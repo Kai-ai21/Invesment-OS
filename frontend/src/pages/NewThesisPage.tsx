@@ -7,6 +7,8 @@ import { TickerInput } from '@/components/ticker/TickerInput'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { describeError } from '@/lib/errors'
 import { createThesis } from '@/lib/api'
 
 const MIN_REASONING_LENGTH = 20
@@ -16,6 +18,7 @@ const REASONING_PLACEHOLDER = `Nvidia's data-centre revenue keeps compounding be
 The thesis breaks if a major hyperscaler moves meaningful inference volume to in-house silicon, or if gross margin falls below 65% for two consecutive quarters.`
 
 export function NewThesisPage() {
+  useDocumentTitle('New thesis')
   const navigate = useNavigate()
   // Prefilled from ?ticker= so the portfolio's "No thesis" link lands on a form that
   // already knows which ticker it is about. Initial state only — the field is the
@@ -52,7 +55,7 @@ export function NewThesisPage() {
       navigate(`/theses/${thesis.id}`)
     } catch (cause: unknown) {
       // Form values are deliberately left intact so nothing typed is lost.
-      setError(cause instanceof Error ? cause.message : String(cause))
+      setError(describeError(cause, 'the thesis').detail)
       setPending(false)
     }
   }
@@ -77,7 +80,7 @@ export function NewThesisPage() {
         </p>
       </header>
 
-      <Card className="[--card-spacing:--spacing(6)]">
+      <Card>
         <form onSubmit={handleSubmit} className="flex flex-col gap-6 px-(--card-spacing)">
           <fieldset disabled={pending} className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">

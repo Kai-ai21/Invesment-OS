@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, Loader2, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { describeError } from '@/lib/errors'
 import { dismissPattern, type Pattern, type PostMortem } from '@/lib/api'
 
 /**
@@ -45,7 +46,7 @@ export function PatternCard({
       setGone(true)
       onDismissed?.()
     } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause.message : String(cause))
+      setError(describeError(cause, 'this pattern').detail)
       setDismissing(false)
     }
   }
@@ -53,11 +54,11 @@ export function PatternCard({
   if (gone) return null
 
   return (
-    <Card className="[--card-spacing:--spacing(6)]">
+    <Card>
       <div className="flex flex-col gap-4 px-(--card-spacing)">
         <div className="flex items-start justify-between gap-4">
           {/* Serif: this is prose about the user, same treatment as their own writing. */}
-          <p className="font-serif text-[16px] leading-[1.5] text-text-primary">
+          <p className="font-serif text-base leading-[1.5] text-text-primary">
             {pattern.statement}
           </p>
           {!confirming && (
@@ -127,11 +128,11 @@ export function PatternCard({
                     {source.ticker}
                   </span>
                   {source.prompt_question && (
-                    <p className="font-serif text-[14px] leading-[1.5] text-text-secondary">
+                    <p className="font-serif text-sm leading-[1.5] text-text-secondary">
                       {source.prompt_question}
                     </p>
                   )}
-                  <p className="font-serif text-[14px] leading-relaxed whitespace-pre-wrap text-text-muted">
+                  <p className="font-serif text-sm leading-relaxed whitespace-pre-wrap text-text-muted">
                     {responseById.get(source.post_mortem_id) ??
                       '(this reflection is no longer available)'}
                   </p>

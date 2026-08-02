@@ -27,13 +27,14 @@ import {
   formatSignedPercent,
   signOf,
 } from '@/lib/format'
+import { describeError } from '@/lib/errors'
 import { entryProps } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
 /** Right-aligned, mono, tabular — so digits line up column-wise for scanning. */
 const NUM = 'px-3 py-3 text-right font-mono text-sm tabular-nums whitespace-nowrap'
 const HEAD =
-  'px-3 py-2 text-right font-mono text-[11px] tracking-[0.08em] text-text-muted uppercase whitespace-nowrap'
+  'px-3 py-2 text-right font-mono text-2xs tracking-[0.08em] text-text-muted uppercase whitespace-nowrap'
 
 export function HoldingsTable({
   holdings,
@@ -146,7 +147,7 @@ function HoldingRow({
       // The row is gone by now, so the confirmation cannot live in it.
       toast.success(`${holding.ticker} removed from your portfolio`)
     } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause.message : String(cause))
+      setError(describeError(cause, 'this holding').detail)
       setBusy(false)
       setConfirmingDelete(false)
     }
@@ -171,7 +172,7 @@ function HoldingRow({
             <div className="min-w-0">
               <Link
                 to={`/research/${encodeURIComponent(holding.ticker)}`}
-                className="rounded font-mono text-sm text-text-primary underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                className="rounded-lg font-mono text-sm text-text-primary underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
               >
                 {holding.ticker}
               </Link>
@@ -416,7 +417,7 @@ function ThesisCell({ holding }: { holding: Holding }) {
     return (
       <Link
         to={`/theses/${holding.thesis_id}`}
-        className="inline-flex rounded-[4px] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+        className="inline-flex rounded-xs focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
       >
         <StatusBadge status={holding.thesis_status} />
       </Link>
@@ -478,7 +479,7 @@ function EditHoldingForm({
       })
       onSaved(portfolio)
     } catch (cause: unknown) {
-      setProblem(cause instanceof Error ? cause.message : String(cause))
+      setProblem(describeError(cause, 'this holding').detail)
       setPending(false)
     }
   }
@@ -556,7 +557,7 @@ export function Field({
     <div className={cn('flex flex-col gap-1.5', className)}>
       <label
         htmlFor={htmlFor}
-        className="font-mono text-[11px] tracking-[0.08em] text-text-muted uppercase"
+        className="font-mono text-2xs tracking-[0.08em] text-text-muted uppercase"
       >
         {label}
       </label>

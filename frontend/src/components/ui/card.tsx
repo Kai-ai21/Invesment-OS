@@ -2,6 +2,18 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * ⚠️ 24px IS THE CARD PADDING, and it lives HERE rather than at the call sites.
+ *
+ * It used to be restated on all 33 of them, which is how it drifted into two
+ * values (20px on 14 cards, 24px on 18, plus a 32px one-off) that no single card
+ * was wrong on but that never lined up when two sat side by side. The default is
+ * now the standard, so a new `<Card>` is consistent by doing nothing, and the
+ * ONLY call sites that still pass `--card-spacing` are the empty states, which
+ * deliberately run roomier at 48px.
+ *
+ * `size="sm"` (16px) is the shadcn primitive's own API and no call site uses it.
+ */
 function Card({
   className,
   size = "default",
@@ -12,7 +24,7 @@ function Card({
       data-slot="card"
       data-size={size}
       className={cn(
-        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground ring-1 ring-foreground/10 [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-text-primary ring-1 ring-foreground/10 [--card-spacing:--spacing(6)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(4)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
         className
       )}
       {...props}
@@ -50,7 +62,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-description"
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn("text-sm text-text-secondary", className)}
       {...props}
     />
   )

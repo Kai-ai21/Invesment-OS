@@ -62,11 +62,11 @@ const buttonVariants = cva(
         gradient:
           "border-2 text-text-primary [background-clip:padding-box,border-box]!",
         outline:
-          "border-white/12 bg-white/4 backdrop-blur-sm shadow-[var(--btn-glass-quiet)] not-disabled:hover:border-white/20 not-disabled:hover:bg-white/10 not-disabled:hover:text-foreground aria-expanded:bg-white/10 aria-expanded:text-foreground",
+          "border-white/12 bg-white/4 backdrop-blur-sm shadow-[var(--btn-glass-quiet)] not-disabled:hover:border-white/20 not-disabled:hover:bg-white/10 not-disabled:hover:text-text-primary aria-expanded:bg-white/10 aria-expanded:text-text-primary",
         secondary:
-          "border-white/10 bg-white/10 text-secondary-foreground backdrop-blur-sm shadow-[var(--btn-glass-quiet)] not-disabled:hover:bg-white/16 aria-expanded:bg-white/12 aria-expanded:text-secondary-foreground",
+          "border-white/10 bg-white/10 text-text-primary backdrop-blur-sm shadow-[var(--btn-glass-quiet)] not-disabled:hover:bg-white/16 aria-expanded:bg-white/12 aria-expanded:text-text-primary",
         ghost:
-          "border-white/8 not-disabled:hover:border-white/16 not-disabled:hover:bg-white/8 not-disabled:hover:text-foreground aria-expanded:bg-white/8 aria-expanded:text-foreground",
+          "border-white/8 not-disabled:hover:border-white/16 not-disabled:hover:bg-white/8 not-disabled:hover:text-text-primary aria-expanded:bg-white/8 aria-expanded:text-text-primary",
         // Tinted glass: the destructive hue carries the meaning, so it keeps its
         // own colour and takes only the quiet highlight rather than a white film.
         destructive:
@@ -84,7 +84,7 @@ const buttonVariants = cva(
         default:
           "h-8 gap-1.5 px-3.5 has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5",
         xs: "h-6 gap-1 rounded-full px-2.5 text-xs has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-7 gap-1 rounded-full px-3 text-[0.8rem] has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3.5",
+        sm: "h-7 gap-1 rounded-full px-3 text-xs has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3.5",
         lg: "h-9 gap-1.5 px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
         icon: "size-8",
         "icon-xs": "size-6 rounded-full [&_svg:not([class*='size-'])]:size-3",
@@ -100,7 +100,7 @@ const buttonVariants = cva(
     compoundVariants: [
       {
         variant: "hero",
-        class: "h-9 gap-2 px-5",
+        class: "h-9 gap-2 px-6",
       },
       // Sized by padding rather than a fixed height, so the 2px gradient border
       // adds to the pill instead of eating into the label's breathing room.
@@ -108,7 +108,7 @@ const buttonVariants = cva(
       // compound, so a variant-level height would lose to the size axis.
       {
         variant: "gradient",
-        class: "h-auto gap-2 px-5 py-[9px] text-sm leading-none",
+        class: "h-auto gap-2 px-6 py-2 text-sm leading-none",
       },
     ],
     defaultVariants: {

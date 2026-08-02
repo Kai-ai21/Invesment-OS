@@ -4,7 +4,8 @@ import { ExternalLink } from 'lucide-react'
 import { Link } from 'react-router'
 
 import { CompanyLogo } from '@/components/CompanyLogo'
-import { formatRelative } from '@/lib/format'
+import { RelativeTime } from '@/components/RelativeTime'
+
 import { entryProps } from '@/lib/motion'
 import type { NewsItem as NewsItemData } from '@/lib/api'
 
@@ -33,7 +34,7 @@ function SourceIcon({ src }: { src: string | null }) {
           onError={() => setFailed(true)}
           // Don't leak which page the reader is on to the icon host.
           referrerPolicy="no-referrer"
-          className="size-4 rounded-[3px] object-contain"
+          className="size-4 rounded-xs object-contain"
         />
       )}
     </span>
@@ -76,7 +77,7 @@ export function NewsItem({ item, index }: { item: NewsItemData; index?: number }
           <CompanyLogo ticker={item.ticker} logoUrl={item.logo_url} size={16} />
           <Link
             to={`/research/${encodeURIComponent(item.ticker)}`}
-            className="rounded-[4px] border border-border px-1.5 py-0.5 font-mono tracking-[0.08em] text-text-secondary uppercase transition-colors hover:border-text-muted hover:text-text-primary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+            className="rounded-xs border border-border px-1.5 py-0.5 font-mono tracking-[0.08em] text-text-secondary uppercase transition-colors hover:border-text-muted hover:text-text-primary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
             {item.ticker}
           </Link>
@@ -88,7 +89,11 @@ export function NewsItem({ item, index }: { item: NewsItemData; index?: number }
         <span aria-hidden>·</span>
         {/* published_at is deliberately nullable upstream — show the absence rather
             than a fabricated timestamp. */}
-        <span>{item.published_at ? formatRelative(item.published_at) : 'no date'}</span>
+        {item.published_at ? (
+          <RelativeTime iso={item.published_at} />
+        ) : (
+          <span>no date</span>
+        )}
       </div>
     </article>
   )

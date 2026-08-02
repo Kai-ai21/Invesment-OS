@@ -215,7 +215,7 @@ function ToastItem({
         type="button"
         onClick={close}
         aria-label="Dismiss notification"
-        className="-mt-0.5 -mr-1 shrink-0 rounded p-1 text-text-muted transition-colors hover:text-text-primary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+        className="-mt-0.5 -mr-1 shrink-0 rounded-lg p-1 text-text-muted transition-colors hover:text-text-primary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
       >
         <X className="size-3.5" aria-hidden />
       </button>

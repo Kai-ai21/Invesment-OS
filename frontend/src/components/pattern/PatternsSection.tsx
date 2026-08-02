@@ -1,13 +1,16 @@
 import { useCallback, useState } from 'react'
-import { Loader2, RefreshCw, Sparkles } from 'lucide-react'
+import { Loader2, Sparkles } from 'lucide-react'
 
 import { EmptyIllustration } from '@/components/EmptyIllustration'
 import { PatternCard } from '@/components/pattern/PatternCard'
+import { Count } from '@/components/Count'
+import { ErrorState } from '@/components/ErrorState'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAsync } from '@/hooks/useAsync'
 import { generatePatterns, listPatterns, type Pattern, type PostMortem } from '@/lib/api'
+import { describeError } from '@/lib/errors'
 
 /**
  * Mirrors MINIMUM_POST_MORTEMS in backend/services/pattern_service.py. Duplicated
@@ -53,17 +56,18 @@ export function PatternsSection({
       setEmptyReason(result.patterns.length === 0 ? result.reason : null)
       refresh()
     } catch (cause: unknown) {
-      setAnalyseError(cause instanceof Error ? cause.message : String(cause))
+      setAnalyseError(describeError(cause, 'your patterns').detail)
     } finally {
       setAnalysing(false)
     }
   }, [analysing, refresh])
 
   return (
-    <section className="mb-10">
+    <section className="mb-12">
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-xl tracking-[0.01em] text-text-primary">
           Patterns
+          <Count value={patterns.length} />
         </h2>
         <Button
           variant="outline"
@@ -99,9 +103,9 @@ export function PatternsSection({
       )}
 
       {loading ? (
-        <Skeleton className="h-32 w-full rounded-xl" />
+        <Skeleton className="h-59 w-full rounded-xl" />
       ) : error ? (
-        <ErrorState message={error.message} onRetry={reload} />
+        <ErrorState error={error} subject="your patterns" onRetry={reload} />
       ) : patterns.length > 0 ? (
         <div className="flex flex-col gap-4">
           {patterns.map((pattern) => (
@@ -171,7 +175,9 @@ function EmptyState({
 
 function EmptyCard({ title, body }: { title: string; body: string }) {
   return (
-    <Card className="[--card-spacing:--spacing(8)]">
+    // 48px, like every other empty state — it was the app's one 32px card, which
+    // is why it never quite matched the ones on Theses, Alerts or Portfolio.
+    <Card className="[--card-spacing:--spacing(12)]">
       <div className="flex flex-col items-center gap-1 px-(--card-spacing) text-center">
         {/* One mark for all three of the states above. They differ in what they
             SAY — not enough material, looked and found nothing, not looked yet —
@@ -187,19 +193,3 @@ function EmptyCard({ title, body }: { title: string; body: string }) {
   )
 }
 
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <Card className="[--card-spacing:--spacing(6)]">
-      <div className="flex flex-col items-start gap-4 px-(--card-spacing)">
-        <div>
-          <p className="text-sm font-medium text-text-primary">Couldn't load patterns</p>
-          <p className="mt-1 text-sm text-status-broken">{message}</p>
-        </div>
-        <Button variant="outline" onClick={onRetry}>
-          <RefreshCw aria-hidden />
-          Retry
-        </Button>
-      </div>
-    </Card>
-  )
-}

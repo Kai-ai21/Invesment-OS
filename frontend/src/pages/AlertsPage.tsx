@@ -1,25 +1,30 @@
 import { useCallback, useState } from 'react'
-import { Check, Loader2, RefreshCw } from 'lucide-react'
+import { Check, Loader2 } from 'lucide-react'
 import { Link } from 'react-router'
 
 import { EmptyIllustration } from '@/components/EmptyIllustration'
+import { RelativeTime } from '@/components/RelativeTime'
 import { StatusBadge } from '@/components/StatusBadge'
 import { StatusSpine } from '@/components/StatusSpine'
+import { ErrorState } from '@/components/ErrorState'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/toast'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useAsync } from '@/hooks/useAsync'
 import { useShellContext } from '@/hooks/useShellContext'
 import { useStaggerIndex } from '@/hooks/useStaggerIndex'
 import { listAlerts, markAlertRead, type Alert } from '@/lib/api'
-import { formatRelative } from '@/lib/format'
+import { describeError } from '@/lib/errors'
+
 import { entryProps } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
 type Filter = 'all' | 'unread'
 
 export function AlertsPage() {
+  useDocumentTitle('Alerts')
   const { refreshUnreadCount } = useShellContext()
   const toast = useToast()
   const [filter, setFilter] = useState<Filter>('all')
@@ -49,9 +54,7 @@ export function AlertsPage() {
       // Was a banner above the list, which pushed every card down the page on
       // appearing and pulled them back up on the next attempt. Nothing here needs
       // studying — the row is still there and the button still works.
-      toast.error(
-        `Couldn't mark as read: ${cause instanceof Error ? cause.message : String(cause)}`,
-      )
+      toast.error(`Couldn't mark as read. ${describeError(cause, 'this alert').detail}`)
     } finally {
       setMarking((prev) => {
         const next = new Set(prev)
@@ -71,7 +74,7 @@ export function AlertsPage() {
       {loading ? (
         <AlertsSkeleton />
       ) : error ? (
-        <ErrorState message={error.message} onRetry={reload} />
+        <ErrorState error={error} subject="your alerts" onRetry={reload} />
       ) : alerts && alerts.length > 0 ? (
         <ul className="flex flex-col gap-3">
           {/* The key is the alert id, so marking one read swaps its contents in
@@ -139,7 +142,7 @@ function AlertCard({
         // carries the thesis status, which is the more useful signal and matches
         // every other status-bearing card. Read/unread is unaffected — it was
         // already distinguished by the background, which is the difference below.
-        'relative [--card-spacing:--spacing(5)] border border-border transition-colors hover:border-border-strong',
+        'relative border border-border transition-colors hover:border-border-strong',
         alert.is_read ? 'bg-surface' : 'bg-surface-raised',
       )}
     >
@@ -181,9 +184,7 @@ function AlertCard({
             {alert.summary}
           </p>
 
-          <span className="text-xs text-text-muted">
-            {formatRelative(alert.created_at)}
-          </span>
+          <RelativeTime iso={alert.created_at} className="text-xs text-text-muted" />
         </Link>
 
         {!alert.is_read && (
@@ -211,15 +212,20 @@ function AlertsSkeleton() {
   return (
     <div className="flex flex-col gap-3" aria-busy="true" aria-label="Loading alerts">
       {[0, 1, 2].map((i) => (
-        <Card key={i} className="[--card-spacing:--spacing(5)]">
+        // Matches the loaded alert card: the same 1px border, a 24px identity row
+        // (text-base beside two 20px badges), a 20px `text-sm` summary line and a
+        // 16px `text-xs` timestamp. Every one of these was a step short before.
+        <Card key={i} className="border border-border">
           <div className="flex flex-col gap-2 px-(--card-spacing)">
             <div className="flex items-center gap-2">
-              <Skeleton className="h-5 w-14" />
-              <Skeleton className="h-5 w-24 rounded-4xl" />
-              <Skeleton className="h-5 w-24 rounded-4xl" />
+              <Skeleton className="h-6 w-14" />
+              <Skeleton className="h-5 w-24 rounded-full" />
+              <Skeleton className="h-5 w-24 rounded-full" />
             </div>
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-3 w-24" />
+            {/* The summary line is `text-sm leading-relaxed`, which lays out at
+                22.75px — h-6 is the nearest scale step and lands within 1px. */}
+            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-4 w-24" />
           </div>
         </Card>
       ))}
@@ -227,26 +233,9 @@ function AlertsSkeleton() {
   )
 }
 
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <Card className="[--card-spacing:--spacing(6)]">
-      <div className="flex flex-col items-start gap-4 px-(--card-spacing)">
-        <div>
-          <p className="text-sm font-medium text-text-primary">Couldn't load alerts</p>
-          <p className="mt-1 text-sm text-status-broken">{message}</p>
-        </div>
-        <Button variant="outline" onClick={onRetry}>
-          <RefreshCw aria-hidden />
-          Retry
-        </Button>
-      </div>
-    </Card>
-  )
-}
-
 function EmptyState({ filter }: { filter: Filter }) {
   return (
-    <Card className="[--card-spacing:--spacing(10)]">
+    <Card className="[--card-spacing:--spacing(12)]">
       <div className="flex flex-col items-center gap-1 px-(--card-spacing) text-center">
         {/* mb-3 rather than a gap on the container: the two lines of copy below
             are a tight pair and must stay tighter to each other than to this. */}

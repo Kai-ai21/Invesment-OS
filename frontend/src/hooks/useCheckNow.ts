@@ -1,25 +1,22 @@
 import { useCallback, useRef, useState } from 'react'
 
 import { ApiError, runCheck, type CheckResult } from '@/lib/api'
+import { describeError } from '@/lib/errors'
 
 export const DEFAULT_CHECK_LIMIT = 1
 export const MAX_CHECK_LIMIT = 3
 
 /**
- * The check endpoint fails in ways the user can act on, so each status gets its
- * own wording: 422 is the backend telling us something concrete (unknown
- * ticker), 502 is SEC being unavailable and worth retrying.
+ * The check endpoint fails in ways the user can act on, so 502 keeps its own
+ * wording: the generic "market data provider" line is wrong here, because what is
+ * unavailable is the SEC's filing service specifically. Everything else defers to
+ * the shared copy — this used to end with "(HTTP 500)" in front of the user.
  */
 export function describeCheckError(error: Error): string {
-  if (!(error instanceof ApiError)) return error.message
-  switch (error.status) {
-    case 422:
-      return error.detail
-    case 502:
-      return 'SEC is unavailable or rate-limited. Try again shortly.'
-    default:
-      return `The check failed (HTTP ${error.status}). ${error.detail}`
+  if (error instanceof ApiError && error.status === 502) {
+    return 'SEC EDGAR is unavailable or rate-limiting us. Try again shortly.'
   }
+  return describeError(error, 'the filings').detail
 }
 
 export interface CheckNowState {

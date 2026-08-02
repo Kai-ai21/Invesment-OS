@@ -28,6 +28,24 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/**
+ * ⚠️ RESERVE THE SCROLLBAR'S 8px WHETHER OR NOT IT IS THERE.
+ *
+ * Measured, not assumed: /theses does not overflow and gets a 1200px content box,
+ * /market does and gets 1192px. The page gutter inside is `mx-auto`, so that 8px
+ * is split in two and EVERY centred thing on the page moves 4px sideways as you
+ * navigate between a short page and a long one — and again on a single page the
+ * moment enough rows load to make it scroll.
+ *
+ * `stable` keeps the gutter allocated in both cases. Set on the scroll CONTAINERS
+ * rather than on html, because that is where the overflow actually lives: <main>
+ * owns the page scroll (see AppShell), and the news panel, the ticker autocomplete
+ * and the select menu each own their own.
+ */
+@utility scroll-stable {
+  scrollbar-gutter: stable;
+}
+
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
@@ -88,6 +106,20 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
+    /* ⚠️ FOUR RADII ARE SANCTIONED, and the whole app uses only these:
+         rounded-xs   (4px)  — chips, status badges, favicons
+         rounded-lg   (10px) — inputs, links, focus targets
+         rounded-xl   (14px) — cards
+         rounded-full        — buttons, pills, dots, bars
+       The other rungs stay DEFINED (a future `shadcn add` emits rounded-sm/md and
+       must not silently fall back to Tailwind's own ladder) but are deliberately
+       unused. Before reaching for one, check the four above cover it — they did
+       for every surface in the app at the last audit.
+
+       Note `rounded-4xl` (26px) is not a fifth pill radius: every element it was
+       used on is 20px tall, where 26px clamps to a full pill and renders exactly
+       as rounded-full. It was a second name for the same shape. */
+    --radius-xs: 0.25rem;
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -95,6 +127,24 @@
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
+
+    /* THE TYPE SCALE. Four body/UI steps and three heading steps — everything in
+       the app is one of these seven, plus the two clamp()s the landing hero uses
+       for its display face.
+
+         text-2xs  11px  mono micro-labels (uppercase, tracking-[0.08em]) and the
+                         small tabular numbers beside them
+         text-xs   12px  meta, captions, small-button labels
+         text-sm   14px  the default — body copy and almost all UI text
+         text-base 16px  serif prose, card titles, form fields
+         text-xl   20px  section headings, large figures
+         text-2xl  24px  page titles
+         text-3xl  30px  the ticker on a detail page
+
+       2xs is the only added rung; the rest are Tailwind's. It exists because the
+       micro-label role was being served by three ad-hoc sizes (10, 10.5 and 11px)
+       that no scale contained, so there was nothing to snap them to. */
+    --text-2xs: 0.6875rem;
 }
 
 /* Dark is the only theme. The palette lives on :root so it applies even before any
@@ -961,6 +1011,7 @@
   ::-webkit-scrollbar-corner {
     background: transparent;
   }
+
 
   /**
    * TEXT SELECTION. The browser default is the OS accent — a saturated blue that

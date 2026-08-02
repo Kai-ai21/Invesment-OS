@@ -40,7 +40,7 @@ export function MarketCard({
   const tone = signOf(quote.change)
 
   return (
-    <Card className="[--card-spacing:--spacing(5)]">
+    <Card>
       {/* A container, so the sparkline below can be dropped by how much room
           THIS CARD has rather than by viewport width. The two are not the same
           here: the grid's `sm:` breakpoint reads the viewport, but the sidebar
@@ -55,7 +55,7 @@ export function MarketCard({
                   every surface where a ticker appears. */}
               <Link
                 to={`/research/${encodeURIComponent(quote.ticker)}`}
-                className="rounded font-mono text-sm text-text-primary underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                className="rounded-lg font-mono text-sm text-text-primary underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
               >
                 {quote.ticker}
               </Link>
@@ -120,7 +120,13 @@ export function MarketCard({
         {/* ⭐ What makes this the user's page rather than a stock ticker: their own
             work, shown against the company. Pushed to the bottom so every card's
             connection line sits on the same baseline across the grid. */}
-        <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
+        {/* `min-h-6` (24px) is the StatusBadge's 20px plus this row's own 4px
+            `pt-1`, because min-height is border-box — min-h-5 was satisfied by a
+            16px "Track this" link plus that same padding and left the badge row
+            4px taller. It makes a card carrying a badge and one carrying the plain
+            link the same height: without it the grid had two row heights AND every
+            card grew the moment the theses request landed after the quotes. */}
+        <div className="mt-auto flex min-h-6 flex-wrap items-center gap-2 pt-1">
           <Connection ticker={quote.ticker} thesis={thesis} holding={holding} />
         </div>
       </div>
@@ -131,7 +137,7 @@ export function MarketCard({
 function MarketCap({ value }: { value: number | null }) {
   return (
     <div className="shrink-0 text-right">
-      <div className="font-mono text-[10px] tracking-[0.08em] text-text-muted uppercase">
+      <div className="font-mono text-2xs tracking-[0.08em] text-text-muted uppercase">
         Mkt cap
       </div>
       <div className="font-mono text-sm tabular-nums text-text-secondary">
@@ -199,7 +205,7 @@ function Connection({
       {thesis && (
         <Link
           to={`/theses/${thesis.id}`}
-          className="inline-flex rounded-[4px] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+          className="inline-flex rounded-xs focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
           <StatusBadge status={thesis.status} />
         </Link>
@@ -207,7 +213,7 @@ function Connection({
       {holding && (
         <Link
           to="/portfolio"
-          className="rounded-lg font-mono text-xs text-text-secondary underline-offset-4 transition-colors hover:text-text-primary hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+          className="rounded-lg font-mono text-xs tabular-nums text-text-secondary underline-offset-4 transition-colors hover:text-text-primary hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
           {/* Size only. What it is worth lives on the portfolio page; repeating the
               P&L here would put a gain or loss next to a price with no context. */}

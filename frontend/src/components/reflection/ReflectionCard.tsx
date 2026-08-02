@@ -2,19 +2,22 @@ import { useCallback, useEffect, useState } from 'react'
 import { Loader2, Trash2 } from 'lucide-react'
 
 import { CompanyLogo } from '@/components/CompanyLogo'
+import { RelativeTime } from '@/components/RelativeTime'
 import { StatusBadge } from '@/components/StatusBadge'
 import { StatusSpine } from '@/components/StatusSpine'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/toast'
+import { TruncatedText } from '@/components/ui/tooltip'
 import {
   answerPostMortem,
   deletePostMortem,
   generateQuestion,
   type PostMortem,
 } from '@/lib/api'
-import { formatRelative } from '@/lib/format'
+import { describeError } from '@/lib/errors'
+
 import { entryProps } from '@/lib/motion'
 
 /**
@@ -67,7 +70,7 @@ export function ReflectionCard({
         // A missing question is not a broken card — the reflection is still
         // answerable, so surface the failure and let the user write anyway.
         if (!cancelled) {
-          setError(cause instanceof Error ? cause.message : String(cause))
+          setError(describeError(cause, 'this reflection').detail)
         }
       })
       .finally(() => {
@@ -89,7 +92,7 @@ export function ReflectionCard({
     } catch (cause: unknown) {
       // Stays INLINE: the typed response is still in the textarea above this
       // message, and a failure to save is read next to the words at risk.
-      setError(cause instanceof Error ? cause.message : String(cause))
+      setError(describeError(cause, 'this reflection').detail)
     } finally {
       setSaving(false)
     }
@@ -107,7 +110,7 @@ export function ReflectionCard({
     <Card
       {...entryProps(
         index,
-        'relative border border-border transition-colors [--card-spacing:--spacing(6)] hover:border-border-strong',
+        'relative border border-border transition-colors hover:border-border-strong',
       )}
     >
       {/* The status the thesis was in when it broke — the reflection is about
@@ -120,9 +123,10 @@ export function ReflectionCard({
             {item.ticker}
           </span>
           <StatusBadge status={item.status_at_break} />
-          <span className="ml-auto text-xs text-text-muted">
-            {formatRelative(answered ? item.answered_at! : item.created_at)}
-          </span>
+          <RelativeTime
+            iso={answered ? item.answered_at! : item.created_at}
+            className="ml-auto text-xs text-text-muted"
+          />
         </header>
 
         {item.broken_claim_statement && (
@@ -130,10 +134,15 @@ export function ReflectionCard({
             <p className="text-xs tracking-wide text-text-muted uppercase">
               Claim that broke
             </p>
-            {/* Serif: the claim is prose, same family as the question below. */}
-            <p className="mt-1 font-serif text-[15px] leading-[1.5] text-text-secondary">
-              {item.broken_claim_statement}
-            </p>
+            {/* Serif: the claim is prose, same family as the question below.
+                ONE LINE, truncated — this is the reference label for the question
+                underneath, not the thing you are here to read, and letting it run
+                to two or three lines made every card in the list a different
+                height for no gain. The tooltip carries the rest when it is clipped. */}
+            <TruncatedText
+              text={item.broken_claim_statement}
+              className="mt-1 font-serif text-base leading-[1.5] text-text-secondary"
+            />
           </div>
         )}
 
@@ -143,7 +152,7 @@ export function ReflectionCard({
             Preparing your question…
           </p>
         ) : question ? (
-          <p className="font-serif text-[16px] leading-[1.5] text-text-primary">
+          <p className="font-serif text-base leading-[1.5] text-text-primary">
             {question}
           </p>
         ) : null}
@@ -157,7 +166,7 @@ export function ReflectionCard({
               onChange={(event) => setResponse(event.target.value)}
               placeholder="What were you thinking at the time?"
               disabled={saving}
-              className="min-h-32 font-serif text-[15px] leading-relaxed"
+              className="min-h-32 font-serif text-base leading-relaxed"
             />
 
             {error && (
@@ -212,7 +221,7 @@ function AnsweredBody({
       // The card unmounts on success — there is nowhere left to say so.
       toast.success('Reflection deleted')
     } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause.message : String(cause))
+      setError(describeError(cause, 'this reflection').detail)
       setDeleting(false)
     }
   }
@@ -223,7 +232,7 @@ function AnsweredBody({
     <div className="flex flex-col gap-3">
       <div>
         <p className="text-xs tracking-wide text-text-muted uppercase">Your answer</p>
-        <p className="mt-1 font-serif text-[15px] leading-relaxed whitespace-pre-wrap text-text-secondary">
+        <p className="mt-1 font-serif text-base leading-relaxed whitespace-pre-wrap text-text-secondary">
           {item.user_response}
         </p>
       </div>

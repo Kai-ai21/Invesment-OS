@@ -59,7 +59,7 @@ export function Tooltip({
           // viewport rather than flush against it.
           collisionPadding={8}
           className={cn(
-            'tooltip-in z-50 max-w-64 rounded-md border border-border bg-surface-raised px-2.5 py-1.5',
+            'tooltip-in z-50 max-w-64 rounded-lg border border-border bg-surface-raised px-2.5 py-1.5',
             'text-xs leading-snug text-text-secondary shadow-lg',
             // The bubble is measured against the viewport, so it must not be
             // able to grow past it on a narrow window.
@@ -81,7 +81,7 @@ export function Tooltip({
  */
 export function TooltipValue({ children }: { children: ReactNode }) {
   return (
-    <span className="font-mono text-[11px] tabular-nums text-text-primary">
+    <span className="font-mono text-2xs tabular-nums text-text-primary">
       {children}
     </span>
   )

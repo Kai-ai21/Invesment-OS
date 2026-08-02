@@ -187,7 +187,32 @@
       "Bash(echo \"exit=$?\")",
       "Bash(python3 -c \"import json,sys; print\\('remaining:', [h['ticker'] for h in json.load\\(sys.stdin\\)['holdings']]\\)\")",
       "Bash(./venv/bin/python -m pytest tests/test_status.py -q)",
-      "Bash(echo \"lint clean of jsx-key: $?\")"
+      "Bash(echo \"lint clean of jsx-key: $?\")",
+      "Bash(./venv/bin/python -m pytest tests/test_news.py -q)",
+      "Bash(npx oxlint *)",
+      "Bash(./venv/bin/python /private/tmp/claude-501/-Users-kailaasnair-Desktop-IOM-Investment-OS/b205d883-4df5-49f9-ade3-ef6391b8e707/scratchpad/check_endpoint.py)",
+      "Bash(PYTHONPATH=/Users/kailaasnair/Desktop/IOM/Investment-OS ./venv/bin/python /private/tmp/claude-501/-Users-kailaasnair-Desktop-IOM-Investment-OS/b205d883-4df5-49f9-ade3-ef6391b8e707/scratchpad/check_endpoint.py)",
+      "Bash(sort -t: -k3)",
+      "Bash(awk -F: '{print $3}')",
+      "Bash(awk -F'[][]' '{print $2}')",
+      "Bash(sort -t: -k1,1)",
+      "Bash(awk -F'[\\(\\)]' '{print $2}')",
+      "Bash(sort -t: -k1,1 -k2,2n)",
+      "Bash(awk -F: '$2>0 {s+=$2} END {print s}')",
+      "Bash(python3 /private/tmp/claude-501/-Users-kailaasnair-Desktop-IOM-Investment-OS/b205d883-4df5-49f9-ade3-ef6391b8e707/scratchpad/consolidate.py)",
+      "Bash(sed -i '' 's/shrink-0 rounded p-1/shrink-0 rounded-lg p-1/' src/components/ui/toast.tsx)",
+      "Bash(sed -i '' 's/className=\"rounded font-mono text-sm/className=\"rounded-lg font-mono text-sm/' src/components/portfolio/HoldingsTable.tsx src/components/market/MarketCard.tsx)",
+      "Bash(sed -i '' 's/items-center gap-1 rounded text-text-secondary/items-center gap-1 rounded-lg text-text-secondary/' src/pages/ResearchPage.tsx)",
+      "Bash(echo \"tsc exit: $?\")",
+      "Bash(curl -s -o /dev/null -w \"theses:%{http_code}\\\\n\" http://127.0.0.1:8000/theses)",
+      "Bash(awk 'NR>=900 && NR<=1015' src/index.css)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8000/health)",
+      "Bash(curl -s \"http://127.0.0.1:8000/news/NVDA?limit=0\")",
+      "Bash(curl -s http://127.0.0.1:8000/theses/does-not-exist)",
+      "Bash(curl -s http://127.0.0.1:8000/prices/ZZZZQQ)",
+      "Bash(awk '/^function ErrorState/,/^}/' src/pages/ThesisDetailPage.tsx)",
+      "Bash(awk '/^function ErrorState/,/^}/' src/pages/ResearchPage.tsx)",
+      "Bash(awk '/^function ErrorState/,/^}/' src/components/news/NewsList.tsx)"
     ]
   }
 }

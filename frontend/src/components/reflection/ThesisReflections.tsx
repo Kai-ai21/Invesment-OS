@@ -25,7 +25,7 @@ export function ThesisReflections({ thesisId }: { thesisId: string }) {
   }, [refresh, refreshPendingReflections])
 
   if (loading) {
-    return <Skeleton className="mb-6 h-40 w-full rounded-xl" />
+    return <Skeleton className="mb-6 h-59 w-full rounded-xl" />
   }
   // A failed reflection fetch must not disturb the thesis itself — the page's real
   // content is the claims and evidence, so this stays quiet rather than showing an
@@ -37,7 +37,7 @@ export function ThesisReflections({ thesisId }: { thesisId: string }) {
   if (pending.length === 0 && answered.length === 0) return null
 
   return (
-    <section className="mb-10 flex flex-col gap-3">
+    <section className="mb-12 flex flex-col gap-3">
       {pending.map((item) => (
         <ReflectionCard key={item.id} postMortem={item} onChanged={handleChanged} />
       ))}

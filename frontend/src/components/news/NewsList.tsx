@@ -1,8 +1,6 @@
-import { RefreshCw } from 'lucide-react'
-
 import { EmptyIllustration } from '@/components/EmptyIllustration'
+import { ErrorState } from '@/components/ErrorState'
 import { NewsItem } from '@/components/news/NewsItem'
-import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useStaggerIndex } from '@/hooks/useStaggerIndex'
 import type { NewsItem as NewsItemData } from '@/lib/api'
@@ -31,7 +29,7 @@ export function NewsList({
   const staggerIndex = useStaggerIndex(!loading && !error && items.length > 0)
 
   if (loading) return <NewsSkeleton />
-  if (error) return <ErrorState message={error.message} onRetry={onRetry} />
+  if (error) return <ErrorState error={error} subject="the news" onRetry={onRetry} bare />
   if (items.length === 0) {
     // No Card wrapper here, unlike the page-level empty states: this renders
     // inside the news slide-over as well, which is already a panel — a card
@@ -71,7 +69,7 @@ function NewsSkeleton() {
           <div className="flex items-center gap-2">
             {/* Matches CompanyLogo's 16px box in the loaded row. */}
             <Skeleton className="size-4 rounded-lg" />
-            <Skeleton className="h-4 w-14 rounded-[4px]" />
+            <Skeleton className="h-4 w-14 rounded-xs" />
             <Skeleton className="h-3 w-24" />
           </div>
         </div>
@@ -80,17 +78,3 @@ function NewsSkeleton() {
   )
 }
 
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <div className="flex flex-col items-start gap-3 py-6" role="alert">
-      <div>
-        <p className="text-sm font-medium text-text-primary">Couldn't load news</p>
-        <p className="mt-1 text-sm text-status-broken">{message}</p>
-      </div>
-      <Button variant="outline" size="sm" onClick={onRetry}>
-        <RefreshCw aria-hidden />
-        Retry
-      </Button>
-    </div>
-  )
-}

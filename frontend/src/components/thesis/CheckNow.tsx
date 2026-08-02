@@ -51,7 +51,7 @@ export function CheckNowControls({ check }: { check: CheckNowState }) {
 export function CheckNowResult({ check }: { check: CheckNowState }) {
   if (check.pending) {
     return (
-      <Card className="[--card-spacing:--spacing(5)]">
+      <Card>
         <div className="flex items-start gap-3 px-(--card-spacing)">
           <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin text-text-muted" aria-hidden />
           <div>
@@ -68,7 +68,7 @@ export function CheckNowResult({ check }: { check: CheckNowState }) {
 
   if (check.error) {
     return (
-      <Card className="[--card-spacing:--spacing(5)]">
+      <Card>
         <div className="flex items-start justify-between gap-4 px-(--card-spacing)">
           <div>
             <p className="text-sm font-medium text-text-primary">Check failed</p>
@@ -86,7 +86,7 @@ export function CheckNowResult({ check }: { check: CheckNowState }) {
   const statusChanged = result.status_before !== result.status_after
 
   return (
-    <Card className="[--card-spacing:--spacing(5)]">
+    <Card>
       <div className="flex flex-col gap-4 px-(--card-spacing)">
         <div className="flex items-start justify-between gap-4">
           <div>

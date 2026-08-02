@@ -83,6 +83,41 @@ export function formatRelative(iso: string): string {
   return 'just now'
 }
 
+/**
+ * The full instant, for the tooltip behind a relative time: "28 Jul 2026, 02:04 GMT+1".
+ *
+ * ⚠️ GOES THROUGH parseBackendDate LIKE EVERYTHING ELSE. This is the string that
+ * exists to be precise, so it is the one place a raw naive timestamp would do real
+ * damage — a reader hovering "2 hours ago" to find out exactly when, and being told
+ * a time an hour off, is worse served than by no tooltip at all.
+ *
+ * The zone name is included deliberately. Once a value is exact to the minute, the
+ * next question is "in whose time?", and every timestamp in this app has already
+ * been converted out of UTC into the viewer's local zone.
+ */
+export function formatExact(iso: string): string {
+  const date = parseBackendDate(iso)
+  if (Number.isNaN(date.getTime())) return 'unknown date'
+  return date.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  })
+}
+
+/**
+ * The corrected instant as a machine-readable UTC string, for a <time> element's
+ * `dateTime`. Empty when unparseable, so the attribute can be omitted entirely
+ * rather than carrying "Invalid Date".
+ */
+export function toMachineDate(iso: string): string {
+  const date = parseBackendDate(iso)
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString()
+}
+
 /** Sort key for "newest first" lists. Unparseable dates sink to the bottom. */
 export function timestamp(iso: string): number {
   const ms = parseBackendDate(iso).getTime()

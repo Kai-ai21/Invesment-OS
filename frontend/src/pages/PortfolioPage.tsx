@@ -1,19 +1,23 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Loader2, RefreshCw } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 import { EmptyIllustration } from '@/components/EmptyIllustration'
 import { AddHoldingForm } from '@/components/portfolio/AddHoldingForm'
 import { HoldingsTable } from '@/components/portfolio/HoldingsTable'
 import { PortfolioSummary } from '@/components/portfolio/PortfolioSummary'
 import { sortHoldings, type SortMode } from '@/components/portfolio/sortHoldings'
+import { Count } from '@/components/Count'
+import { ErrorState } from '@/components/ErrorState'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useAsync } from '@/hooks/useAsync'
 import { listHoldings, type Portfolio } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
 export function PortfolioPage() {
+  useDocumentTitle('Portfolio')
   const load = useCallback(() => listHoldings(), [])
   const { data, setData, error, loading, refreshing, reload, refresh } =
     useAsync<Portfolio>(load)
@@ -54,7 +58,7 @@ export function PortfolioPage() {
       {loading ? (
         <PortfolioSkeleton />
       ) : error ? (
-        <ErrorState message={error.message} onRetry={reload} />
+        <ErrorState error={error} subject="your portfolio" onRetry={reload} />
       ) : data ? (
         <>
           <PortfolioSummary totals={data.totals} />
@@ -62,11 +66,20 @@ export function PortfolioPage() {
           {data.holdings.length === 0 ? (
             <EmptyState />
           ) : (
-            <HoldingsTable
-              holdings={sorted}
-              onPortfolio={handlePortfolio}
-              onRefetch={refresh}
-            />
+            <>
+              {/* The table had no heading at all — it simply began, directly under
+                  the add form, with nothing naming it or saying how much was in
+                  it. The count answers "how many positions" without counting rows. */}
+              <h2 className="mb-4 font-display text-xl tracking-[0.01em] text-text-primary">
+                Holdings
+                <Count value={data.holdings.length} />
+              </h2>
+              <HoldingsTable
+                holdings={sorted}
+                onPortfolio={handlePortfolio}
+                onRefetch={refresh}
+              />
+            </>
           )}
         </>
       ) : (
@@ -126,8 +139,8 @@ function SortToggle({
 function PortfolioSkeleton() {
   return (
     <div aria-busy="true" aria-label="Loading portfolio">
-      <Card className="mb-8 [--card-spacing:--spacing(6)]">
-        <div className="grid grid-cols-1 gap-5 px-(--card-spacing) sm:grid-cols-3">
+      <Card className="mb-8">
+        <div className="grid grid-cols-1 gap-6 px-(--card-spacing) sm:grid-cols-3">
           {[0, 1, 2].map((i) => (
             <div key={i}>
               <Skeleton className="h-3 w-24" />
@@ -142,7 +155,7 @@ function PortfolioSkeleton() {
             {/* Matches CompanyLogo's 28px box so rows don't jump on load. */}
             <Skeleton className="size-7 rounded-lg" />
             <Skeleton className="h-4 w-16" />
-            <Skeleton className="h-5 w-24 rounded-4xl" />
+            <Skeleton className="h-5 w-24 rounded-full" />
             <Skeleton className="ml-auto h-4 w-20" />
             <Skeleton className="h-4 w-24" />
             <Skeleton className="h-4 w-20" />
@@ -153,28 +166,10 @@ function PortfolioSkeleton() {
   )
 }
 
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <Card className="[--card-spacing:--spacing(6)]">
-      <div className="flex flex-col items-start gap-4 px-(--card-spacing)">
-        <div>
-          <p className="text-sm font-medium text-text-primary">
-            Couldn't load your portfolio
-          </p>
-          <p className="mt-1 text-sm text-status-broken">{message}</p>
-        </div>
-        <Button variant="outline" onClick={onRetry}>
-          <RefreshCw aria-hidden />
-          Retry
-        </Button>
-      </div>
-    </Card>
-  )
-}
 
 function EmptyState() {
   return (
-    <Card className="[--card-spacing:--spacing(10)]">
+    <Card className="[--card-spacing:--spacing(12)]">
       <div className="flex flex-col items-center gap-2 px-(--card-spacing) text-center">
         <EmptyIllustration variant="holdings" className="mb-2" />
         <p className="font-heading text-base font-medium text-text-primary">

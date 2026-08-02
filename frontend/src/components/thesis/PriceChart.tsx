@@ -1,5 +1,5 @@
 import { useCallback, useId, useMemo, useState } from 'react'
-import { RefreshCw } from 'lucide-react'
+
 import {
   Area,
   AreaChart,
@@ -12,6 +12,7 @@ import {
 } from 'recharts'
 
 import { statusColor } from '@/components/StatusBadge'
+import { ErrorState } from '@/components/ErrorState'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -24,7 +25,6 @@ const RANGES = [
   { label: '3M', days: 90 },
   { label: '1Y', days: 365 },
 ] as const
-
 
 /** One row of the series: a price, plus any events landing on that date. */
 interface Row {
@@ -77,7 +77,7 @@ export function PriceChart({ thesisId }: { thesisId: string }) {
   )
 
   return (
-    <Card className="mb-10 [--card-spacing:--spacing(5)]">
+    <Card className="mb-12">
       <div className="flex flex-col gap-4 px-(--card-spacing)">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-base tracking-[0.01em] text-text-primary">
@@ -102,7 +102,7 @@ export function PriceChart({ thesisId }: { thesisId: string }) {
         {loading ? (
           <Skeleton className="h-64 w-full rounded-lg" />
         ) : error ? (
-          <ErrorState message={error.message} onRetry={reload} />
+          <ErrorState error={error} subject="the price chart" onRetry={reload} bare />
         ) : !data || data.prices.length === 0 ? (
           // Never a flat line at zero — say plainly that there is no price data, and
           // note when the user's own events survived the failure.
@@ -300,7 +300,7 @@ function ChartTooltip({
             <li key={index} className="flex flex-col gap-0.5">
               {event.type === 'status_change' ? (
                 <span
-                  className="font-mono text-[10px] tracking-[0.08em] uppercase"
+                  className="font-mono text-2xs tracking-[0.08em] uppercase"
                   style={{ color: statusColor(event.new_status) }}
                 >
                   {event.prev_status} → {event.new_status}
@@ -308,7 +308,7 @@ function ChartTooltip({
               ) : (
                 <>
                   <span
-                    className="font-mono text-[10px] tracking-[0.08em] uppercase"
+                    className="font-mono text-2xs tracking-[0.08em] uppercase"
                     style={{ color: statusColor(event.verdict) }}
                   >
                     {event.verdict}
@@ -358,17 +358,3 @@ function EmptyState({
   )
 }
 
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <div className="flex h-64 flex-col items-start justify-center gap-3" role="alert">
-      <div>
-        <p className="text-sm font-medium text-text-primary">Couldn't load the chart</p>
-        <p className="mt-1 text-sm text-status-broken">{message}</p>
-      </div>
-      <Button variant="outline" size="sm" onClick={onRetry}>
-        <RefreshCw aria-hidden />
-        Retry
-      </Button>
-    </div>
-  )
-}

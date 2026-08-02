@@ -8,7 +8,7 @@ function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
       // the way a whole box breathing in and out does not, and it composites
       // rather than repaints. Definition and the reduced-motion opt-out are in
       // index.css.
-      className={cn("skeleton-shimmer rounded-md bg-muted", className)}
+      className={cn("skeleton-shimmer rounded-lg bg-muted", className)}
       {...props}
     />
   )

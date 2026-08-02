@@ -407,6 +407,25 @@ function readableBody(body: string): string {
   return body || "(empty response body)"
 }
 
+/**
+ * Thrown when the request never reached the backend at all — the process is down,
+ * the machine is offline, or CORS rejected it before a status existed.
+ *
+ * A DISTINCT CLASS, not a plain Error, because that is the only way the copy layer
+ * can tell "we could not reach the server" (worth retrying, and the user's own
+ * connection may be the cause) apart from a genuine bug in our own code, which
+ * also surfaces as a plain Error and must not be described as a network problem.
+ */
+export class NetworkError extends Error {
+  readonly path: string
+
+  constructor(path: string, options?: { cause?: unknown }) {
+    super(`Could not reach the API at ${API_BASE}${path}`, options)
+    this.name = 'NetworkError'
+    this.path = path
+  }
+}
+
 /** Thrown for any non-2xx response, carrying the status and the raw body. */
 export class ApiError extends Error {
   readonly status: number
@@ -441,10 +460,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   } catch (cause) {
     // fetch only rejects on network-level failure — usually the backend is down
     // or CORS blocked the request before a status was ever seen.
-    throw new Error(
-      `Could not reach the API at ${API_BASE}${path}. Is the backend running?`,
-      { cause },
-    )
+    throw new NetworkError(path, { cause })
   }
 
   if (!response.ok) {
@@ -539,6 +555,20 @@ export function markAlertRead(alertId: string): Promise<Alert> {
  */
 export function listNews(limitPerTicker = 5): Promise<NewsItem[]> {
   return request<NewsItem[]>(`/news?limit_per_ticker=${limitPerTicker}`)
+}
+
+/**
+ * Headlines for ONE ticker, newest first — the same feed and the same 15-minute
+ * cache the portfolio-wide call goes through, not a second source. Works for any
+ * symbol, including one the user has never written a thesis about.
+ *
+ * ⚠️ AN EMPTY ARRAY IS A REAL ANSWER, not a failure: nobody published about this
+ * symbol recently. Callers render an empty section, never an error. Rejects with
+ * 404 only when the string could not be a ticker at all, and 502 when the feed
+ * itself was unreachable.
+ */
+export function getNewsForTicker(ticker: string, limit = 10): Promise<NewsItem[]> {
+  return request<NewsItem[]>(`/news/${encodeURIComponent(ticker)}?limit=${limit}`)
 }
 
 /* --- post-mortems --------------------------------------------------------- */

@@ -91,10 +91,10 @@ export function NewsPanel({ onClose }: { onClose: () => void }) {
         tabIndex={-1}
         className="glass-chrome fixed inset-y-0 right-0 z-50 flex w-[420px] max-w-full flex-col border-l outline-none animate-in slide-in-from-right duration-200 motion-reduce:animate-none"
       >
-        <header className="flex items-center gap-2 border-b border-border px-5 py-4">
+        <header className="flex items-center gap-2 border-b border-border px-6 py-4">
           <h2
             id={headingId}
-            className="font-display text-lg tracking-[0.01em] text-text-primary"
+            className="font-display text-xl tracking-[0.01em] text-text-primary"
           >
             News
           </h2>
@@ -125,7 +125,7 @@ export function NewsPanel({ onClose }: { onClose: () => void }) {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-5">
+        <div className="scroll-stable flex-1 overflow-y-auto px-6">
           <NewsList
             items={items.slice(0, PANEL_ITEM_LIMIT)}
             loading={loading}
@@ -134,7 +134,7 @@ export function NewsPanel({ onClose }: { onClose: () => void }) {
           />
         </div>
 
-        <footer className="border-t border-border px-5 py-3">
+        <footer className="border-t border-border px-6 py-3">
           <Link
             to="/news"
             onClick={onClose}

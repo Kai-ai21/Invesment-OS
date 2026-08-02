@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { describeError } from '@/lib/errors'
 import { submitDocument } from '@/lib/api'
 
 type Outcome =
@@ -67,7 +68,7 @@ export function AddDocumentPanel({
       // Pasted text is deliberately left intact so nothing is lost.
       setOutcome({
         kind: 'error',
-        message: cause instanceof Error ? cause.message : String(cause),
+        message: describeError(cause, 'the document').detail,
       })
     } finally {
       inFlight.current = false
@@ -76,7 +77,7 @@ export function AddDocumentPanel({
   }
 
   return (
-    <Card className="[--card-spacing:--spacing(5)]">
+    <Card>
       <div className="px-(--card-spacing)">
         <button
           type="button"

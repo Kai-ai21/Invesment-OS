@@ -243,7 +243,7 @@ export function TickerInput({
             top: anchor.top,
             minWidth: Math.max(anchor.width, 224),
           }}
-          className="z-50 max-h-56 overflow-y-auto rounded-xl border border-border bg-surface-raised py-1 shadow-lg"
+          className="scroll-stable z-50 max-h-56 overflow-y-auto rounded-xl border border-border bg-surface-raised py-1 shadow-lg"
         >
           {loading && (
             // Inside the dropdown, never a page-level spinner — the rest of the

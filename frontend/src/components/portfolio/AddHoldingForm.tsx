@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/toast'
+import { describeError } from '@/lib/errors'
 import { createHolding, type Portfolio } from '@/lib/api'
 
 /**
@@ -78,14 +79,14 @@ export function AddHoldingForm({ onAdded }: { onAdded: (portfolio: Portfolio) =>
       toast.success(`${ticker.trim().toUpperCase()} added to your portfolio`)
     } catch (cause: unknown) {
       // Values are left intact so nothing typed is lost.
-      setProblem(cause instanceof Error ? cause.message : String(cause))
+      setProblem(describeError(cause, 'this holding').detail)
     } finally {
       setPending(false)
     }
   }
 
   return (
-    <Card className="mb-8 [--card-spacing:--spacing(5)]">
+    <Card className="mb-8">
       <div className="px-(--card-spacing)">
         <button
           type="button"

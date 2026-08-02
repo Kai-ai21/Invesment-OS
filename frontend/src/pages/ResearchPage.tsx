@@ -3,11 +3,14 @@ import { ArrowLeft, ExternalLink, FileText, Info, RefreshCw } from 'lucide-react
 import { Link, useParams } from 'react-router'
 
 import { CompanyLogo } from '@/components/CompanyLogo'
+import { TickerNewsSection } from '@/components/news/TickerNewsSection'
+import { ErrorState } from '@/components/ErrorState'
 import { ResearchLoading } from '@/components/research/ResearchLoading'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useAsync } from '@/hooks/useAsync'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import {
   ApiError,
   getResearch,
@@ -38,6 +41,8 @@ interface ResearchData {
 export function ResearchPage() {
   const { ticker = '' } = useParams<{ ticker: string }>()
   const symbol = ticker.toUpperCase()
+  // The symbol comes from the URL, so it is known before the fetch resolves.
+  useDocumentTitle(symbol || null)
 
   const load = useCallback(async (): Promise<ResearchData> => {
     // The research IS the page, so its failure is the page's failure.
@@ -75,19 +80,34 @@ export function ResearchPage() {
   }
 
   if (error || !data) {
+    // A mistyped ticker is the common failure here, and it deserves better copy
+    // than the generic 404 ("it may have been deleted") — so this one case keeps
+    // its own wording. Everything else goes through the shared error copy.
     const notFound = error instanceof ApiError && error.status === 404
     return (
       <div>
         <BackLink />
-        <ErrorState
-          title={notFound ? `No company found for ${symbol}` : "Couldn't load research"}
-          message={
-            notFound
-              ? 'Check the ticker symbol. Research covers US-listed companies.'
-              : (error?.message ?? 'Unknown error')
-          }
-          onRetry={notFound ? undefined : reload}
-        />
+        {notFound ? (
+          <Card className="mt-6">
+            <div className="flex flex-col items-start gap-4 px-(--card-spacing)" role="alert">
+              <div>
+                <p className="text-sm font-medium text-text-primary">
+                  No company found for {symbol}
+                </p>
+                <p className="mt-1 text-sm text-status-broken">
+                  Check the ticker symbol. Research covers US-listed companies.
+                </p>
+              </div>
+            </div>
+          </Card>
+        ) : (
+          <ErrorState
+            error={error}
+            subject="this company's research"
+            onRetry={reload}
+            className="mt-6"
+          />
+        )}
       </div>
     )
   }
@@ -138,6 +158,12 @@ export function ResearchPage() {
       </div>
 
       {research.source_filing_title && <SourceFooter research={research} />}
+
+      {/* Below the filing summary AND below the footer naming its source, on
+          purpose. Everything above restates one cited document; this is unverified
+          links from elsewhere. Placing news between the summary and its attribution
+          would break that pairing and blur exactly the line the footer draws. */}
+      <TickerNewsSection ticker={research.ticker} limit={8} className="mt-12" />
     </div>
   )
 }
@@ -146,7 +172,7 @@ function BackLink() {
   return (
     <Link
       to="/market"
-      className="inline-flex items-center gap-1.5 rounded-lg text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+      className="flex w-fit items-center gap-1.5 rounded-lg text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
     >
       <ArrowLeft className="size-4" aria-hidden />
       Market
@@ -216,7 +242,7 @@ function ResearchHeader({
               {thesis && (
                 <Link
                   to={`/theses/${thesis.id}`}
-                  className="inline-flex rounded-[4px] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                  className="inline-flex rounded-xs focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                 >
                   <StatusBadge status={thesis.status} />
                 </Link>
@@ -224,7 +250,7 @@ function ResearchHeader({
               {holding && (
                 <Link
                   to="/portfolio"
-                  className="rounded-lg font-mono text-xs text-text-secondary underline-offset-4 transition-colors hover:text-text-primary hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                  className="rounded-lg font-mono text-xs tabular-nums text-text-secondary underline-offset-4 transition-colors hover:text-text-primary hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                 >
                   Held {formatShares(holding.shares)}
                 </Link>
@@ -265,12 +291,12 @@ function ProseCard({
   source?: string
 }) {
   return (
-    <Card className="[--card-spacing:--spacing(6)]">
+    <Card>
       <div className="flex flex-col gap-2.5 px-(--card-spacing)">
-        <h2 className="font-mono text-[11px] tracking-[0.08em] text-text-muted uppercase">
+        <h2 className="font-mono text-2xs tracking-[0.08em] text-text-muted uppercase">
           {title}
         </h2>
-        <p className="font-serif text-[15px] leading-relaxed text-text-primary">{body}</p>
+        <p className="font-serif text-base leading-relaxed text-text-primary">{body}</p>
         {source && <p className="text-xs text-text-muted">{source}</p>}
       </div>
     </Card>
@@ -279,9 +305,9 @@ function ProseCard({
 
 function RisksCard({ risks }: { risks: string[] }) {
   return (
-    <Card className="[--card-spacing:--spacing(6)]">
+    <Card>
       <div className="flex flex-col gap-2.5 px-(--card-spacing)">
-        <h2 className="font-mono text-[11px] tracking-[0.08em] text-text-muted uppercase">
+        <h2 className="font-mono text-2xs tracking-[0.08em] text-text-muted uppercase">
           Key risks
         </h2>
         {/* The COMPANY's own stated risks, restated — not an assessment of how
@@ -293,7 +319,7 @@ function RisksCard({ risks }: { risks: string[] }) {
           {risks.map((risk, index) => (
             <li
               key={index}
-              className="flex gap-2.5 font-serif text-[15px] leading-relaxed text-text-primary"
+              className="flex gap-2.5 font-serif text-base leading-relaxed text-text-primary"
             >
               <span aria-hidden className="mt-2 size-1 shrink-0 rounded-full bg-text-muted" />
               <span>{risk}</span>
@@ -319,9 +345,9 @@ function ProfileFacts({ profile }: { profile: CompanyProfile }) {
   if (rows.length === 0 && !profile.website) return null
 
   return (
-    <Card className="[--card-spacing:--spacing(6)]">
+    <Card>
       <div className="flex flex-col gap-3 px-(--card-spacing)">
-        <h2 className="font-mono text-[11px] tracking-[0.08em] text-text-muted uppercase">
+        <h2 className="font-mono text-2xs tracking-[0.08em] text-text-muted uppercase">
           Company facts
         </h2>
         <dl className="grid grid-cols-1 gap-x-8 gap-y-2.5 sm:grid-cols-3">
@@ -387,7 +413,7 @@ function SourceFooter({ research }: { research: Research }) {
           href={research.source_filing_url}
           target="_blank"
           rel="noreferrer noopener"
-          className="inline-flex items-center gap-1 rounded text-text-secondary underline-offset-4 hover:text-text-primary hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+          className="inline-flex items-center gap-1 rounded-lg text-text-secondary underline-offset-4 hover:text-text-primary hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
           {research.source_filing_title}
           <ExternalLink className="size-3" aria-hidden />
@@ -402,29 +428,3 @@ function SourceFooter({ research }: { research: Research }) {
   )
 }
 
-function ErrorState({
-  title,
-  message,
-  onRetry,
-}: {
-  title: string
-  message: string
-  onRetry?: () => void
-}) {
-  return (
-    <Card className="mt-6 [--card-spacing:--spacing(6)]">
-      <div className="flex flex-col items-start gap-4 px-(--card-spacing)">
-        <div>
-          <p className="text-sm font-medium text-text-primary">{title}</p>
-          <p className="mt-1 text-sm text-status-broken">{message}</p>
-        </div>
-        {onRetry && (
-          <Button variant="outline" onClick={onRetry}>
-            <RefreshCw aria-hidden />
-            Retry
-          </Button>
-        )}
-      </div>
-    </Card>
-  )
-}

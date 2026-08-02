@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Check, Loader2, Sparkles, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { describeError } from '@/lib/errors'
 import { enhanceReasoning } from '@/lib/api'
 
 /** Matches the backend's MIN_REASONING_LENGTH — below this there is nothing to
@@ -59,7 +60,7 @@ export function EnhanceReasoning({
     } catch (cause: unknown) {
       setOutcome({
         kind: 'error',
-        message: cause instanceof Error ? cause.message : String(cause),
+        message: describeError(cause, 'the suggestion').detail,
       })
     } finally {
       setPending(false)
@@ -107,12 +108,12 @@ export function EnhanceReasoning({
       {outcome?.kind === 'proposal' && (
         <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface-raised/60 p-4">
           <div className="flex flex-col gap-1.5">
-            <p className="font-mono text-[11px] tracking-[0.08em] text-text-muted uppercase">
+            <p className="font-mono text-2xs tracking-[0.08em] text-text-muted uppercase">
               Suggested wording
             </p>
             {/* Serif, matching how reasoning is displayed on the thesis page, so
                 the user is reading it in the form it will actually take. */}
-            <p className="font-serif text-[15px] leading-relaxed whitespace-pre-wrap text-text-primary">
+            <p className="font-serif text-base leading-relaxed whitespace-pre-wrap text-text-primary">
               {outcome.enhanced}
             </p>
           </div>

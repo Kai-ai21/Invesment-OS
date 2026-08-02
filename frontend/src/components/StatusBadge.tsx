@@ -108,6 +108,24 @@ function useStatusPulse(status: BadgeStatus): {
  * Outlined, uppercase, mono status pill. Colour is never the only signal — the
  * label always spells the status out (`whitespace-nowrap` keeps "STRONGLY
  * SUPPORTED" on one line).
+ *
+ * ⚠️ THE BOX IS RESERVED, because a badge changes size for two different reasons
+ * and both used to move the page.
+ *
+ * HEIGHT is now fixed at `h-5` (20px), the same as the `ui/badge` primitive. It
+ * was previously 21px, derived from `py-1` plus an 11px line — and that single
+ * pixel is why a market card carrying a status badge measured 178px while one
+ * carrying a plain "Track this" link measured 173px, giving the grid two
+ * different row heights.
+ *
+ * WIDTH gets a floor. Measured across the whole vocabulary the labels run from
+ * 63px ("BROKEN") to 153px ("STRONGLY SUPPORTED") — a 90px spread — so a claim
+ * re-scoring from broken to supported used to resize its badge mid-row and
+ * re-wrap the statement beside it. `min-w-24` (96px) covers every thesis status
+ * and every verdict, so those never move. STRONGLY SUPPORTED still exceeds it:
+ * padding a 153px floor onto every badge in the app would cost more space than
+ * the jitter it prevents, so that one case is absorbed by the row instead — see
+ * the fixed-width badge column on ClaimCard, which is where it actually mattered.
  */
 export function StatusBadge({
   status,
@@ -136,7 +154,7 @@ export function StatusBadge({
         className={cn(
         // `relative` anchors the pulse's glow pseudo-element; it is inert
         // otherwise.
-          'relative inline-flex w-fit shrink-0 items-center whitespace-nowrap rounded-[4px] border bg-transparent px-[9px] py-[3px] font-mono text-[10.5px] leading-none tracking-[0.08em] uppercase',
+          'relative inline-flex h-5 w-fit min-w-24 shrink-0 items-center justify-center whitespace-nowrap rounded-xs border bg-transparent px-2 font-mono text-2xs leading-none tracking-[0.08em] uppercase',
           pulsing && 'status-pulse',
           className,
         )}

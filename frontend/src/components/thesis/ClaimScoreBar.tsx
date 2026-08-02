@@ -35,7 +35,7 @@ export function ClaimScoreBar({
 }) {
   if (score === null) {
     return (
-      <span className="font-mono text-[11px] text-text-muted">
+      <span className="font-mono text-2xs text-text-muted">
         no score yet
       </span>
     )
@@ -60,7 +60,7 @@ export function ClaimScoreBar({
     >
       <span className="flex cursor-help items-center gap-2">
         <span
-          className="font-mono text-[11px] tabular-nums"
+          className="font-mono text-2xs tabular-nums"
           style={{ color: statusColor(status) }}
         >
           {formatScore(score)}

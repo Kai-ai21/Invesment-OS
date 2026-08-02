@@ -2,9 +2,11 @@ import { useCallback, useMemo, useState } from 'react'
 import { Loader2, RefreshCw } from 'lucide-react'
 
 import { MarketCard } from '@/components/market/MarketCard'
+import { ErrorState } from '@/components/ErrorState'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useAsync } from '@/hooks/useAsync'
 import { useStaggerIndex } from '@/hooks/useStaggerIndex'
 import {
@@ -15,6 +17,7 @@ import {
   type Quote,
   type Thesis,
 } from '@/lib/api'
+import { describeError } from '@/lib/errors'
 import { entryProps } from '@/lib/motion'
 
 interface MarketData {
@@ -25,6 +28,7 @@ interface MarketData {
 }
 
 export function MarketPage() {
+  useDocumentTitle('Market')
   const load = useCallback(async (): Promise<MarketData> => {
     // The quotes ARE the page, so a failure here is the page's failure.
     const quotes = await listMarketLeaders()
@@ -66,7 +70,7 @@ export function MarketPage() {
     } catch (cause: unknown) {
       // Keeps the current grid on screen and says the refresh failed, rather than
       // replacing good data with a full-page error.
-      setRefreshError(cause instanceof Error ? cause.message : String(cause))
+      setRefreshError(describeError(cause, 'the market data').detail)
     }
   }, [refresh])
 
@@ -102,7 +106,7 @@ export function MarketPage() {
       {loading ? (
         <MarketSkeleton />
       ) : error ? (
-        <ErrorState message={error.message} onRetry={reload} />
+        <ErrorState error={error} subject="the market data" onRetry={reload} />
       ) : cards.length === 0 ? (
         // Only reachable if the curated list itself were emptied — not a state the
         // user can cause, but the page should not render as a blank rectangle.
@@ -149,21 +153,40 @@ function MarketSkeleton() {
     >
       {Array.from({ length: 12 }, (_, index) => (
         <li key={index}>
-          <Card className="[--card-spacing:--spacing(5)]">
+          {/* ⚠️ MIRRORS THE LOADED CARD ROW FOR ROW, at its measured heights: a
+              37px identity row, a 44px price row (the price wraps above its change
+              at this column width, so the placeholder stacks the same way), and a
+              24px connection row. This used to be a 148px card standing in for a
+              177px one, which dropped every grid row below the first by 30px. */}
+          <Card>
             <div className="flex flex-col gap-3 px-(--card-spacing)">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-2.5">
                   {/* Matches CompanyLogo's 32px box so cards don't jump on load. */}
                   <Skeleton className="size-8 rounded-lg" />
-                  <div className="flex flex-col gap-1.5">
-                    <Skeleton className="h-3.5 w-14" />
-                    <Skeleton className="h-3 w-24" />
+                  <div className="flex flex-col gap-px">
+                    {/* text-sm ticker (20px) over a text-xs company name (16px);
+                        gap-px makes the stack 37px, the loaded row's exact height. */}
+                    <Skeleton className="h-5 w-14" />
+                    <Skeleton className="h-4 w-24" />
                   </div>
                 </div>
-                <Skeleton className="h-8 w-16" />
+                <div className="flex flex-col items-end gap-px">
+                  <Skeleton className="h-4 w-14" />
+                  <Skeleton className="h-5 w-16" />
+                </div>
               </div>
-              <Skeleton className="h-6 w-40" />
-              <Skeleton className="h-5 w-24 rounded-4xl" />
+              <div className="flex items-end justify-between gap-3">
+                <div className="flex flex-col gap-0">
+                  <Skeleton className="h-7 w-24" />
+                  <Skeleton className="h-4 w-28" />
+                </div>
+                {/* The sparkline's reserved 72x24 box. */}
+                <Skeleton className="h-6 w-18" />
+              </div>
+              <div className="flex min-h-6 items-center pt-1">
+                <Skeleton className="h-5 w-24 rounded-xs" />
+              </div>
             </div>
           </Card>
         </li>
@@ -172,28 +195,10 @@ function MarketSkeleton() {
   )
 }
 
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <Card className="[--card-spacing:--spacing(6)]">
-      <div className="flex flex-col items-start gap-4 px-(--card-spacing)">
-        <div>
-          <p className="text-sm font-medium text-text-primary">
-            Couldn't load market data
-          </p>
-          <p className="mt-1 text-sm text-status-broken">{message}</p>
-        </div>
-        <Button variant="outline" onClick={onRetry}>
-          <RefreshCw aria-hidden />
-          Retry
-        </Button>
-      </div>
-    </Card>
-  )
-}
 
 function EmptyState() {
   return (
-    <Card className="[--card-spacing:--spacing(10)]">
+    <Card className="[--card-spacing:--spacing(12)]">
       <div className="flex flex-col items-center gap-2 px-(--card-spacing) text-center">
         <p className="font-heading text-base font-medium text-text-primary">
           No companies to show

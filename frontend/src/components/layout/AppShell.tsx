@@ -75,7 +75,7 @@ export function AppShell() {
         onOpenNews={() => setNewsOpen(true)}
         newsOpen={newsOpen}
       />
-      <main className="relative z-10 flex-1 overflow-y-auto">
+      <main className="scroll-stable relative z-10 flex-1 overflow-y-auto">
         {/* Keyed on the path so the entry animation replays on every route
             change. While `leaving` the key has NOT changed yet — this is still
             the outgoing page, and it swaps its entry animation for the exit one
@@ -84,7 +84,7 @@ export function AppShell() {
           key={location.pathname}
           className={cn(
             leaving ? 'page-leave' : 'page-enter',
-            'mx-auto max-w-[1100px] px-10 py-10',
+            'mx-auto max-w-[1100px] px-12 py-12',
           )}
         >
           <Outlet context={context} />
