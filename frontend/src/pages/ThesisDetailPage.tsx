@@ -12,6 +12,7 @@ import { Link, useParams } from 'react-router'
 
 import { CompanyLogo } from '@/components/CompanyLogo'
 import { Count } from '@/components/Count'
+import { FilingsSection } from '@/components/filings/FilingsSection'
 import { RelativeTime } from '@/components/RelativeTime'
 import { TickerNewsSection } from '@/components/news/TickerNewsSection'
 import { ErrorState } from '@/components/ErrorState'
@@ -282,6 +283,18 @@ export function ThesisDetailPage() {
           </ul>
         )}
       </section>
+
+      {/* ⚠️ AFTER the evidence log, and deliberately unlike it — for the same reason
+          the news section below is, and a sharper one. A filing summary is drawn
+          from a real SEC document, which is exactly what makes it the thing most
+          likely to be mistaken for the evidence above: that evidence is quoted
+          verbatim, scored against one claim and badged with a verdict, while this
+          is an unchecked reading that wrote nothing. Its own heading, its own
+          standing note, flat rows, and no status badges anywhere in it.
+
+          Claim links are OFF here: the claims are already on this page, and a link
+          back to where you are is furniture rather than navigation. */}
+      <FilingsSection ticker={thesis.ticker} limit={8} linkClaims={false} className="mt-12" />
 
       {/* ⚠️ AFTER the evidence log, and deliberately unlike it. The cards above are
           quoted from a document, scored against a claim and badged with a verdict;

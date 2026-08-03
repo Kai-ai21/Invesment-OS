@@ -3,6 +3,7 @@ import { ArrowLeft, ExternalLink, FileText, Info, RefreshCw } from 'lucide-react
 import { Link, useParams } from 'react-router'
 
 import { CompanyLogo } from '@/components/CompanyLogo'
+import { FilingsSection } from '@/components/filings/FilingsSection'
 import { TickerNewsSection } from '@/components/news/TickerNewsSection'
 import { ErrorState } from '@/components/ErrorState'
 import { ResearchLoading } from '@/components/research/ResearchLoading'
@@ -158,6 +159,15 @@ export function ResearchPage() {
       </div>
 
       {research.source_filing_title && <SourceFooter research={research} />}
+
+      {/* Below the footer, which closes off the one filing the page summarised
+          automatically. This is the rest of them, each readable on request — and
+          the same component the thesis page renders, so the two can never drift
+          into describing filings differently.
+
+          Claim links are ON here: the reader is on a company page, so a claim it
+          names lives on a thesis page they would have to navigate to. */}
+      <FilingsSection ticker={research.ticker} limit={8} className="mt-12" />
 
       {/* Below the filing summary AND below the footer naming its source, on
           purpose. Everything above restates one cited document; this is unverified

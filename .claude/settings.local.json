@@ -212,7 +212,25 @@
       "Bash(curl -s http://127.0.0.1:8000/prices/ZZZZQQ)",
       "Bash(awk '/^function ErrorState/,/^}/' src/pages/ThesisDetailPage.tsx)",
       "Bash(awk '/^function ErrorState/,/^}/' src/pages/ResearchPage.tsx)",
-      "Bash(awk '/^function ErrorState/,/^}/' src/components/news/NewsList.tsx)"
+      "Bash(awk '/^function ErrorState/,/^}/' src/components/news/NewsList.tsx)",
+      "Bash(echo \"TSC:$?\")",
+      "Bash(curl -s \"http://localhost:8000/reflections/post-mortems?pending_only=true\")",
+      "Bash(curl -s \"http://localhost:8000/openapi.json\")",
+      "Bash(python3 -c \"import json,sys; print\\([p for p in json.load\\(sys.stdin\\)['paths']]\\)\")",
+      "Bash(curl -s \"http://localhost:8000/post-mortems?pending_only=true\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(type\\(d\\), len\\(d\\)\\)\")",
+      "Bash(echo \"TSC exit:$?\")",
+      "Bash(./node_modules/.bin/tsc -b --pretty false)",
+      "Bash(venv/bin/python -m pytest tests/test_filings.py -q)",
+      "Bash(venv/bin/python -m pytest tests/ -q)",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" -X POST http://localhost:8000/filings/summarise -H \"Content-Type: application/json\" -d '{\"ticker\":\"NVDA\",\"url\":\"https://evil.example.com/x.htm\",\"title\":\"NVDA 10-K\"}')",
+      "Bash(curl -s http://localhost:8000/theses)",
+      "Bash(curl -s \"http://localhost:8000/filings/NVDA?limit=40\")",
+      "Bash(curl -s -X POST http://localhost:8000/filings/summarise -H \"Content-Type: application/json\" -d '{\"ticker\":\"NVDA\",\"url\":\"https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm\",\"title\":\"NVDA 10-K 2026-02-25\"}')",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s http://localhost:8000/theses/24149f7c-a1ea-4be3-a403-82d5f6ad8dc1/evidence)",
+      "Bash(python3 -c \"import json,sys; print\\('evidence events:', len\\(json.load\\(sys.stdin\\)\\)\\)\")",
+      "Bash(python3 -c \"import json,sys; t=json.load\\(sys.stdin\\)[0]; print\\('thesis status:', t['status'], '| claim statuses:', [c['status'] for c in t['claims']]\\)\")"
     ]
   }
 }

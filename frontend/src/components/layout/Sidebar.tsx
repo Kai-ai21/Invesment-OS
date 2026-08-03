@@ -8,35 +8,166 @@ import {
   PanelLeftOpen,
   Wallet,
 } from 'lucide-react'
-import { NavLink } from 'react-router'
+import type { LucideIcon } from 'lucide-react'
+import { NavLink, useLocation } from 'react-router'
 
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
-// `badge` names which count decorates the item, so adding a badged nav item is a
-// data change rather than another branch in the render.
-const NAV_ITEMS = [
-  { to: '/theses', label: 'Theses', icon: List, badge: null },
-  // Directly under Theses: what you own sits beside what you believe.
-  { to: '/portfolio', label: 'Portfolio', icon: Wallet, badge: null },
-  // The wider market, after the user's own two views — their work comes first.
-  { to: '/market', label: 'Market', icon: ChartCandlestick, badge: null },
-  { to: '/alerts', label: 'Alerts', icon: Bell, badge: 'unread' },
-  { to: '/reflections', label: 'Reflections', icon: NotebookPen, badge: 'pending' },
-] as const
+interface NavItem {
+  /** Route to navigate to, or null for News — a panel trigger, not a link. */
+  to: string | null
+  label: string
+  icon: LucideIcon
+  /** Names which count decorates the item, so adding a badged nav item is a data
+   *  change rather than another branch in the render. */
+  badge: 'unread' | 'pending' | null
+}
+
+/**
+ * THE NAV, GROUPED BY WHAT THE PAGES ARE FOR — not by how often they're used.
+ * Track is the user's own reasoning, Explore is the outside world, Own is what
+ * they hold. The order is that arc and is deliberate: your thinking first, the
+ * world it's about second, the consequence last.
+ */
+const SECTIONS: { id: string; label: string; items: readonly NavItem[] }[] = [
+  {
+    id: 'track',
+    label: 'Track',
+    items: [
+      { to: '/theses', label: 'Theses', icon: List, badge: null },
+      { to: '/alerts', label: 'Alerts', icon: Bell, badge: 'unread' },
+      { to: '/reflections', label: 'Reflections', icon: NotebookPen, badge: 'pending' },
+    ],
+  },
+  {
+    id: 'explore',
+    label: 'Explore',
+    items: [
+      { to: '/market', label: 'Market', icon: ChartCandlestick, badge: null },
+      // News has no `to`: it opens a slide-over on top of whatever page you are
+      // on rather than navigating away. The /news route still exists and the
+      // panel's "See all" goes there.
+      { to: null, label: 'News', icon: Newspaper, badge: null },
+      // Research lives at /research/:ticker — it is always ABOUT something, and
+      // there is no index to link to. Left out rather than shipped as a nav item
+      // that cannot go anywhere; it belongs behind a ticker search.
+    ],
+  },
+  {
+    id: 'own',
+    label: 'Own',
+    items: [{ to: '/portfolio', label: 'Portfolio', icon: Wallet, badge: null }],
+  },
+]
 
 /** Shared by the NavLinks and by the News trigger, which is a button rather than a
  *  link — it opens a panel over the current page instead of navigating. Extracted so
  *  the two never drift apart. */
 function navItemClasses(collapsed: boolean, active: boolean) {
   return cn(
-    'flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm transition-colors',
+    'flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm transition-colors',
     'focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
     collapsed && 'justify-center px-0',
     active
       ? 'bg-surface-raised text-text-primary'
       : 'text-text-secondary hover:bg-surface-raised/60 hover:text-text-primary',
+  )
+}
+
+/**
+ * ⚠️ WHY THE ACTIVE STATE IS COMPUTED HERE rather than left to NavLink's own
+ * `({ isActive }) => …` render prop.
+ *
+ * Collapsed, each item is wrapped in a Tooltip, whose Radix trigger renders
+ * `asChild` — and Slot MERGES className by string-concatenating its own with the
+ * child's. A function does not survive that: it arrives at NavLink already
+ * stringified, NavLink takes its string branch, and the item renders with no
+ * classes at all — no padding, no hit target, no active fill. Expanded there is
+ * no tooltip and no Slot, which is why it only ever went wrong on the rail.
+ *
+ * Passing a plain string sidesteps the merge entirely. Same matching rule
+ * NavLink uses: the exact path, or a descendant of it (/theses/:id keeps Theses
+ * lit), with the trailing slash stripped so `/theses` cannot match `/thesesX`.
+ */
+function isActivePath(pathname: string, to: string) {
+  const base = to.replace(/\/$/, '')
+  return pathname === base || pathname.startsWith(`${base}/`)
+}
+
+/** The inside of a nav item — identical whether the outside is a link or a button,
+ *  which is the whole point of pulling it out. */
+function NavItemBody({
+  label,
+  icon: Icon,
+  badge,
+  badgeNoun,
+  collapsed,
+}: {
+  label: string
+  icon: LucideIcon
+  badge: number | null
+  badgeNoun: string
+  collapsed: boolean
+}) {
+  return (
+    <>
+      <span className="relative shrink-0">
+        <Icon className="size-4" aria-hidden />
+        {/* Collapsed to an icon rail there's no room for the count, so it
+            degrades to a dot; the tooltip still carries the number. */}
+        {badge !== null && collapsed && (
+          <span
+            aria-hidden
+            className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-text-primary"
+          />
+        )}
+      </span>
+
+      {!collapsed && (
+        <>
+          <span className="truncate">{label}</span>
+          {/* bg-background, not surface-raised — the active nav item is already
+              surface-raised and would swallow it. */}
+          {badge !== null && (
+            <span className="ml-auto min-w-5 rounded-full bg-background px-1.5 py-0.5 text-center text-xs tabular-nums text-text-primary">
+              {badge}
+            </span>
+          )}
+        </>
+      )}
+
+      {/* Collapsed, this is the item's ONLY accessible name — the tooltip is
+          decoration and screen readers never see it. */}
+      {collapsed && <span className="sr-only">{label}</span>}
+
+      {badge !== null && (
+        <span className="sr-only">
+          {badge} {badgeNoun}
+        </span>
+      )}
+    </>
+  )
+}
+
+/**
+ * The group heading: a short bright dash, then the name in the same mono/upper/
+ * tracked language as the status badges. PRIMARY text, not muted — at 9.5px a
+ * muted label reads as disabled rather than as structure.
+ *
+ * aria-hidden, and deliberately so: the grouping reaches screen readers through
+ * the aria-label on each <ul> (a named list), which announces on entry and does
+ * not leave a stray heading in the document outline.
+ */
+function SectionLabel({ label }: { label: string }) {
+  return (
+    <div aria-hidden className="mb-[7px] flex items-center gap-[7px] px-2.5">
+      <span className="h-0.5 w-2.5 shrink-0 rounded-full bg-text-primary" />
+      <span className="font-mono text-[9.5px] leading-none tracking-[0.14em] text-text-primary uppercase">
+        {label}
+      </span>
+    </div>
   )
 }
 
@@ -56,15 +187,18 @@ export function Sidebar({
   newsOpen: boolean
 }) {
   const counts = { unread: unreadCount, pending: pendingReflections }
+  const { pathname } = useLocation()
   return (
     <aside
       className={cn(
-        'glass-chrome relative z-10 flex h-full shrink-0 flex-col gap-6 border-r py-4 transition-[width] duration-200',
+        'glass-chrome relative z-10 flex h-full shrink-0 flex-col border-r py-4 transition-[width] duration-200',
         collapsed ? 'w-16 px-2' : 'w-60 px-3',
       )}
     >
       {/* Wordmark. The mark stays put when collapsed so nothing jumps. */}
-      <div className={cn('flex items-center gap-2.5', collapsed && 'justify-center')}>
+      <div
+        className={cn('flex shrink-0 items-center gap-2.5', collapsed && 'justify-center')}
+      >
         <div
           aria-hidden
           className="grid size-8 shrink-0 place-items-center rounded-lg bg-surface-raised text-xs font-medium text-text-primary"
@@ -80,91 +214,102 @@ export function Sidebar({
         )}
       </div>
 
-      <nav className="flex flex-col gap-1">
-        {NAV_ITEMS.map(({ to, label, icon: Icon, badge: badgeKey }) => {
-          const count = badgeKey ? counts[badgeKey] : 0
-          const badge = count > 0 ? count : null
-          // Alerts are "unread"; reflections are "pending". Announcing three
-          // reflections as "3 unread" would be simply wrong.
-          const badgeNoun = badgeKey === 'pending' ? 'pending' : 'unread'
+      {/* flex-1 + min-h-0 is what pins the footer: the nav absorbs the slack at a
+          tall viewport and gives it back at a short one, scrolling internally
+          rather than pushing the footer off the bottom.
+          The -mx-1/px-1 pair buys 4px of bleed so the 3px focus ring is not
+          clipped by the scroll container — overflow-y:auto forces the x axis to
+          clip too, however much room the aside's own padding looks like it has. */}
+      <nav
+        aria-label="Main"
+        className="mt-6 -mx-1 min-h-0 flex-1 overflow-y-auto px-1"
+      >
+        {SECTIONS.map((section, index) => (
+          <div key={section.id} className={cn(index > 0 && 'mt-3')}>
+            {/* Collapsed there is no room for a label, so the grouping survives
+                as a rule between the rails. Screen readers keep the real thing
+                either way — see SectionLabel. */}
+            {collapsed
+              ? index > 0 && (
+                  <hr aria-hidden className="mx-auto mb-3 w-6 border-t border-border" />
+                )
+              : <SectionLabel label={section.label} />}
 
-          return (
-            // Collapsed, the rail is icons alone and the tooltip carries the
-            // only label there is — so it replaces the native `title`, which
-            // waits about a second, cannot be reached by keyboard, and renders
-            // in the OS style rather than this one.
-            <Tooltip
-              key={to}
-              side="right"
-              content={
-                collapsed ? (badge ? `${label} — ${badge} ${badgeNoun}` : label) : null
-              }
-            >
-              <NavLink
-                to={to}
-                className={({ isActive }) => navItemClasses(collapsed, isActive)}
-              >
-                <span className="relative shrink-0">
-                  <Icon className="size-4" aria-hidden />
-                  {/* Collapsed to an icon rail there's no room for the count, so
-                      it degrades to a dot; the tooltip still carries the number. */}
-                  {badge !== null && collapsed && (
-                    <span
-                      aria-hidden
-                      className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-text-primary"
-                    />
-                  )}
-                </span>
+            <ul aria-label={section.label} className="flex flex-col gap-1">
+              {section.items.map(({ to, label, icon, badge: badgeKey }) => {
+                const count = badgeKey ? counts[badgeKey] : 0
+                const badge = count > 0 ? count : null
+                // Alerts are "unread"; reflections are "pending". Announcing
+                // three reflections as "3 unread" would be simply wrong.
+                const badgeNoun = badgeKey === 'pending' ? 'pending' : 'unread'
+                const body = (
+                  <NavItemBody
+                    label={label}
+                    icon={icon}
+                    badge={badge}
+                    badgeNoun={badgeNoun}
+                    collapsed={collapsed}
+                  />
+                )
 
-                {!collapsed && (
-                  <>
-                    <span className="truncate">{label}</span>
-                    {/* bg-background, not surface-raised — the active nav item is
-                        already surface-raised and would swallow it. */}
-                    {badge !== null && (
-                      <span className="ml-auto min-w-5 rounded-full bg-background px-1.5 py-0.5 text-center text-xs tabular-nums text-text-primary">
-                        {badge}
-                      </span>
-                    )}
-                  </>
-                )}
-
-                {/* Collapsed, this is the item's ONLY accessible name — the
-                    tooltip is decoration and screen readers never see it. */}
-                {collapsed && <span className="sr-only">{label}</span>}
-
-                {badge !== null && (
-                  <span className="sr-only">
-                    {badge} {badgeNoun}
-                  </span>
-                )}
-              </NavLink>
-            </Tooltip>
-          )
-        })}
-
-        {/* A button, not a NavLink: News opens a slide-over on top of whatever page
-            you are on rather than navigating away. The /news route still exists and
-            the panel's "See all" goes there. */}
-        <Tooltip side="right" content={collapsed ? 'News' : null}>
-          <button
-            type="button"
-            onClick={onOpenNews}
-            aria-haspopup="dialog"
-            aria-expanded={newsOpen}
-            className={navItemClasses(collapsed, newsOpen)}
-          >
-            <Newspaper className="size-4 shrink-0" aria-hidden />
-            {collapsed ? (
-              <span className="sr-only">News</span>
-            ) : (
-              <span className="truncate">News</span>
-            )}
-          </button>
-        </Tooltip>
+                return (
+                  <li key={label}>
+                    {/* Collapsed, the rail is icons alone and the tooltip carries
+                        the only label there is — so it replaces the native
+                        `title`, which waits about a second, cannot be reached by
+                        keyboard, and renders in the OS style rather than this
+                        one. */}
+                    <Tooltip
+                      side="right"
+                      content={
+                        collapsed
+                          ? badge
+                            ? `${label} — ${badge} ${badgeNoun}`
+                            : label
+                          : null
+                      }
+                    >
+                      {to === null ? (
+                        <button
+                          type="button"
+                          onClick={onOpenNews}
+                          aria-haspopup="dialog"
+                          aria-expanded={newsOpen}
+                          className={navItemClasses(collapsed, newsOpen)}
+                        >
+                          {body}
+                        </button>
+                      ) : (
+                        <NavLink
+                          to={to}
+                          className={navItemClasses(
+                            collapsed,
+                            isActivePath(pathname, to),
+                          )}
+                        >
+                          {body}
+                        </NavLink>
+                      )}
+                    </Tooltip>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        ))}
       </nav>
 
-      <div className={cn('mt-auto', collapsed ? 'flex justify-center' : '')}>
+      {/* Utility footer. The hairline is what anchors the column — below it the
+          sidebar ends, rather than fading into whatever space is left.
+          Search (⌘K) and Settings belong here too, and are left out until there
+          is a command palette and a settings page to open: a row that does
+          nothing when clicked reads as broken, not as forthcoming. */}
+      <div
+        className={cn(
+          'mt-4 shrink-0 border-t border-border pt-3',
+          collapsed && 'flex justify-center',
+        )}
+      >
         {/* Secondary rather than muted: against the glass panel #6b7280
             measures 2.9:1, below AA-large. */}
         <Button

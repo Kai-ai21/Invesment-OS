@@ -319,6 +319,78 @@ class ResearchOut(TickerLogoMixin):
     model_config = {"from_attributes": True}
 
 
+class FilingOut(BaseModel):
+    """One SEC filing as EDGAR lists it. A row to browse, not a document we read."""
+
+    form: str
+    filing_date: str
+    title: str
+    url: str
+    accession_number: str
+
+    model_config = {"from_attributes": True}
+
+
+class FilingSummariseRequest(BaseModel):
+    """⚠️ `title` is accepted for the client's convenience and is NOT trusted.
+
+    The response's title, form and date all come from the SEC's own record of the
+    filing at `url`, resolved server-side — a caller could otherwise label a 10-K as
+    an 8-K, and the one thing a summary must get right is which document it is of.
+    The URL itself is checked against the filings the SEC lists for this ticker
+    before anything is fetched; see filing_service.LOOKUP_LIMIT.
+    """
+
+    ticker: str
+    url: str
+    title: str | None = None
+
+
+class NotableNumberOut(BaseModel):
+    """A figure and what it measures. Paired because a figure alone makes the reader
+    guess what it is of, and a guessed meaning is worse than no number."""
+
+    figure: str
+    what_it_measures: str
+
+    model_config = {"from_attributes": True}
+
+
+class RelevantClaimOut(BaseModel):
+    """A claim of the user's that this filing DISCUSSES.
+
+    ⚠️ Not a claim it supports. There is no verdict, confidence or direction here and
+    there must never be one — that is an EvidenceEventOut, which is produced by a
+    different pipeline, quotes the document verbatim, and has its quote validated.
+    """
+
+    claim_id: str
+    thesis_id: str
+    statement: str
+
+    model_config = {"from_attributes": True}
+
+
+class FilingSummaryOut(BaseModel):
+    """One filing, restated in plain language. READING, NOT EVIDENCE.
+
+    Deliberately shaped so it cannot be mistaken for one: no verdict, no confidence,
+    no status, and nothing this produces is ever written to the evidence log.
+    """
+
+    ticker: str
+    filing: FilingOut
+
+    filing_type_explained: str
+    key_points: list[str]
+    notable_numbers: list[NotableNumberOut]
+    # Empty is the expected answer most of the time. Every id here has been checked
+    # against the user's real claims for this ticker; see filing_service.
+    relevance: list[RelevantClaimOut]
+
+    model_config = {"from_attributes": True}
+
+
 class EnhanceReasoningRequest(BaseModel):
     ticker: str
     reasoning: str

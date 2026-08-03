@@ -328,6 +328,61 @@ export interface Research {
   filing_summary_error: string | null
 }
 
+/** FilingOut — one SEC filing as EDGAR lists it. */
+export interface Filing {
+  /** "10-K" | "10-Q" | "8-K" as the SEC reports it. Kept a plain string: the form
+   *  vocabulary is the SEC's, not ours, and a union here would break on an
+   *  amendment (10-K/A) rather than just rendering it. */
+  form: string
+  /** ISO date, e.g. "2026-02-26". */
+  filing_date: string
+  title: string
+  url: string
+  /** The SEC's own id for the filing. Stable and unique, so it keys both the
+   *  backend's 30-day summary cache and the client's expand-in-place state. */
+  accession_number: string
+}
+
+/** NotableNumberOut — a figure paired with what it is a figure OF. */
+export interface NotableNumber {
+  figure: string
+  what_it_measures: string
+}
+
+/**
+ * RelevantClaimOut — a claim of the user's that a filing DISCUSSES.
+ *
+ * ⚠️ NOT a claim it supports. There is no verdict or confidence here and there must
+ * never be one: that is an EvidenceEvent, produced by a different pipeline which
+ * quotes the document verbatim and has its quote validated. Every id has already
+ * been checked server-side against the user's real claims for this ticker.
+ */
+export interface RelevantClaim {
+  claim_id: string
+  thesis_id: string
+  statement: string
+}
+
+/**
+ * FilingSummaryOut — one filing restated in plain language.
+ *
+ * ⚠️ READING, NOT EVIDENCE. Nothing here was checked against anything, nothing was
+ * scored, and producing it wrote nothing to the evidence log or to any status. The
+ * shape has no field a verdict could go in, and the UI must keep the two visibly
+ * apart — see FilingsSection.
+ */
+export interface FilingSummary {
+  ticker: string
+  filing: Filing
+  /** One sentence on what this KIND of filing is for. */
+  filing_type_explained: string
+  key_points: string[]
+  notable_numbers: NotableNumber[]
+  /** EMPTY IS THE EXPECTED ANSWER most of the time. Say so plainly rather than
+   *  rendering it as a failure. */
+  relevance: RelevantClaim[]
+}
+
 /** EnhanceReasoningOut — a CANDIDATE rewrite, never applied automatically. */
 export interface EnhancedReasoning {
   enhanced: string
@@ -750,6 +805,50 @@ export function listMarketLeaders(): Promise<Quote[]> {
  */
 export function getResearch(ticker: string): Promise<Research> {
   return request<Research>(`/research/${encodeURIComponent(ticker)}`)
+}
+
+/* --- filings -------------------------------------------------------------- */
+
+/**
+ * Recent 10-K, 10-Q and 8-K filings for one ticker, newest first.
+ *
+ * Fast — the SEC's index, cached server-side for six hours. AN EMPTY ARRAY IS A
+ * NORMAL ANSWER: a real company that has filed none of these three forms. 404
+ * means the SEC lists no such symbol; 502 means the SEC was unreachable, which is
+ * "we could not look" rather than "there is nothing to see".
+ */
+export function listFilings(ticker: string, limit = 10): Promise<Filing[]> {
+  return request<Filing[]>(
+    `/filings/${encodeURIComponent(ticker)}?limit=${limit}`,
+  )
+}
+
+/**
+ * One filing, restated in plain language.
+ *
+ * ⚠️ READ-ONLY. This creates no evidence, moves no claim or thesis status and
+ * writes nothing — unlike checkThesis, which does all three. A summary is
+ * unverified reading; evidence is quoted, scored and validated.
+ *
+ * ⚠️ SLOW on a cold cache — a filing fetch, two retrieval passes and one AI call,
+ * so 10-20 seconds is normal and the UI must say what it is doing rather than
+ * showing a bare spinner. Cached server-side for 30 days per filing, since a
+ * filing's contents are fixed the moment it is filed.
+ *
+ * `url` must be one the SEC actually lists for this ticker — the backend checks it
+ * against the SEC's own index before fetching anything, so pass a URL that came
+ * from listFilings rather than one built by hand. 404 otherwise.
+ */
+export function summariseFiling(
+  ticker: string,
+  filing: Filing,
+): Promise<FilingSummary> {
+  return request<FilingSummary>('/filings/summarise', {
+    method: 'POST',
+    // `title` is sent for the backend's convenience only — it is NOT trusted, and
+    // the response's title, form and date all come from the SEC's own record.
+    body: JSON.stringify({ ticker, url: filing.url, title: filing.title }),
+  })
 }
 
 /* --- ticker autocomplete -------------------------------------------------- */

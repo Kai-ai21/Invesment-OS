@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from backend.domain.claim import ClaimData
+from backend.domain.filing import FilingSummary
 from backend.domain.pattern import PatternData
 from backend.domain.research import ResearchSummary
 from backend.domain.verification import VerdictData
@@ -64,6 +65,34 @@ class LLMProvider(ABC):
 
         Any field the passages do not cover comes back None, and `key_risks` comes
         back empty rather than padded.
+        """
+
+    @abstractmethod
+    def summarise_filing(
+        self,
+        ticker: str,
+        form: str,
+        filing_title: str,
+        results_passages: list[str],
+        events_passages: list[str],
+        claims: list[dict],
+    ) -> FilingSummary:
+        """Read one SEC filing back in plain language, from retrieved passages only.
+
+        READS, NEVER JUDGES. This is the softest output in the product — it is not
+        checked against anything, so the discipline has to come from the prompt and
+        from the shape: no verdict, no confidence, and above all no view on whether
+        what the filing says is good or bad. A summary that grades the news would be
+        mistaken for evidence, which is scored, cited and validated.
+
+        Each `claims` dict carries claim_id and statement, for the user's own theses
+        on this ticker. Pass an EMPTY list when they have none — the model is then
+        told there is nothing to match against, rather than being handed an empty
+        list to be creative with.
+
+        `relevant_claim_ids` comes back EMPTY most of the time and that is the
+        expected answer. Every id it does return must be one supplied here; the
+        caller drops the rest.
         """
 
     @abstractmethod

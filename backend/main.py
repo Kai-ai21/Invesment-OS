@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.alerts import router as alerts_router
+from backend.api.filings import router as filings_router
 from backend.api.holdings import router as holdings_router
 from backend.api.market import router as market_router
 from backend.api.news import router as news_router
@@ -45,6 +46,7 @@ app.include_router(prices_router)
 app.include_router(holdings_router)
 app.include_router(market_router)
 app.include_router(research_router)
+app.include_router(filings_router)
 app.include_router(tickers_router)
 
 

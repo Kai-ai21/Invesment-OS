@@ -6,6 +6,7 @@ from google.genai import types
 from pydantic import BaseModel
 
 from backend.domain.claim import ClaimData
+from backend.domain.filing import FilingSummary
 from backend.domain.pattern import PatternData
 from backend.domain.research import ResearchSummary
 from backend.domain.verification import VerdictData
@@ -223,6 +224,86 @@ risk passages actually raise. Do not add risks you think apply. Do not rank them
 Return the structured summary."""
 
 
+FILING_PROMPT = """You are reading one SEC filing back to someone in plain language. \
+They can see the filing's title and want to know what is in it.
+
+The filing: {filing_title} (form type: {form}), filed by {ticker}.
+
+Passages retrieved from the filing about RESULTS AND GUIDANCE:
+{results_passages}
+
+Passages retrieved from the filing about EVENTS, RISKS AND CHANGES:
+{events_passages}
+
+The reader's own claims about {ticker}, which they wrote themselves:
+{claims}
+
+Produce:
+- filing_type_explained: ONE sentence on what a {form} is FOR — the kind of document, \
+not this one. Written for someone who has never opened one.
+- key_points: 4 to 6 short bullets of what THIS filing actually says.
+- notable_numbers: figures this filing reports, each paired with what it measures.
+- relevant_claim_ids: the ids of the reader's claims this filing genuinely discusses.
+
+Rules:
+
+1. SUMMARISE ONLY THE PASSAGES ABOVE. Every fact, figure, date, product and event in \
+your answer must appear in them. You may well recognise this company — ignore \
+everything you know about it. Do not fill a gap from memory, do not complete a figure \
+you half-remember, and do not carry over what its LAST filing said. If the passages do \
+not cover something, it does not go in your answer.
+
+2. NEVER INVENT OR RECALCULATE A NUMBER. Copy each figure exactly as the filing states \
+it. Do not convert units, do not compute a percentage the filing did not print, do not \
+sum two figures into a third, and do not describe a change as a rise or a fall unless \
+the passages say so. If the passages carry no figures, return an empty \
+notable_numbers list.
+
+3. NEVER SAY WHETHER THIS IS GOOD OR BAD. This is a hard rule with no exceptions. Do \
+not write "strong", "weak", "disappointing", "impressive", "better than expected", \
+"concerning", "reassuring", or any other word that grades what the filing reports. Do \
+not call a result a beat or a miss. Do not say a risk is likely, serious or \
+manageable. Report WHAT THE FILING SAYS and stop.
+
+4. NEVER SUGGEST AN ACTION. Do not mention buying, selling, holding, sizing, waiting, \
+watching or reconsidering anything. Do not say what the reader should do with this \
+information, or what to look for next. Not even as a closing thought.
+
+5. PLAIN LANGUAGE. Explain the jargon instead of repeating it. If the filing says \
+"deferred revenue", say it is money customers have paid for something not yet \
+delivered. If it says "material weakness in internal control", explain what that \
+means. Someone who has never read a filing should understand every sentence.
+
+6. relevant_claim_ids IS USUALLY EMPTY, AND THAT IS THE RIGHT ANSWER. Cite a claim \
+ONLY when the passages actually discuss its subject — the same metric, the same \
+product, the same risk. A filing that merely mentions the company a claim is about \
+does not address the claim. Being about the same industry is not enough. Use only \
+ids from the list above; never invent one. If in any doubt, leave it out.
+
+7. YOU ARE NOT JUDGING THE CLAIMS. Listing a claim id means "this filing talks about \
+that subject", never that the filing supports or undermines it. Do not say which way \
+it points, in the key points or anywhere else. Something else in this app does that \
+job properly, with quotations and a confidence score; this is reading, not evidence.
+
+Return the structured summary."""
+
+
+def _numbered_passages(passages: list[str]) -> str:
+    """Retrieved passages as numbered blocks.
+
+    Numbered so the model can tell them apart and cannot blur several into one
+    invented composite, and so a prompt with no passages says so explicitly rather
+    than trailing off into blank space — an empty section reads as permission to
+    fill it from memory.
+    """
+    return (
+        "\n\n".join(
+            f"[{index}] {passage}" for index, passage in enumerate(passages, start=1)
+        )
+        or "(none retrieved)"
+    )
+
+
 class ClaimsResponse(BaseModel):
     claims: list[ClaimData]
 
@@ -340,22 +421,11 @@ class GeminiProvider(LLMProvider):
         business_passages: list[str],
         risk_passages: list[str],
     ) -> ResearchSummary:
-        def numbered(passages: list[str]) -> str:
-            # Numbered blocks so the model can tell the passages apart and cannot
-            # blur several into one invented composite.
-            return (
-                "\n\n".join(
-                    f"[{index}] {passage}"
-                    for index, passage in enumerate(passages, start=1)
-                )
-                or "(none retrieved)"
-            )
-
         prompt = RESEARCH_PROMPT.format(
             ticker=ticker,
             profile_summary=profile_summary or "(none available)",
-            business_passages=numbered(business_passages),
-            risk_passages=numbered(risk_passages),
+            business_passages=_numbered_passages(business_passages),
+            risk_passages=_numbered_passages(risk_passages),
         )
 
         response = self._client.models.generate_content(
@@ -368,6 +438,47 @@ class GeminiProvider(LLMProvider):
         )
 
         return ResearchSummary.model_validate_json(response.text)
+
+    def summarise_filing(
+        self,
+        ticker: str,
+        form: str,
+        filing_title: str,
+        results_passages: list[str],
+        events_passages: list[str],
+        claims: list[dict],
+    ) -> FilingSummary:
+        # One labelled block per claim, so the model can cite an id exactly. The
+        # no-claims case says so in words rather than leaving the section blank —
+        # an empty list under a heading invites the model to populate it.
+        formatted_claims = (
+            "\n\n".join(
+                f"claim_id: {claim['claim_id']}\nstatement: {claim['statement']}"
+                for claim in claims
+            )
+            or "(the reader has no claims about this company — relevant_claim_ids "
+            "must be an empty list)"
+        )
+
+        prompt = FILING_PROMPT.format(
+            ticker=ticker,
+            form=form,
+            filing_title=filing_title,
+            results_passages=_numbered_passages(results_passages),
+            events_passages=_numbered_passages(events_passages),
+            claims=formatted_claims,
+        )
+
+        response = self._client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=FilingSummary,
+            ),
+        )
+
+        return FilingSummary.model_validate_json(response.text)
 
     def generate_patterns(self, post_mortems: list[dict]) -> list[PatternData]:
         # Rendered as a labelled block per reflection so the model can cite ids exactly.
