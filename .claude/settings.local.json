@@ -231,7 +231,18 @@
       "Bash(curl -s http://localhost:8000/theses/24149f7c-a1ea-4be3-a403-82d5f6ad8dc1/evidence)",
       "Bash(python3 -c \"import json,sys; print\\('evidence events:', len\\(json.load\\(sys.stdin\\)\\)\\)\")",
       "Bash(python3 -c \"import json,sys; t=json.load\\(sys.stdin\\)[0]; print\\('thesis status:', t['status'], '| claim statuses:', [c['status'] for c in t['claims']]\\)\")",
-      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" -X POST http://localhost:8000/filings/summarise -H \"Content-Type: application/json\" -d '{\"ticker\":\"NVDA\",\"url\":\"https://www.sec.gov/Archives/edgar/data/1045810/000104581026000024/nvda-20260302.htm\",\"title\":\"NVDA 8-K 2026-03-06\"}')"
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" -X POST http://localhost:8000/filings/summarise -H \"Content-Type: application/json\" -d '{\"ticker\":\"NVDA\",\"url\":\"https://www.sec.gov/Archives/edgar/data/1045810/000104581026000024/nvda-20260302.htm\",\"title\":\"NVDA 8-K 2026-03-06\"}')",
+      "Bash(curl -s -m 3 http://localhost:8000/api/theses -o /dev/null -w \"%{http_code}\\\\n\")",
+      "Bash(echo \"=== tsc exit: $? ===\")",
+      "Bash(echo \"tsc: $?\")",
+      "Bash(echo \"lint: $?\")",
+      "Bash(curl -s -m 3 -o /dev/null -w \"backend:%{http_code}\\\\n\" http://127.0.0.1:8000/theses)",
+      "Bash(curl -s -m 3 -o /dev/null -w \"vite:%{http_code}\\\\n\" http://localhost:5173)",
+      "Bash(./node_modules/.bin/oxlint src/components/GhostCursor.jsx src/components/effects/DashboardBackground.tsx)",
+      "Bash(grep -v \"^+$\")",
+      "Bash(curl -s -m 5 -o /dev/null -w \"filings:%{http_code}\\\\n\" \"http://127.0.0.1:8000/filings/NVDA?limit=8\")",
+      "Bash(curl -s -m 45 -o /dev/null -w \"filings:%{http_code} in %{time_total}s\\\\n\" \"http://127.0.0.1:8000/filings/NVDA?limit=8\")",
+      "Bash(git diff *)"
     ]
   }
 }

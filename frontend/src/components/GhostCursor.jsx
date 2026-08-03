@@ -42,9 +42,19 @@ const GhostCursor = ({
   const resizeObsRef = useRef(null);
   const currentMouseRef = useRef(new THREE.Vector2(0.5, 0.5));
   const velocityRef = useRef(new THREE.Vector2(0, 0));
-  const fadeOpacityRef = useRef(1.0);
-  const lastMoveTimeRef = useRef(typeof performance !== 'undefined' ? performance.now() : Date.now());
-  const pointerActiveRef = useRef(false);
+  const fadeOpacityRef = useRef(0);
+  // The clock the fade ramp is measured from — NOT "the last move". Movement
+  // resets it to now, and the pointer leaving re-anchors it so the ramp carries
+  // on from wherever the opacity currently is.
+  //
+  // Seeded in the past so the ramp is ALREADY FINISHED at mount. iMouse defaults
+  // to the centre of the layer, which is nowhere the cursor actually is; opening
+  // at full opacity put a blob in the middle of the page for the first second of
+  // every load. The first real pointermove is what lights this.
+  const fadeAnchorRef = useRef(-Infinity);
+  // Whether the pointer is inside the window. This governs whether the blob
+  // TRACKS the cursor and nothing else — deliberately not whether it stays lit.
+  const pointerInsideRef = useRef(false);
   const runningRef = useRef(false);
   const hasValidSizeRef = useRef(false);
 
@@ -102,6 +112,8 @@ const GhostCursor = ({
       vec2 q = vec2(fbm(p * iScale + iTime * 0.1), fbm(p * iScale + vec2(5.2,1.3) + iTime * 0.1));
       vec2 r = vec2(fbm(p * iScale + q * 1.5 + iTime * 0.15), fbm(p * iScale + q * 1.5 + vec2(8.3,2.8) + iTime * 0.15));
 
+      // NO BACKTICKS ANYWHERE IN THIS SHADER — it is a JS template literal, and
+      // one backtick in a comment silently ends the string and corrupts the GLSL.
       float smoke = fbm(p * iScale + r * 0.8);
       float radius = 0.5 + 0.3 * (1.0 / iScale);
       float distFactor = 1.0 - smoothstep(0.0, radius * activity, length(p - mousePos));
@@ -369,24 +381,32 @@ const GhostCursor = ({
       const mat = materialRef.current;
       const comp = composerRef.current;
 
-      if (pointerActiveRef.current) {
+      // WHERE the blob is and HOW BRIGHT it is are two independent things, and
+      // conflating them is what used to park this at full brightness: "pointer
+      // is inside the window" was read as "keep it lit", so a cursor that simply
+      // stopped moving — or a window that lost focus without ever firing a
+      // pointerleave — left the blob burning at its last coordinate forever,
+      // trail stacked on one spot and saturating to near-white.
+      if (pointerInsideRef.current) {
         velocityRef.current.set(
           currentMouseRef.current.x - mat.uniforms.iMouse.value.x,
           currentMouseRef.current.y - mat.uniforms.iMouse.value.y
         );
         mat.uniforms.iMouse.value.copy(currentMouseRef.current);
-        fadeOpacityRef.current = 1.0;
       } else {
         velocityRef.current.multiplyScalar(inertia);
         if (velocityRef.current.lengthSq() > 1e-6) {
           mat.uniforms.iMouse.value.add(velocityRef.current);
         }
-        const dt = now - lastMoveTimeRef.current;
-        if (dt > fadeDelay) {
-          const k = Math.min(1, (dt - fadeDelay) / fadeDuration);
-          fadeOpacityRef.current = Math.max(0, 1 - k);
-        }
       }
+
+      // Opacity runs off the clock alone, whichever side of the window edge the
+      // pointer is on. Idling inside buys the grace period before the ramp
+      // starts; having left buys none, so leaving fades out instead of freezing.
+      const dt = now - fadeAnchorRef.current;
+      const delay = pointerInsideRef.current ? fadeDelay : 0;
+      fadeOpacityRef.current =
+        dt <= delay ? 1 : Math.max(0, 1 - Math.min(1, (dt - delay) / fadeDuration));
 
       const N = trailBufRef.current.length;
       headRef.current = (headRef.current + 1) % N;
@@ -406,7 +426,11 @@ const GhostCursor = ({
 
       comp.render();
 
-      if (!pointerActiveRef.current && fadeOpacityRef.current <= 0.001) {
+      // Park as soon as it has fully faded, including while the pointer is still
+      // in the window but idle. The old condition also required the pointer to
+      // be outside, which — given the above — meant the loop effectively never
+      // stopped and the GPU kept drawing a static frame indefinitely.
+      if (fadeOpacityRef.current <= 0.001) {
         runningRef.current = false;
         rafRef.current = null;
         return;
@@ -427,18 +451,40 @@ const GhostCursor = ({
       const rect = parent.getBoundingClientRect();
       const x = THREE.MathUtils.clamp((e.clientX - rect.left) / Math.max(1, rect.width), 0, 1);
       const y = THREE.MathUtils.clamp(1 - (e.clientY - rect.top) / Math.max(1, rect.height), 0, 1);
+
+      // Coming back from a full fade, the blob and its whole trail are still
+      // parked wherever the cursor was last seen. Teleport them to the new point
+      // rather than letting the trail interpolate, which would sweep a bright
+      // streak across everything between the two positions.
+      if (fadeOpacityRef.current <= 0.001) {
+        velocityRef.current.set(0, 0);
+        materialRef.current?.uniforms.iMouse.value.set(x, y);
+        for (const v of trailBufRef.current) v.set(x, y);
+      }
+
       currentMouseRef.current.set(x, y);
-      pointerActiveRef.current = true;
-      lastMoveTimeRef.current = performance.now();
+      pointerInsideRef.current = true;
+      fadeAnchorRef.current = performance.now();
       ensureLoop();
     };
+    // Entering only re-arms tracking. It deliberately does NOT touch the fade
+    // anchor: an enter with no movement behind it would otherwise relight the
+    // glow at the stale coordinate the pointer left from.
     const onPointerEnter = () => {
-      pointerActiveRef.current = true;
+      pointerInsideRef.current = true;
       ensureLoop();
     };
-    const onPointerLeave = () => {
-      pointerActiveRef.current = false;
-      lastMoveTimeRef.current = performance.now();
+    // "The pointer left the window" has several shapes and only one of them is a
+    // pointerleave on this element. Switching apps, clicking into another window
+    // or a devtools pane fires a blur and NO leave event at all — that is the
+    // path that stranded the glow, lit, in whatever corner it was last in.
+    const onPointerGone = () => {
+      if (!pointerInsideRef.current) return;
+      pointerInsideRef.current = false;
+      // Re-anchor so the ramp RESUMES from the current opacity instead of
+      // restarting at full. Without this a blur arriving after the glow had
+      // already faded would light it back up on the way out.
+      fadeAnchorRef.current = performance.now() - (1 - fadeOpacityRef.current) * fadeDuration;
       ensureLoop();
     };
 
@@ -457,7 +503,10 @@ const GhostCursor = ({
 
     parent.addEventListener('pointermove', onPointerMove, { passive: true });
     parent.addEventListener('pointerenter', onPointerEnter, { passive: true });
-    parent.addEventListener('pointerleave', onPointerLeave, { passive: true });
+    parent.addEventListener('pointerleave', onPointerGone, { passive: true });
+    parent.addEventListener('pointercancel', onPointerGone, { passive: true });
+    document.addEventListener('mouseleave', onPointerGone, { passive: true });
+    window.addEventListener('blur', onPointerGone);
     document.addEventListener('visibilitychange', onVisibility);
 
     ensureLoop();
@@ -472,7 +521,10 @@ const GhostCursor = ({
 
       parent.removeEventListener('pointermove', onPointerMove);
       parent.removeEventListener('pointerenter', onPointerEnter);
-      parent.removeEventListener('pointerleave', onPointerLeave);
+      parent.removeEventListener('pointerleave', onPointerGone);
+      parent.removeEventListener('pointercancel', onPointerGone);
+      document.removeEventListener('mouseleave', onPointerGone);
+      window.removeEventListener('blur', onPointerGone);
       document.removeEventListener('visibilitychange', onVisibility);
       resizeObsRef.current?.disconnect();
 
