@@ -121,14 +121,31 @@ export function ThesisDetailPage() {
       <BackLink />
 
       {/* Sticky, so the ticker and its status stay visible while reading down the
-          evidence list — which is why it gets the glass treatment. The negative
-          margins bleed it to the container edges so content passes underneath
-          the blur rather than beside it. */}
+          evidence list. The negative margins bleed it to the container edges so
+          content passes underneath it rather than beside it.
+
+          ⚠️ OPAQUE, NOT `glass-chrome`, AND THAT IS DELIBERATE. This is the one
+          place in the app where a glass panel had CONTENT SCROLLING BEHIND IT
+          inside the same scroller, and glass could not survive it: the class
+          paints only `rgb(255 255 255 / 7%)` and leaves the separation to
+          `backdrop-filter`, which measured as contributing NOTHING here — pushed
+          to blur(40px) the text underneath stayed pixel-crisp. The header sat
+          above the content (z-10, and hit-testing confirmed it) but you could
+          read straight through it, so the ticker, the badge and the buttons
+          landed on top of the filing rows with both illegible.
+
+          Even had the blur worked it would not have been enough: blur smears the
+          backdrop, it does not hide it, and a 7% film over #0f1115 cannot cover
+          #e8eaf0 body text. Legibility beats the effect, so this takes the flat
+          page colour and lets the border draw the edge.
+
+          `glass-chrome` itself is UNCHANGED and still right for the sidebar, the
+          news panel and the toasts — nothing scrolls behind any of those. */}
       {/* `min-h-22` is the box the skeleton reserves. Pinning it here too means the
           header is one fixed height whether or not ThesisHoldingLine has anything
           to render — that line arrives on its own request, and without this it
           grew the header under the reader a second after the page painted. */}
-      <header className="glass-chrome sticky top-0 z-10 -mx-12 mt-6 mb-6 flex min-h-22 flex-wrap items-start justify-between gap-4 border-b px-12 py-4">
+      <header className="sticky top-0 z-10 -mx-12 mt-6 mb-6 flex min-h-22 flex-wrap items-start justify-between gap-4 border-b border-border bg-background px-12 py-4">
         <div className="flex flex-wrap items-center gap-3">
           {/* Detail-page ticker in the display font (weight 400). The list-card
               tickers stay on the sans — display font is for titles, not data rows. */}

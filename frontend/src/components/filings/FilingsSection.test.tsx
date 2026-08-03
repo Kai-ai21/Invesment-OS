@@ -143,6 +143,41 @@ describe('FilingsSection', () => {
     resolve(summary())
   })
 
+  it('disables the action while the filing is being read', async () => {
+    let resolve: (value: FilingSummary) => void = () => {}
+    summariseFiling.mockReturnValue(
+      new Promise<FilingSummary>((r) => {
+        resolve = r
+      }),
+    )
+    renderSection()
+    fireEvent.click(await screen.findByRole('button', { name: /summarise/i }))
+
+    // Disabled is what suppresses every hover effect; the CSS hangs its hover and
+    // press rules off :not(:disabled).
+    const action = await screen.findByRole('button', { name: /reading/i })
+    expect(action).toBeDisabled()
+
+    resolve(summary())
+    await screen.findByRole('button', { name: /hide/i })
+  })
+
+  it('toggles the action between Summarise and Hide, and turns the arrow', async () => {
+    renderSection()
+    fireEvent.click(await screen.findByRole('button', { name: /summarise/i }))
+
+    // data-expanded drives the 90deg rotation in CSS; aria-expanded is what a
+    // screen reader reads. Both, or the visual and the announced state drift.
+    const action = await screen.findByRole('button', { name: /hide/i })
+    expect(action).toHaveAttribute('data-expanded', 'true')
+    expect(action).toHaveAttribute('aria-expanded', 'true')
+
+    fireEvent.click(action)
+    const collapsed = await screen.findByRole('button', { name: /summarise/i })
+    expect(collapsed).toHaveAttribute('data-expanded', 'false')
+    expect(collapsed).toHaveAttribute('aria-expanded', 'false')
+  })
+
   it('does not re-request a summary it has already read', async () => {
     renderSection()
     const button = await screen.findByRole('button', { name: /summarise/i })
@@ -151,11 +186,11 @@ describe('FilingsSection', () => {
 
     // Collapse, then reopen. A summary costs an AI call and 10-20 seconds; paying
     // for it twice because someone closed a row is the bug this guards.
-    fireEvent.click(screen.getByRole('button', { name: /summary/i }))
+    fireEvent.click(screen.getByRole('button', { name: /hide/i }))
     await waitFor(() =>
       expect(screen.queryByText(/A 10-Q is a quarterly report/)).not.toBeInTheDocument(),
     )
-    fireEvent.click(screen.getByRole('button', { name: /summarise|summary/i }))
+    fireEvent.click(screen.getByRole('button', { name: /summarise/i }))
 
     await screen.findByText(/A 10-Q is a quarterly report/)
     expect(summariseFiling).toHaveBeenCalledTimes(1)
@@ -169,6 +204,15 @@ describe('FilingsSection', () => {
     expect(await screen.findByRole('alert')).toBeInTheDocument()
     // The list itself is untouched — the row is still there to try again.
     expect(screen.getByText('NVDA 10-Q 2026-05-20')).toBeInTheDocument()
+  })
+
+  it('says "an 8-K" but "a 10-Q" — the article follows how the form is said', async () => {
+    const eightK = { ...TEN_Q, form: '8-K', accession_number: '8k-1' }
+    listFilings.mockResolvedValue([eightK])
+    summariseFiling.mockResolvedValue(summary({ filing: eightK }))
+    renderSection()
+    fireEvent.click(await screen.findByRole('button', { name: /summarise/i }))
+    expect(await screen.findByText('What an 8-K is')).toBeInTheDocument()
   })
 
   it('treats an empty filing list as a normal answer, not an error', async () => {

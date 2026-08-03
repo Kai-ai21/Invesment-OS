@@ -1,5 +1,5 @@
 import { useCallback, useId, useState } from 'react'
-import { ChevronDown, ChevronRight, ExternalLink, FileText, Loader2 } from 'lucide-react'
+import { ArrowRight, ExternalLink, FileText, Loader2 } from 'lucide-react'
 import { Link } from 'react-router'
 
 import { Count } from '@/components/Count'
@@ -204,21 +204,31 @@ function FilingRow({
           <ExternalLink className="size-3 shrink-0" aria-hidden />
         </a>
 
+        {/* ⚠️ NOT the shared <Button>, and emphatically not the gradient variant —
+            see .filing-action in index.css for why a repeated row action gets its
+            own quiet pill. `data-expanded` drives the arrow's rotation there;
+            aria-expanded is what a screen reader reads, and CSS cannot depend on
+            it alone without the two silently drifting apart. */}
         <button
           type="button"
           onClick={onToggle}
+          disabled={loading}
+          data-expanded={open}
           aria-expanded={open}
           aria-controls={panelId}
-          className="ml-auto flex shrink-0 items-center gap-1 rounded-lg text-xs text-text-muted transition-colors hover:text-text-secondary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+          className="filing-action ml-auto shrink-0 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          {open ? (
-            <ChevronDown className="size-3.5" aria-hidden />
+          {loading ? (
+            <Loader2 className="size-3 animate-spin" aria-hidden />
           ) : (
-            <ChevronRight className="size-3.5" aria-hidden />
+            // LEFT of the label, deliberately: it reads as "open this", pointing
+            // into the row rather than off the end of it.
+            <ArrowRight className="filing-action-arrow size-3" aria-hidden />
           )}
-          {/* "Summarise" once, "Summary" thereafter: the second press is no longer
-              asking for work, it is reopening something already read. */}
-          {summary ? 'Summary' : 'Summarise'}
+          {/* Three labels for three states. "Summarise" is a request for work;
+              "Hide" is the collapse of something already read — the second press
+              costs nothing, and the word should not imply it does. */}
+          {loading ? 'Reading…' : open ? 'Hide' : 'Summarise'}
         </button>
       </div>
 
@@ -251,6 +261,19 @@ function ReadingNote() {
   )
 }
 
+/**
+ * "an 8-K", but "a 10-K" and "a 10-Q" — the article follows how the form is SAID,
+ * not how it is spelt, and "8" is the only one of these that starts on a vowel
+ * sound ("eight-kay"). A bare `a ${form}` printed "What a 8-K is" on every 8-K,
+ * which is most of the list.
+ *
+ * Keyed on the leading digit rather than a list of forms, so an amendment (8-K/A)
+ * or a form we have not seen still reads correctly.
+ */
+function articleFor(form: string): string {
+  return /^8/.test(form.trim()) ? 'an' : 'a'
+}
+
 function SummaryBody({
   summary,
   linkClaims,
@@ -262,7 +285,7 @@ function SummaryBody({
     <div className="flex flex-col gap-5">
       {/* What this KIND of document is for — the context that makes the rest
           readable to someone who has never opened a filing. */}
-      <SummaryBlock title={`What a ${summary.filing.form} is`}>
+      <SummaryBlock title={`What ${articleFor(summary.filing.form)} ${summary.filing.form} is`}>
         <p className="font-serif text-base leading-relaxed text-text-primary">
           {summary.filing_type_explained}
         </p>

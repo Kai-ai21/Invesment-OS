@@ -922,6 +922,110 @@
       transition: none;
     }
   }
+
+  /* ---- filing row action ---------------------------------------------------
+     The "Summarise" / "Hide" pill on every filing row.
+
+     ⚠️ DELIBERATELY NOT THE GRADIENT BORDER ABOVE, and not the shared <Button>
+     either. The gradient pill is the ONE main action on a page — "New thesis",
+     the landing CTA — and its whole value is that there is only ever one of it
+     in view. A filing list puts eight of these on screen at once; wearing the
+     primary treatment they would out-shout the page's actual primary action and
+     the gradient would stop meaning anything. So: a plain outlined pill, and the
+     arrow is what carries the life instead of a border that travels.
+
+     It skips <Button> because that class carries `btn-sweep` — a mix-blend
+     circle sweep and a lift, neither of which is wanted here and both of which
+     would fight the arrow. The geometry is its own too: a 12px label against a
+     12px icon, at 5px/13px, matches no size on that scale.
+
+     Timing is asymmetric the same way the CTA's is, and for the same reason: the
+     base rule below carries the LEAVE duration (260ms) and :hover overrides it
+     with the ENTER (200ms), so the arrow returns a little slower than it goes —
+     settling rather than snapping back. */
+  .filing-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid rgb(255 255 255 / 0.28);
+    border-radius: 99px;
+    background: transparent;
+    padding: 5px 13px;
+    font-size: 12px;
+    line-height: 1;
+    color: var(--text-primary);
+    transition:
+      border-color 260ms cubic-bezier(0.22, 0.61, 0.36, 1),
+      transform 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  .filing-action:not(:disabled):hover {
+    border-color: rgb(255 255 255 / 0.48);
+    transition-duration: 200ms;
+  }
+
+  /* Declared after :hover so it wins when both match — a press is always also a
+     hover. Its own short duration too: 200ms into a press reads as lag, where
+     the release still eases back over the 260ms above. */
+  .filing-action:not(:disabled):active {
+    transform: scale(0.98);
+    transition-duration: 120ms;
+  }
+
+  /* Disabled is the READING state — an AI call is in flight and pressing again
+     would do nothing. No border lift, no arrow, no press. */
+  .filing-action:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .filing-action-arrow {
+    transition: transform 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  /* ⚠️ THE ROTATION IS PART OF THE TRANSFORM, not a separate utility, because a
+     Tailwind `rotate-90` would be a second `transform` declaration and the last
+     one wins — the slide would silently replace it and the expanded row's arrow
+     would snap back to pointing right on hover. Both states therefore write the
+     full transform, and `translateX` is listed FIRST so it acts in the button's
+     own frame: after a 90deg rotation, a translate on the right would push the
+     arrow DOWNWARD instead of along the row. */
+  .filing-action[data-expanded="true"] .filing-action-arrow {
+    transform: rotate(90deg);
+  }
+
+  /* HOVER ONLY, never :focus-visible. Focus already has the ring; adding the
+     slide would leave the two states indistinguishable for anyone tabbing. */
+  .filing-action:not(:disabled):hover .filing-action-arrow {
+    transform: translateX(3px);
+    transition-duration: 200ms;
+  }
+  .filing-action[data-expanded="true"]:not(:disabled):hover .filing-action-arrow {
+    transform: translateX(3px) rotate(90deg);
+    transition-duration: 200ms;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* The ROTATION STAYS — it is orientation, and it is the only thing telling
+       an expanded row from a collapsed one at a glance. What goes is the travel:
+       the slide and the press. */
+    .filing-action,
+    .filing-action:not(:disabled):hover,
+    .filing-action:not(:disabled):active {
+      transform: none;
+      transition: none;
+    }
+    .filing-action-arrow,
+    .filing-action:not(:disabled):hover .filing-action-arrow {
+      transform: none;
+      transition: none;
+    }
+    .filing-action[data-expanded="true"] .filing-action-arrow,
+    .filing-action[data-expanded="true"]:not(:disabled):hover
+      .filing-action-arrow {
+      transform: rotate(90deg);
+    }
+  }
 }
 
 /* Outside every layer: @property is not subject to the cascade, and registering

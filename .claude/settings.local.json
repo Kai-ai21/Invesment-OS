@@ -230,7 +230,8 @@
       "Bash(python3 -m json.tool)",
       "Bash(curl -s http://localhost:8000/theses/24149f7c-a1ea-4be3-a403-82d5f6ad8dc1/evidence)",
       "Bash(python3 -c \"import json,sys; print\\('evidence events:', len\\(json.load\\(sys.stdin\\)\\)\\)\")",
-      "Bash(python3 -c \"import json,sys; t=json.load\\(sys.stdin\\)[0]; print\\('thesis status:', t['status'], '| claim statuses:', [c['status'] for c in t['claims']]\\)\")"
+      "Bash(python3 -c \"import json,sys; t=json.load\\(sys.stdin\\)[0]; print\\('thesis status:', t['status'], '| claim statuses:', [c['status'] for c in t['claims']]\\)\")",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" -X POST http://localhost:8000/filings/summarise -H \"Content-Type: application/json\" -d '{\"ticker\":\"NVDA\",\"url\":\"https://www.sec.gov/Archives/edgar/data/1045810/000104581026000024/nvda-20260302.htm\",\"title\":\"NVDA 8-K 2026-03-06\"}')"
     ]
   }
 }
