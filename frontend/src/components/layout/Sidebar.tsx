@@ -4,6 +4,7 @@ import {
   List,
   Newspaper,
   NotebookPen,
+  LogOut,
   PanelLeftClose,
   PanelLeftOpen,
   Wallet,
@@ -13,6 +14,7 @@ import { NavLink, useLocation } from 'react-router'
 
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
+import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 
 interface NavItem {
@@ -304,25 +306,70 @@ export function Sidebar({
           Search (⌘K) and Settings belong here too, and are left out until there
           is a command palette and a settings page to open: a row that does
           nothing when clicked reads as broken, not as forthcoming. */}
-      <div
-        className={cn(
-          'mt-4 shrink-0 border-t border-border pt-3',
-          collapsed && 'flex justify-center',
-        )}
-      >
-        {/* Secondary rather than muted: against the glass panel #6b7280
-            measures 2.9:1, below AA-large. */}
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={onToggle}
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="text-text-secondary hover:text-text-primary"
-        >
-          {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
-        </Button>
+      <div className="mt-4 shrink-0 border-t border-border pt-3">
+        <AccountBlock collapsed={collapsed} />
+
+        <div className={cn('mt-1', collapsed && 'flex justify-center')}>
+          {/* Secondary rather than muted: against the glass panel #6b7280
+              measures 2.9:1, below AA-large. */}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onToggle}
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="text-text-secondary hover:text-text-primary"
+          >
+            {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+          </Button>
+        </div>
       </div>
     </aside>
+  )
+}
+
+
+/**
+ * Who is signed in, and the way out.
+ *
+ * The email is MUTED AND SMALL on purpose: it answers "which account is this"
+ * for someone who has more than one, and is otherwise the least interesting
+ * text on the screen. Sizing it like a nav item would give an identity label
+ * the same weight as the things the app is actually for.
+ */
+function AccountBlock({ collapsed }: { collapsed: boolean }) {
+  const { user, logout } = useAuth()
+
+  return (
+    <div className={cn('flex flex-col gap-1', collapsed && 'items-center')}>
+      {/* Truncated rather than wrapped: a long address must not grow the footer
+          and push the nav's scroll area around. The title attribute is the escape
+          hatch for reading the whole thing. */}
+      {!collapsed && user && (
+        <p
+          className="truncate px-2.5 text-xs text-text-muted"
+          title={user.email}
+        >
+          {user.email}
+        </p>
+      )}
+
+      <Tooltip side="right" content={collapsed ? `Log out${user ? ` (${user.email})` : ''}` : null}>
+        <button
+          type="button"
+          onClick={logout}
+          className={cn(
+            'flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm transition-colors',
+            'text-text-secondary hover:bg-surface-raised/60 hover:text-text-primary',
+            'focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
+            collapsed && 'justify-center px-0',
+          )}
+        >
+          <LogOut className="size-4 shrink-0" aria-hidden />
+          {!collapsed && <span className="truncate">Log out</span>}
+          {collapsed && <span className="sr-only">Log out</span>}
+        </button>
+      </Tooltip>
+    </div>
   )
 }

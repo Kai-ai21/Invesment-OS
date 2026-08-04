@@ -605,6 +605,19 @@
     }
   }
 
+  /**
+   * ⚠️ THE DELAY IS THE POINT, not the fade. The session check is one request to
+   * localhost and usually resolves within a frame or two — a spinner that appeared
+   * instantly would flash on and off on every single page load, which reads as the
+   * app stuttering rather than as it working. Held invisible for 150ms first, so a
+   * fast check shows nothing at all and only a genuinely slow one is announced.
+   */
+  @keyframes fade-in-delayed {
+    to {
+      opacity: 1;
+    }
+  }
+
   @keyframes page-out {
     from {
       opacity: 1;

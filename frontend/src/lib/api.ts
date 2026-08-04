@@ -1,3 +1,5 @@
+import { handleUnauthorized, readToken } from "@/lib/authToken"
+
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:8000"
 
 /* ---------------------------------------------------------------------------
@@ -501,21 +503,53 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+/**
+ * ⚠️ THE ONE PLACE THE TOKEN IS ATTACHED, AND THE ONE PLACE A 401 IS HANDLED.
+ *
+ * Every endpoint function below goes through here, so authentication is a property
+ * of the transport rather than something each of the ~30 callers has to remember.
+ * Adding an endpoint gets it for free; forgetting is not possible.
+ *
+ * `skipAuth` exists for exactly the two routes that must NOT send a token — signup
+ * and login — because sending a stale one there would make a 401 from the global
+ * handler fire during the very act of logging in.
+ */
+async function request<T>(
+  path: string,
+  init?: RequestInit & { skipAuth?: boolean },
+): Promise<T> {
+  const { skipAuth, ...requestInit } = init ?? {}
+  const token = skipAuth ? null : readToken()
+
   let response: Response
   try {
     response = await fetch(`${API_BASE}${path}`, {
-      ...init,
+      ...requestInit,
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        ...init?.headers,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...requestInit.headers,
       },
     })
   } catch (cause) {
     // fetch only rejects on network-level failure — usually the backend is down
     // or CORS blocked the request before a status was ever seen.
     throw new NetworkError(path, { cause })
+  }
+
+  if (response.status === 401 && !skipAuth) {
+    // ⚠️ HANDLED GLOBALLY, HERE, RATHER THAN AT ~30 CALL SITES. A token expires
+    // while the app is open — mid-session, on whatever page the user happens to be
+    // on — and every one of them would otherwise surface "Error: 401", which tells
+    // the user nothing and offers them nothing to do.
+    //
+    // The token is cleared and the app is told; AuthContext turns that into a
+    // redirect to /login carrying SESSION_EXPIRED_MESSAGE. The error is still
+    // thrown, so the caller's own error handling still runs and no request
+    // resolves with a value it never received.
+    handleUnauthorized()
+    throw new ApiError(401, await response.text(), path)
   }
 
   if (!response.ok) {
@@ -886,4 +920,51 @@ export function searchTickers(query: string, limit = 8): Promise<TickerMatch[]> 
   return request<TickerMatch[]>(
     `/tickers/search?q=${encodeURIComponent(query)}&limit=${limit}`,
   )
+}
+
+/* ---------------------------------------------------------------------------
+ * Auth
+ * ------------------------------------------------------------------------- */
+
+/** UserOut. Deliberately never carries password_hash — see backend/api/schemas.py. */
+export interface User {
+  id: string
+  email: string
+}
+
+/** TokenResponse */
+export interface AuthToken {
+  access_token: string
+  token_type: string
+}
+
+/**
+ * ⚠️ BOTH OF THESE PASS skipAuth. They are the two routes the backend leaves
+ * public, and they are the only two that must not carry an Authorization header:
+ * a stale token sent here would trip the global 401 handler in `request` and fire
+ * a "session expired" redirect in the middle of someone logging in.
+ */
+export function signup(email: string, password: string): Promise<AuthToken> {
+  return request<AuthToken>('/auth/signup', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+    skipAuth: true,
+  })
+}
+
+export function login(email: string, password: string): Promise<AuthToken> {
+  return request<AuthToken>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+    skipAuth: true,
+  })
+}
+
+/**
+ * Who the stored token belongs to. This is the token VALIDATION call: the backend
+ * checks signature, expiry and that the account still exists, so a 401 here is the
+ * definitive answer that a stored token is no longer usable.
+ */
+export function getMe(): Promise<User> {
+  return request<User>('/auth/me')
 }
