@@ -6,8 +6,9 @@ from backend.api.schemas import (
     HoldingUpdateRequest,
     PortfolioOut,
 )
-from backend.api.dependencies import current_user_id
+from backend.api.deps import get_current_user
 from backend.models.database import get_db
+from backend.models.user import User
 from backend.repositories import holding_repository
 from backend.services.portfolio_service import get_portfolio
 
@@ -16,7 +17,7 @@ router = APIRouter(prefix="/holdings", tags=["holdings"])
 
 @router.get("", response_model=PortfolioOut)
 def read_portfolio(
-    db: Session = Depends(get_db), user_id: str = Depends(current_user_id)
+    db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
     """The portfolio: every holding with its computed values, plus totals.
 
@@ -24,14 +25,14 @@ def read_portfolio(
     already reported on the row that failed — failing the whole request would throw
     away nine good rows because of one bad ticker.
     """
-    return get_portfolio(db, user_id)
+    return get_portfolio(db, user.id)
 
 
 @router.post("", response_model=PortfolioOut, status_code=201)
 def create_holding(
     body: HoldingCreateRequest,
     db: Session = Depends(get_db),
-    user_id: str = Depends(current_user_id),
+    user: User = Depends(get_current_user),
 ):
     """Add a holding. Invalid input is rejected by the schema as a 422.
 
@@ -41,14 +42,14 @@ def create_holding(
     """
     holding_repository.create_holding(
         db,
-        user_id=user_id,
+        user_id=user.id,
         ticker=body.ticker,  # already normalised to uppercase by the schema
         shares=body.shares,
         average_cost=body.average_cost,
         purchased_at=body.purchased_at,
         note=body.note,
     )
-    return get_portfolio(db, user_id)
+    return get_portfolio(db, user.id)
 
 
 @router.patch("/{holding_id}", response_model=PortfolioOut)
@@ -56,12 +57,12 @@ def update_holding(
     holding_id: str,
     body: HoldingUpdateRequest,
     db: Session = Depends(get_db),
-    user_id: str = Depends(current_user_id),
+    user: User = Depends(get_current_user),
 ):
     updated = holding_repository.update_holding(
         db,
         holding_id,
-        user_id,
+        user.id,
         shares=body.shares,
         average_cost=body.average_cost,
         note=body.note,
@@ -71,15 +72,15 @@ def update_holding(
     )
     if updated is None:
         raise HTTPException(status_code=404, detail="Holding not found")
-    return get_portfolio(db, user_id)
+    return get_portfolio(db, user.id)
 
 
 @router.delete("/{holding_id}", status_code=204)
 def delete_holding(
     holding_id: str,
     db: Session = Depends(get_db),
-    user_id: str = Depends(current_user_id),
+    user: User = Depends(get_current_user),
 ):
-    if not holding_repository.delete_holding(db, holding_id, user_id):
+    if not holding_repository.delete_holding(db, holding_id, user.id):
         raise HTTPException(status_code=404, detail="Holding not found")
     return Response(status_code=204)

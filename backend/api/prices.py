@@ -1,14 +1,16 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from backend.adapters.yfinance_price_source import PriceError
+from backend.api.deps import get_current_user
 from backend.api.schemas import PriceHistoryOut, PricePointOut
+from backend.models.user import User
 from backend.services.price_service import get_history, get_price
 
 router = APIRouter(prefix="/prices", tags=["prices"])
 
 
 @router.get("/{ticker}", response_model=PricePointOut)
-def read_price(ticker: str):
+def read_price(ticker: str, user: User = Depends(get_current_user)):
     """The latest price for a ticker.
 
     404 when the ticker is unknown, 502 when the upstream is unavailable — the two are
@@ -26,7 +28,11 @@ def read_price(ticker: str):
 
 
 @router.get("/{ticker}/history", response_model=PriceHistoryOut)
-def read_price_history(ticker: str, days: int = Query(default=365, ge=1, le=1825)):
+def read_price_history(
+    ticker: str,
+    days: int = Query(default=365, ge=1, le=1825),
+    user: User = Depends(get_current_user),
+):
     try:
         points = get_history(ticker, days=days)
     except PriceError as exc:

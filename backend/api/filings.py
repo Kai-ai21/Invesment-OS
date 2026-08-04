@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from backend.api.dependencies import current_user_id
+from backend.api.deps import get_current_user
 from backend.api.schemas import FilingOut, FilingSummariseRequest, FilingSummaryOut
 from backend.models.database import get_db
+from backend.models.user import User
 from backend.services.filing_service import (
     FilingNotListedError,
     FilingSourceError,
@@ -18,6 +19,7 @@ router = APIRouter(prefix="/filings", tags=["filings"])
 def read_filings(
     ticker: str,
     limit: int = Query(default=10, ge=1, le=50),
+    user: User = Depends(get_current_user),
 ):
     """Recent 10-K, 10-Q and 8-K filings for one ticker, newest first.
 
@@ -45,7 +47,7 @@ def read_filings(
 def summarise(
     request: FilingSummariseRequest,
     db: Session = Depends(get_db),
-    user_id: str = Depends(current_user_id),
+    user: User = Depends(get_current_user),
 ):
     """One filing, restated in plain language.
 
@@ -64,7 +66,7 @@ def summarise(
     SEC or the AI call failed.
     """
     try:
-        summary = summarise_filing(db, request.ticker, request.url, user_id)
+        summary = summarise_filing(db, request.ticker, request.url, user.id)
     except FilingNotListedError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except FilingSourceError as exc:

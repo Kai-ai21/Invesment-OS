@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from backend.adapters.edgar_source import EdgarError
+from backend.api.deps import get_current_user
 from backend.api.schemas import TickerMatchOut
+from backend.models.user import User
 from backend.services.ticker_service import search_tickers
 
 router = APIRouter(prefix="/tickers", tags=["tickers"])
@@ -11,6 +13,7 @@ router = APIRouter(prefix="/tickers", tags=["tickers"])
 def search(
     q: str = Query(default="", description="Partial ticker or company name."),
     limit: int = Query(default=8, ge=1, le=25),
+    user: User = Depends(get_current_user),
 ):
     """Ticker suggestions from the SEC's company list.
 

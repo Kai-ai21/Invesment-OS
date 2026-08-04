@@ -266,7 +266,15 @@
       "Bash(cp /tmp/tr.bak backend/repositories/thesis_repository.py)",
       "Bash(cp /tmp/hr.bak backend/repositories/holding_repository.py)",
       "Bash(cp /tmp/pr.bak backend/repositories/pattern_repository.py)",
-      "Bash(rm -f /tmp/tr.bak /tmp/hr.bak /tmp/pr.bak)"
+      "Bash(rm -f /tmp/tr.bak /tmp/hr.bak /tmp/pr.bak)",
+      "Bash(./venv/bin/python -m pytest tests/test_scoping.py::test_pattern_list_contains_none_of_the_other_users -q)",
+      "Bash(./venv/bin/python -m pytest tests/test_prices.py -q)",
+      "Bash(./venv/bin/python -c \"import backend.main; print\\('ok'\\)\")",
+      "Bash(./venv/bin/python -m pytest tests/test_auth_required.py -q)",
+      "Bash(cp backend/api/alerts.py /tmp/al.bak)",
+      "Bash(cp backend/api/deps.py /tmp/dp.bak)",
+      "Bash(cp /tmp/dp.bak backend/api/deps.py)",
+      "Bash(rm -f /tmp/al.bak /tmp/dp.bak)"
     ]
   }
 }

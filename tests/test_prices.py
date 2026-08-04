@@ -11,7 +11,14 @@ from backend.adapters.yfinance_price_source import (  # noqa: E402
     PriceNetworkError,
     PriceUnavailableError,
 )
+from backend.core.security import create_access_token  # noqa: E402
 from backend.main import app  # noqa: E402
+from backend.models.base import Base  # noqa: E402
+from backend.models.database import get_db  # noqa: E402
+from backend.models.user import User  # noqa: E402
+from sqlalchemy import create_engine  # noqa: E402
+from sqlalchemy.orm import sessionmaker  # noqa: E402
+from sqlalchemy.pool import StaticPool  # noqa: E402
 from backend.ports.price_source import PricePoint, PriceSource  # noqa: E402
 from backend.services import price_service  # noqa: E402
 
@@ -169,7 +176,34 @@ def test_an_unknown_ticker_is_cached_because_it_is_a_real_answer():
 
 @pytest.fixture
 def client():
-    return TestClient(app)
+    """An AUTHENTICATED client. /prices is protected as of A3.
+
+    The prices endpoints read no user data, but they do spend this deployment's
+    upstream quota, so they are behind a token like everything else — which means
+    these tests now have to carry one. The client sends it on every request, so the
+    assertions below stay about prices rather than about auth; the auth behaviour
+    itself is tested in test_auth_required.py.
+    """
+    engine = create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
+    Base.metadata.create_all(bind=engine)
+    session = sessionmaker(bind=engine)()
+    user = User(email="prices@example.com", password_hash="!")
+    session.add(user)
+    session.commit()
+
+    app.dependency_overrides[get_db] = lambda: session
+    test_client = TestClient(app)
+    test_client.headers.update(
+        {"Authorization": f"Bearer {create_access_token(user.id)}"}
+    )
+    try:
+        yield test_client
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+        engine.dispose()
 
 
 def test_unknown_ticker_returns_404(client, monkeypatch):

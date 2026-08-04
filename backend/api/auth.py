@@ -1,10 +1,10 @@
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from backend.api.deps import get_current_user
 from backend.api.schemas import (
     LoginRequest,
     SignupRequest,
@@ -13,7 +13,6 @@ from backend.api.schemas import (
 )
 from backend.core.security import (
     create_access_token,
-    decode_access_token,
     hash_password,
     verify_password,
 )
@@ -38,8 +37,6 @@ INVALID_CREDENTIALS_MESSAGE = "Incorrect email or password."
 # that this is a REAL bcrypt hash at the SAME cost factor as the stored ones, so the
 # work done is genuinely equal rather than approximately so.
 _DUMMY_PASSWORD_HASH = hash_password("dummy-password-for-constant-time-login")
-
-_bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def _signup_allowed() -> bool:
@@ -123,49 +120,13 @@ def login(body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
     return TokenResponse(access_token=create_access_token(user.id))
 
 
-def _current_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
-    db: Session = Depends(get_db),
-) -> User:
-    """TEMPORARY. A3 replaces this with the shared dependency.
-
-    ⚠️ THIS IS A PLACEHOLDER AND SHOULD NOT ACQUIRE CALLERS. It lives here, private
-    to this module, so /auth/me has something to run against before A3 exists — the
-    moment it is imported elsewhere it stops being easy to delete. A3 introduces the
-    real dependency (in a module the whole API can depend on, with the router-level
-    wiring that actually protects endpoints); when it lands, this goes and /auth/me
-    switches over to it. No endpoint other than /auth/me is protected today.
-    """
-    if credentials is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    user_id = decode_access_token(credentials.credentials)
-    if user_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    # ⚠️ THE DATABASE STILL DECIDES. A signature that verifies only proves the token
-    # was issued by us; it does not prove the account survived. A deleted user's
-    # token stays cryptographically valid until it expires, so the row is looked up
-    # rather than trusted from the claim.
-    user = db.query(User).filter(User.id == user_id).first()
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    return user
-
-
 @router.get("/me", response_model=UserOut)
-def read_me(user: User = Depends(_current_user)) -> User:
-    """The signed-in user. UserOut is what keeps password_hash out of the response."""
+def read_me(user: User = Depends(get_current_user)) -> User:
+    """The signed-in user. UserOut is what keeps password_hash out of the response.
+
+    A1 shipped this against a private `_current_user` in this module, explicitly
+    marked as A3's to delete. It is deleted: there is now exactly one place in the
+    API that turns a token into a User, so there is exactly one place where that can
+    be got wrong.
+    """
     return user

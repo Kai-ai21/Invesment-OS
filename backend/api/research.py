@@ -1,15 +1,21 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from backend.api.deps import get_current_user
 from backend.api.schemas import ResearchOut
 from backend.models.database import get_db
+from backend.models.user import User
 from backend.services.research_service import ResearchUnavailableError, get_research
 
 router = APIRouter(prefix="/research", tags=["research"])
 
 
 @router.get("/{ticker}", response_model=ResearchOut)
-def read_research(ticker: str, db: Session = Depends(get_db)):
+def read_research(
+    ticker: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     """Profile plus a plain-language summary of the company's latest filing.
 
     SLOW on a cold cache — a filing fetch, two retrieval passes and one AI call, so

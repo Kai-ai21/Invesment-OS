@@ -1,13 +1,15 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from backend.api.deps import get_current_user
 from backend.api.schemas import QuoteOut
+from backend.models.user import User
 from backend.services.market_service import get_market_leaders
 
 router = APIRouter(prefix="/market", tags=["market"])
 
 
 @router.get("/leaders", response_model=list[QuoteOut])
-def read_market_leaders():
+def read_market_leaders(user: User = Depends(get_current_user)):
     """The curated leader list, ranked by live market cap.
 
     No error status here, deliberately. Failure is per-ticker and already reported
