@@ -10,3 +10,19 @@ pytest
 sentence-transformers
 chromadb
 yfinance
+
+# --- auth -------------------------------------------------------------------------
+# NOT passlib. See backend/core/security.py for the full reasoning: passlib 1.7.4
+# (its last release, October 2020) is broken against bcrypt 5.x and raises on every
+# hash call, including 10-character passwords. bcrypt is the library passlib was
+# wrapping anyway, it is actively maintained, and the two calls we need from it are
+# one line each.
+bcrypt>=4.1,<6
+# PyJWT, not python-jose: python-jose' last release was 2021 and it carries unfixed
+# CVEs (2024-33663 algorithm confusion, 2024-33664 JWE decompression DoS). FastAPI's
+# own docs moved off it for the same reason. Plain `pyjwt`, not `pyjwt[crypto]` — the
+# cryptography extra is only needed for RS/ES algorithms, and HS256 is HMAC-SHA256
+# out of the standard library.
+pyjwt>=2.10,<3
+# Backs pydantic's EmailStr, which is what validates the signup address.
+email-validator>=2.0

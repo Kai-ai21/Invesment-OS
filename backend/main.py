@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.alerts import router as alerts_router
+from backend.api.auth import router as auth_router
 from backend.api.filings import router as filings_router
 from backend.api.holdings import router as holdings_router
 from backend.api.market import router as market_router
@@ -37,6 +38,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
 app.include_router(theses_router)
 app.include_router(alerts_router)
 app.include_router(news_router)

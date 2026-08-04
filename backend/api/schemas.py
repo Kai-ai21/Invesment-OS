@@ -1,7 +1,15 @@
 from datetime import date as DateOnly, datetime
 
-from pydantic import BaseModel, Field, computed_field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    computed_field,
+    field_validator,
+)
 
+from backend.core.security import MAX_PASSWORD_BYTES
 from backend.domain.company_domains import logo_url_for_ticker
 from backend.domain.status import CLAIM_SCORE_SCALE
 
@@ -504,3 +512,93 @@ class PortfolioTotalsOut(BaseModel):
 class PortfolioOut(BaseModel):
     holdings: list[HoldingOut]
     totals: PortfolioTotalsOut
+
+
+# --- auth -------------------------------------------------------------------------
+
+
+def _normalise_email(value: str) -> str:
+    """Trim and lowercase. Applied on the way IN, so storage and lookup agree.
+
+    ⚠️ NORMALISING ON WRITE IS WHAT MAKES THE UNIQUE CONSTRAINT MEAN ANYTHING.
+    "Ada@Example.com " and "ada@example.com" are the same mailbox; stored raw, the
+    database sees two distinct strings and happily creates two accounts for one
+    person, and whichever one they land in at login is down to how they typed it.
+    """
+    return value.strip().lower()
+
+
+class SignupRequest(BaseModel):
+    # EmailStr rather than str: format is checked here, so the route never has to,
+    # and a malformed address is a 422 from the schema rather than a hand-written
+    # branch. `mode="before"` so the trim/lowercase happens FIRST — otherwise a
+    # trailing space fails validation before it can be stripped.
+    email: EmailStr
+    # 8 characters is the floor the brief set. The MAXIMUM is not a policy: bcrypt
+    # cannot hash more than 72 BYTES and raises above that, so an over-long password
+    # would 500 on the way to the hasher. Checked in bytes by the validator below,
+    # because max_length counts characters and the two differ for anything non-ASCII.
+    password: str = Field(min_length=8)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalise_email(cls, value: str) -> str:
+        return _normalise_email(value) if isinstance(value, str) else value
+
+    @field_validator("password")
+    @classmethod
+    def password_fits_bcrypt(cls, value: str) -> str:
+        encoded = value.encode("utf-8")
+        if len(encoded) > MAX_PASSWORD_BYTES:
+            raise ValueError(
+                f"Password must be at most {MAX_PASSWORD_BYTES} bytes "
+                f"({len(encoded)} given; note that accented and non-Latin characters "
+                "take more than one byte each)."
+            )
+        return value
+
+
+class LoginRequest(BaseModel):
+    """⚠️ `email` IS A PLAIN str HERE, NOT EmailStr, AND THAT IS DELIBERATE.
+
+    Login must answer identically for every failure. If this field validated the
+    address format, a malformed email would come back 422 while an unknown-but-valid
+    one came back 401 — a difference an attacker can read. Everything that is not the
+    right password for an existing account gets the same 401 and the same sentence.
+
+    The password has no length rules either, for the same reason: rejecting a
+    7-character attempt at the schema would say "that is not even long enough to be
+    one of our passwords", which is a fact about our policy, but the 422/401 split
+    also tells them the request never reached the account lookup.
+    """
+
+    email: str
+    password: str
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalise_email(cls, value: str) -> str:
+        return _normalise_email(value) if isinstance(value, str) else value
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    # "bearer" is what the OAuth2 spec calls this and what the Authorization header
+    # must say. Constant for now; it stays a field because clients are expected to
+    # read it rather than hard-code the word.
+    token_type: str = "bearer"
+
+
+class UserOut(BaseModel):
+    """The public shape of a user.
+
+    ⚠️ THE ABSENCE OF password_hash IS THE ENTIRE JOB OF THIS CLASS. It is an
+    explicit allow-list, not a copy of the model with one field removed: a field
+    added to User later does not appear here until somebody adds it on purpose, so
+    the next secret to land on that table is not published by default.
+    """
+
+    id: str
+    email: str
+
+    model_config = ConfigDict(from_attributes=True)

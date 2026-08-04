@@ -12,7 +12,7 @@ from backend.models.holding import Holding  # noqa: F401 (registers mapper with 
 from backend.models.pattern import Pattern  # noqa: F401 (registers mapper with Base)
 from backend.models.post_mortem import PostMortem  # noqa: F401 (registers mapper with Base)
 from backend.models.thesis import Thesis  # noqa: F401 (registers mapper with Base)
-from backend.models.user import User
+from backend.models.user import UNUSABLE_PASSWORD_HASH, User
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "investment_os.db")
 DATABASE_URL = f"sqlite:///{DB_PATH}"
@@ -23,12 +23,61 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
+    _add_missing_user_auth_columns()
+
+
+def _add_missing_user_auth_columns() -> None:
+    """Bring an EXISTING users table up to the current model. Idempotent.
+
+    ⚠️ WITHOUT THIS, ADDING password_hash TO THE MODEL BREAKS THE WHOLE APP.
+    `create_all` only ever CREATES missing tables — it does not alter tables that
+    already exist. The live database has a users table from before authentication,
+    so the column would exist in Python and not in SQLite, and every query touching
+    User would fail with "no such column: users.password_hash". That table holds the
+    demo@local row that owns all of the existing theses, holdings and alerts.
+
+    This is a hand-rolled migration because the project has no Alembic. It is the
+    narrowest thing that works: read the columns, add the one that is missing. When a
+    second migration is needed, that is the moment to bring in Alembic rather than
+    grow this function.
+
+    The DEFAULT is what handles the passwordless legacy row — the existing user gets
+    UNUSABLE_PASSWORD_HASH in the same statement that adds the column, so the table
+    is never in a state where the NOT NULL is a lie.
+    """
+    with engine.begin() as connection:
+        columns = {
+            row[1] for row in connection.exec_driver_sql("PRAGMA table_info(users)")
+        }
+        if not columns:
+            return  # No users table yet; create_all just built it from the model.
+        if "password_hash" not in columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE users ADD COLUMN password_hash TEXT NOT NULL DEFAULT "
+                f"'{UNUSABLE_PASSWORD_HASH}'"
+            )
+        connection.exec_driver_sql(
+            "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_email ON users (email)"
+        )
 
 
 def seed_demo_user() -> None:
+    """The pre-auth demo account, which owns every row created before A1.
+
+    ⚠️ IT IS SEEDED LOCKED, not passwordless. The brief offered a nullable
+    password_hash as the alternative; this is the other option it allowed, and it was
+    chosen because "nullable" is a schema-level statement that some accounts have no
+    password, which then has to be defended in code at every call site, forever. A
+    locked account needs no defending — see UNUSABLE_PASSWORD_HASH in models/user.py.
+
+    The practical consequence: demo@local keeps all its data and cannot be logged
+    into. Nothing is protected yet (that is A3), so nothing is lost today; when A3
+    lands, this account needs a real password set through whatever reset path exists
+    by then, or its data reassigned.
+    """
     with SessionLocal() as db:
         if not db.query(User).first():
-            db.add(User(email="demo@local"))
+            db.add(User(email="demo@local", password_hash=UNUSABLE_PASSWORD_HASH))
             db.commit()
 
 

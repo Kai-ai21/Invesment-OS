@@ -245,7 +245,13 @@
       "Bash(git diff *)",
       "Bash(npx eslint *)",
       "Bash(curl -s -o /dev/null -w \"vite:%{http_code}\\\\n\" -m 5 http://localhost:5173/)",
-      "Bash(curl -s -o /dev/null -w \"api:%{http_code}\\\\n\" -m 5 http://127.0.0.1:8000/theses)"
+      "Bash(curl -s -o /dev/null -w \"api:%{http_code}\\\\n\" -m 5 http://127.0.0.1:8000/theses)",
+      "Bash(./venv/bin/python -c \"import sys; print\\(sys.version\\)\")",
+      "Bash(./venv/bin/pip list *)",
+      "WebFetch(domain:pyjwt.readthedocs.io)",
+      "Bash(./venv/bin/python -m pytest tests/test_auth.py -q)",
+      "Bash(./venv/bin/python -m pytest tests/test_verification.py -q)",
+      "Bash(./venv/bin/python -c \"import backend.main; print\\('backend.main imports OK'\\)\")"
     ]
   }
 }
