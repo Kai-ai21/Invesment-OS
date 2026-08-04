@@ -3,6 +3,7 @@ import { Newspaper } from 'lucide-react'
 import { Link } from 'react-router'
 
 import { Count } from '@/components/Count'
+import { INSET_SURFACE } from '@/components/StatusSpine'
 import { NewsList } from '@/components/news/NewsList'
 import { useTickerNews } from '@/hooks/useNews'
 import { cn } from '@/lib/utils'
@@ -70,13 +71,24 @@ export function TickerNewsSection({
         against a filing.
       </p>
 
-      <NewsList
-        items={items}
-        loading={loading}
-        error={error}
-        onRetry={reload}
-        emptyMessage={`No recent news for ${ticker}.`}
-      />
+      {/* The same opaque inset card the filings section sits in, for the same
+          reason: these rows were on the raw page, where the ambient backdrop
+          glowed through them. The heading and the standing note stay OUTSIDE it
+          — they label the section, they are not part of the list.
+
+          The card carries no padding of its own; the rows carry theirs, so the
+          hairline between two headlines runs the full width of the card instead
+          of stopping 16px short at each end. */}
+      <div className={cn('overflow-hidden bg-surface-inset', INSET_SURFACE)}>
+        <NewsList
+          items={items}
+          loading={loading}
+          error={error}
+          onRetry={reload}
+          emptyMessage={`No recent news for ${ticker}.`}
+          rowClassName="px-4"
+        />
+      </div>
     </section>
   )
 }

@@ -7,6 +7,7 @@ import { CompanyLogo } from '@/components/CompanyLogo'
 import { RelativeTime } from '@/components/RelativeTime'
 
 import { entryProps } from '@/lib/motion'
+import { cn } from '@/lib/utils'
 import type { NewsItem as NewsItemData } from '@/lib/api'
 
 /**
@@ -45,7 +46,19 @@ function SourceIcon({ src }: { src: string | null }) {
  * One headline row. Flat — no glass, no card chrome — because this renders inside
  * both the panel and the page and must stay the most legible surface in each.
  */
-export function NewsItem({ item, index }: { item: NewsItemData; index?: number }) {
+export function NewsItem({
+  item,
+  index,
+  className,
+}: {
+  item: NewsItemData
+  index?: number
+  /** Row padding from whatever is rendering the list. Empty in the panel and on
+   *  /news, which are already inside a padded surface; the ticker section passes
+   *  `px-4` because its card is not padded — the dividers have to reach the card
+   *  edge, so the padding belongs on the row rather than on the container. */
+  className?: string
+}) {
   return (
     // The entry animation goes on the <article> itself rather than a wrapper:
     // `last:border-b-0` is a :last-child rule, and boxing every row would make
@@ -53,7 +66,10 @@ export function NewsItem({ item, index }: { item: NewsItemData; index?: number }
     <article
       {...entryProps(
         index,
-        'flex flex-col gap-1.5 border-b border-border py-3 last:border-b-0',
+        cn(
+          'flex flex-col gap-1.5 border-b border-border py-3 last:border-b-0',
+          className,
+        ),
       )}
     >
       <a

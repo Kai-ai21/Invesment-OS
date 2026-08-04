@@ -3,6 +3,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { NewsItem } from '@/components/news/NewsItem'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useStaggerIndex } from '@/hooks/useStaggerIndex'
+import { cn } from '@/lib/utils'
 import type { NewsItem as NewsItemData } from '@/lib/api'
 
 /**
@@ -16,6 +17,7 @@ export function NewsList({
   error,
   onRetry,
   emptyMessage = 'No recent news for your tickers.',
+  rowClassName,
 }: {
   items: NewsItemData[]
   loading: boolean
@@ -24,12 +26,22 @@ export function NewsList({
   /** Overridden when a client-side filter is active, so "nothing matches this
    *  filter" doesn't read as "the feed is empty". */
   emptyMessage?: string
+  /** Passed through to every row, INCLUDING the skeleton's — a caller that pads
+   *  its rows has to pad both, or the list jumps sideways when the news lands.
+   *  Only the ticker section uses it; see NewsItem. */
+  rowClassName?: string
 }) {
   // Before the early returns: hooks cannot sit behind a branch.
   const staggerIndex = useStaggerIndex(!loading && !error && items.length > 0)
 
-  if (loading) return <NewsSkeleton />
-  if (error) return <ErrorState error={error} subject="the news" onRetry={onRetry} bare />
+  if (loading) return <NewsSkeleton rowClassName={rowClassName} />
+  if (error) {
+    return (
+      <div className={rowClassName}>
+        <ErrorState error={error} subject="the news" onRetry={onRetry} bare />
+      </div>
+    )
+  }
   if (items.length === 0) {
     // No Card wrapper here, unlike the page-level empty states: this renders
     // inside the news slide-over as well, which is already a panel — a card
@@ -50,19 +62,23 @@ export function NewsList({
           key={`${item.ticker}:${item.url}`}
           item={item}
           index={staggerIndex(index)}
+          className={rowClassName}
         />
       ))}
     </div>
   )
 }
 
-function NewsSkeleton() {
+function NewsSkeleton({ rowClassName }: { rowClassName?: string }) {
   return (
     <div className="flex flex-col" aria-busy="true" aria-label="Loading news">
       {[0, 1, 2, 3, 4].map((row) => (
         <div
           key={row}
-          className="flex flex-col gap-2 border-b border-border py-3 last:border-b-0"
+          className={cn(
+            'flex flex-col gap-2 border-b border-border py-3 last:border-b-0',
+            rowClassName,
+          )}
         >
           <Skeleton className="h-4 w-11/12" />
           <Skeleton className="h-4 w-2/3" />

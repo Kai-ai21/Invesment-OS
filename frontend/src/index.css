@@ -300,6 +300,30 @@
     --sidebar-ring: #9aa3b2;
 }
 
+@layer base {
+  /**
+   * ⚠️ THE HAND CURSOR, RESTORED. Every button in this app was showing the arrow
+   * cursor, not the hand — including the filings "Summarise" pill, which is why
+   * it did not read as clickable.
+   *
+   * It was NOT a div-with-onClick: these are real <button type="button">
+   * elements with the right roles and keyboard behaviour. The cause is that
+   * `cursor: pointer` on a button has never been a browser default — it was
+   * Tailwind v3's Preflight that supplied it, and v4 dropped that reset to match
+   * the UA. Nothing in this codebase put it back, so all of them inherited
+   * `cursor: default`.
+   *
+   * Declared once, at the root, rather than per component: the miss was
+   * app-wide, and fixing it one button at a time would leave the next one wrong
+   * by default. Disabled buttons are excluded so the `not-allowed` cursor the
+   * disabled states already set still wins.
+   */
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
 @layer components {
   /**
    * Glass is for CHROME ONLY — sidebar and sticky headers. Never behind data:
@@ -985,7 +1009,11 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    border: 1px solid rgb(255 255 255 / 0.28);
+    /* 35%, up from 28%. The pill used to sit on the raw page, where the ambient
+       glow behind it lifted the local background and the edge read fine. On the
+       opaque #0a0c10 card it has nothing helping it, and 28% white was faint
+       enough that the control looked disabled. */
+    border: 1px solid rgb(255 255 255 / 0.35);
     border-radius: 99px;
     background: transparent;
     padding: 5px 13px;
@@ -994,11 +1022,17 @@
     color: var(--text-primary);
     transition:
       border-color 260ms cubic-bezier(0.22, 0.61, 0.36, 1),
+      background-color 260ms cubic-bezier(0.22, 0.61, 0.36, 1),
       transform 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
   }
 
+  /* The edge brightens and the face takes the FAINTEST fill — 6% white, which is
+     about a third of what the row underneath moves by. The pill has to stay the
+     brighter of the two on hover, or pointing at the row would make the button
+     disappear into it. */
   .filing-action:not(:disabled):hover {
-    border-color: rgb(255 255 255 / 0.48);
+    border-color: rgb(255 255 255 / 0.55);
+    background-color: rgb(255 255 255 / 0.06);
     transition-duration: 200ms;
   }
 

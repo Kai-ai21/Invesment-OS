@@ -4,6 +4,7 @@ import { Link } from 'react-router'
 
 import { Count } from '@/components/Count'
 import { ErrorState } from '@/components/ErrorState'
+import { INSET_SURFACE } from '@/components/StatusSpine'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAsync } from '@/hooks/useAsync'
 import {
@@ -128,34 +129,59 @@ export function FilingsSection({
         here is checked against your claims or recorded as evidence.
       </p>
 
-      {loading ? (
-        <FilingsSkeleton />
-      ) : error ? (
-        <ErrorState error={error} subject="this company's filings" onRetry={reload} bare />
-      ) : filings.length === 0 ? (
-        <p className="py-2 text-sm text-text-secondary">
-          No recent 10-K, 10-Q or 8-K filings for {ticker}.
-        </p>
-      ) : (
-        <ul className="flex flex-col">
-          {filings.map((filing) => {
-            const key = filing.accession_number
-            return (
-              <li key={key} className="border-b border-border last:border-b-0">
-                <FilingRow
-                  filing={filing}
-                  open={openAccession === key}
-                  loading={pending === key}
-                  summary={summaries[key] ?? null}
-                  failure={failures[key] ?? null}
-                  linkClaims={linkClaims}
-                  onToggle={() => void toggle(filing)}
-                />
-              </li>
-            )
-          })}
-        </ul>
-      )}
+      {/* ⚠️ THE ROWS NEEDED A SURFACE, AND IT HAS TO BE OPAQUE. They used to sit
+          on the page itself, which on this page is not a flat colour — the
+          ambient backdrop glows through it, and it was landing straight behind
+          the "Summarise" pills and washing out their edges.
+
+          `bg-surface-inset` is a solid #0a0c10, so the glow stops at the card. A
+          translucent fill would NOT have fixed this: the glow is behind the
+          section, so anything you can see through still lets it through, which
+          is the whole reason the section reads as flat now and did not before.
+
+          Same inset shell as the thesis cards — see INSET_SURFACE. `flat` — no
+          hover — because the card is a container, not a target; the ROWS inside
+          it are the things you can point at.
+
+          `overflow-hidden` so a row's hover fill is cut to the card's corners
+          instead of squaring off the top and bottom of the list. */}
+      <div className={cn('overflow-hidden bg-surface-inset', INSET_SURFACE)}>
+        {loading ? (
+          <FilingsSkeleton />
+        ) : error ? (
+          <div className="px-4 py-3">
+            <ErrorState
+              error={error}
+              subject="this company's filings"
+              onRetry={reload}
+              bare
+            />
+          </div>
+        ) : filings.length === 0 ? (
+          <p className="px-4 py-3 text-sm text-text-secondary">
+            No recent 10-K, 10-Q or 8-K filings for {ticker}.
+          </p>
+        ) : (
+          <ul className="flex flex-col">
+            {filings.map((filing) => {
+              const key = filing.accession_number
+              return (
+                <li key={key} className="border-b border-border last:border-b-0">
+                  <FilingRow
+                    filing={filing}
+                    open={openAccession === key}
+                    loading={pending === key}
+                    summary={summaries[key] ?? null}
+                    failure={failures[key] ?? null}
+                    linkClaims={linkClaims}
+                    onToggle={() => void toggle(filing)}
+                  />
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </div>
     </section>
   )
 }
@@ -180,8 +206,17 @@ function FilingRow({
   const panelId = `filing-${filing.accession_number}`
 
   return (
-    <div className="py-3">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+    <div>
+      {/* ⚠️ THE HOVER FILL IS ON THIS LINE, NOT ON THE WHOLE ROW COMPONENT, and
+          the padding is here rather than on the card for the same reason: the
+          highlight has to run edge to edge, and the expanded summary below must
+          NOT light up with it. Tinting a 400px panel of prose because the cursor
+          crossed it is not feedback, it is the page flinching.
+
+          3% white — enough to say "this line is one unit and it is pointable",
+          quiet enough that scrolling past a list of eight does not strobe. The
+          pill inside keeps its own, brighter hover; see .filing-action. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 transition-colors hover:bg-white/[0.03]">
         {/* ⚠️ NEUTRAL BY DESIGN. This is the position a StatusBadge occupies on an
             evidence or claim card, so it deliberately does not look like one: no
             status colour, a border rather than a fill, and the same chip the news
@@ -233,7 +268,7 @@ function FilingRow({
       </div>
 
       {open && (
-        <div id={panelId} className="mt-3 border-l-2 border-border pl-4">
+        <div id={panelId} className="mx-4 mb-3 border-l-2 border-border pl-4">
           {loading ? (
             <ReadingNote />
           ) : failure ? (
@@ -417,7 +452,9 @@ function FilingsSkeleton() {
       {[0, 1, 2, 3].map((row) => (
         <div
           key={row}
-          className="flex items-center gap-3 border-b border-border py-3 last:border-b-0"
+          // px-4 matches the loaded row's padding — without it the list shifts
+          // sideways by 16px at the moment the filings arrive.
+          className="flex items-center gap-3 border-b border-border px-4 py-3 last:border-b-0"
         >
           <Skeleton className="h-5 w-12 rounded-xs" />
           <Skeleton className="h-4 w-24" />
