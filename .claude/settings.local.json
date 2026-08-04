@@ -242,7 +242,8 @@
       "Bash(grep -v \"^+$\")",
       "Bash(curl -s -m 5 -o /dev/null -w \"filings:%{http_code}\\\\n\" \"http://127.0.0.1:8000/filings/NVDA?limit=8\")",
       "Bash(curl -s -m 45 -o /dev/null -w \"filings:%{http_code} in %{time_total}s\\\\n\" \"http://127.0.0.1:8000/filings/NVDA?limit=8\")",
-      "Bash(git diff *)"
+      "Bash(git diff *)",
+      "Bash(npx eslint *)"
     ]
   }
 }

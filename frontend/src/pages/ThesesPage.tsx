@@ -7,7 +7,7 @@ import { CompanyLogo } from '@/components/CompanyLogo'
 import { EmptyIllustration } from '@/components/EmptyIllustration'
 import { Sparkline } from '@/components/Sparkline'
 import { StatusBadge } from '@/components/StatusBadge'
-import { StatusSpine } from '@/components/StatusSpine'
+import { INSET_CARD, INSET_SURFACE, StatusSpine } from '@/components/StatusSpine'
 import { ErrorState } from '@/components/ErrorState'
 import { RelativeTime } from '@/components/RelativeTime'
 import { Button } from '@/components/ui/button'
@@ -19,6 +19,7 @@ import { useStaggerIndex } from '@/hooks/useStaggerIndex'
 import { listHoldings, listTheses, type Thesis } from '@/lib/api'
 import { formatMoney } from '@/lib/format'
 import { entryProps } from '@/lib/motion'
+import { cn } from '@/lib/utils'
 
 interface ThesesData {
   theses: Thesis[]
@@ -117,10 +118,16 @@ function ThesisCard({
       className="block rounded-xl focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
     >
       {/* `relative` so the spine can pin to the edge; the Card's own
-          overflow-hidden clips it to the rounded corners. The hairline uses the
-          border token and brightens on hover — the spine does not, because it
-          carries meaning rather than interaction state. */}
-      <Card className="relative border border-border transition-colors hover:border-border-strong hover:bg-surface-raised">
+          overflow-hidden clips it to the rounded corners. INSET_CARD carries the
+          double border and the two-speed brightening of its hover; the fill's
+          own hover lift is kept from the raised design, rebased to stay inside
+          the well (see --surface-inset-hover). */}
+      <Card
+        className={cn(
+          'relative bg-surface-inset hover:bg-surface-inset-hover',
+          INSET_CARD,
+        )}
+      >
         <StatusSpine status={thesis.status} />
         <div className="flex flex-col gap-2.5 px-(--card-spacing)">
           {/* PRIMARY.
@@ -242,9 +249,11 @@ function ThesesSkeleton() {
       {/* Mirrors the loaded card's TWO tiers, not just its top one — a skeleton
           a line shorter than what replaces it makes the whole list jump. */}
       {[0, 1, 2].map((i) => (
-        // `border border-border` matches the loaded card's border exactly. Without
-        // it the skeleton was 2px shorter than what replaced it, on every card.
-        <Card key={i} className="border border-border">
+        // INSET_SURFACE, not just a border: it matches the loaded card's 1px
+        // hairline exactly — without it the skeleton was 2px shorter than what
+        // replaced it, on every card — and its ring means the list does not
+        // acquire a second frame per row at the moment the data lands.
+        <Card key={i} className={cn('bg-surface-inset', INSET_SURFACE)}>
           <div className="flex flex-col gap-2.5 px-(--card-spacing)">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">

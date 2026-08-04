@@ -5,7 +5,7 @@ import { Link } from 'react-router'
 import { EmptyIllustration } from '@/components/EmptyIllustration'
 import { RelativeTime } from '@/components/RelativeTime'
 import { StatusBadge } from '@/components/StatusBadge'
-import { StatusSpine } from '@/components/StatusSpine'
+import { INSET_CARD, INSET_SURFACE, StatusSpine } from '@/components/StatusSpine'
 import { ErrorState } from '@/components/ErrorState'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -76,7 +76,12 @@ export function AlertsPage() {
       ) : error ? (
         <ErrorState error={error} subject="your alerts" onRetry={reload} />
       ) : alerts && alerts.length > 0 ? (
-        <ul className="flex flex-col gap-3">
+        /* gap-4, not gap-3, and the ring is the reason: it stands 3px proud of
+           each card on every side, so 12px of gap left only 6px of clear page
+           between one card's ring and the next one's — close enough that the
+           two read as a single seam. 16px leaves 10px. Matched by the skeleton
+           below, or the list would resettle when the data landed. */
+        <ul className="flex flex-col gap-4">
           {/* The key is the alert id, so marking one read swaps its contents in
               a row that never left the DOM — nothing re-animates. */}
           {alerts.map((alert, index) => (
@@ -140,10 +145,19 @@ function AlertCard({
       className={cn(
         // The left edge used to carry READ/UNREAD as a grey bar. That slot now
         // carries the thesis status, which is the more useful signal and matches
-        // every other status-bearing card. Read/unread is unaffected — it was
-        // already distinguished by the background, which is the difference below.
-        'relative border border-border transition-colors hover:border-border-strong',
-        alert.is_read ? 'bg-surface' : 'bg-surface-raised',
+        // every other status-bearing card.
+        'relative bg-surface-inset',
+        INSET_CARD,
+        // ⚠️ READ/UNREAD MOVED OFF THE BACKGROUND, and it had to. It used to be
+        // #171a21 against #1d212b; on the inset surface the equivalent pair would
+        // be #0a0c10 against a step below it, and there is no room below it —
+        // the page is only about 5 L* above black, so the darker of the two was
+        // indistinguishable on screen. It was built and it did not work.
+        //
+        // The hairline has room, so it carries the difference now: a read alert
+        // dims to half strength, which is the same "recede" in a place you can
+        // actually see it. Hover is untouched and takes both to --border-strong.
+        alert.is_read && 'border-border/50',
       )}
     >
       {/* Coloured by the status the thesis moved INTO — the alert is about where
@@ -210,12 +224,13 @@ function AlertCard({
 
 function AlertsSkeleton() {
   return (
-    <div className="flex flex-col gap-3" aria-busy="true" aria-label="Loading alerts">
+    <div className="flex flex-col gap-4" aria-busy="true" aria-label="Loading alerts">
       {[0, 1, 2].map((i) => (
-        // Matches the loaded alert card: the same 1px border, a 24px identity row
-        // (text-base beside two 20px badges), a 20px `text-sm` summary line and a
-        // 16px `text-xs` timestamp. Every one of these was a step short before.
-        <Card key={i} className="border border-border">
+        // Matches the loaded alert card: the same inset shell and 1px border, a
+        // 24px identity row (text-base beside two 20px badges), a 20px `text-sm`
+        // summary line and a 16px `text-xs` timestamp. Every one of these was a
+        // step short before.
+        <Card key={i} className={cn('bg-surface-inset', INSET_SURFACE)}>
           <div className="flex flex-col gap-2 px-(--card-spacing)">
             <div className="flex items-center gap-2">
               <Skeleton className="h-6 w-14" />

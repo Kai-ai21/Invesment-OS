@@ -37,7 +37,10 @@ export function ThesisReflections({ thesisId }: { thesisId: string }) {
   if (pending.length === 0 && answered.length === 0) return null
 
   return (
-    <section className="mb-12 flex flex-col gap-3">
+    // gap-4 throughout, here and in the collapsed list below: a reflection card
+    // carries the inset shell, whose outer ring stands 3px proud on every side,
+    // and 12px of gap left the rings of two stacked cards 6px apart.
+    <section className="mb-12 flex flex-col gap-4">
       {pending.map((item) => (
         <ReflectionCard key={item.id} postMortem={item} onChanged={handleChanged} />
       ))}
@@ -59,7 +62,7 @@ export function ThesisReflections({ thesisId }: { thesisId: string }) {
           </button>
 
           {showPast && (
-            <div className="mt-3 flex flex-col gap-3">
+            <div className="mt-4 flex flex-col gap-4">
               {answered.map((item) => (
                 <ReflectionCard
                   key={item.id}

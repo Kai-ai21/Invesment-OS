@@ -61,6 +61,10 @@
     /* Investment OS surface + text scale (in addition to the shadcn tokens below) */
     --color-surface: var(--surface);
     --color-surface-raised: var(--surface-raised);
+    --color-surface-inset: var(--surface-inset);
+    --color-surface-inset-hover: var(--surface-inset-hover);
+    --color-card-ring: var(--card-ring);
+    --color-card-ring-strong: var(--card-ring-strong);
     --color-text-primary: var(--text-primary);
     --color-text-secondary: var(--text-secondary);
     --color-text-muted: var(--text-muted);
@@ -157,6 +161,40 @@
     /* Raw design tokens */
     --surface: #171a21;
     --surface-raised: #1d212b;
+
+    /* ---- the INSET card ------------------------------------------------------
+       The four status-bearing surfaces (thesis, alert, reflection, holdings
+       table) sit BELOW the page rather than above it: a well cut into #0f1115,
+       not a panel floating on it. The colour does the same job the drop shadow
+       does on a raised card, in the opposite direction, and it costs nothing on
+       a list of thirty rows the way thirty shadows would.
+
+       ⚠️ THERE IS ONLY ONE INSET DEPTH, and it is not for want of trying. The
+       alert list wanted a second, deeper one for READ — read/unread had always
+       been a background difference (#171a21 against #1d212b). Below #0f1115
+       there is no room for it: the page is roughly 5 L* above black, so a second
+       step down from #0a0c10 lands about 1 L* away from the first and is simply
+       not visible on a normal display. It was built, screenshotted, and could
+       not be told apart from unread. Read/unread moved to the hairline instead,
+       where the same distinction has ~30 L* to work in. See AlertsPage. */
+    --surface-inset: #0a0c10;
+
+    /* The thesis card's hover lift, kept from the raised design and rebased onto
+       this scale. It STOPS one step short of #0f1115: a card that lifts past the
+       page on hover stops being a well the moment you point at it, which is the
+       one frame where the effect most needs to hold. */
+    --surface-inset-hover: #0e1016;
+
+    /* The OUTER RING of the double border, held 2px outside the hairline. It is
+       pitched BETWEEN the page (#0f1115) and the border (#2a2f3a) on purpose —
+       a second border at full strength reads as a mistake rather than as a
+       deliberate frame, and the whole effect depends on the eye reading one
+       edge as primary and the other as its echo. */
+    --card-ring: #1a1d24;
+    /* Hover. Deliberately a SMALLER step than --border → --border-strong: both
+       edges brighten, the inner one more, so the pair stays legible as two
+       rather than converging into a 4px slab. */
+    --card-ring-strong: #262a33;
     --text-primary: #e8eaf0;
     --text-secondary: #9aa3b2;
     --text-muted: #6b7280;

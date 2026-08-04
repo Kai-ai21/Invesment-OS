@@ -4,7 +4,7 @@ import { Loader2, Trash2 } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import { RelativeTime } from '@/components/RelativeTime'
 import { StatusBadge } from '@/components/StatusBadge'
-import { StatusSpine } from '@/components/StatusSpine'
+import { INSET_CARD, StatusSpine } from '@/components/StatusSpine'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -19,6 +19,7 @@ import {
 import { describeError } from '@/lib/errors'
 
 import { entryProps } from '@/lib/motion'
+import { cn } from '@/lib/utils'
 
 /**
  * Asked for a MANUALLY opened reflection. There is no broken claim to be specific
@@ -108,10 +109,7 @@ export function ReflectionCard({
     // null when dismissed — a wrapper would stay behind as an empty box holding
     // the column's gap open.
     <Card
-      {...entryProps(
-        index,
-        'relative border border-border transition-colors hover:border-border-strong',
-      )}
+      {...entryProps(index, cn('relative bg-surface-inset', INSET_CARD))}
     >
       {/* The status the thesis was in when it broke — the reflection is about
           that moment, and the thesis has kept moving since. */}

@@ -5,7 +5,7 @@ import { Link } from 'react-router'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import { Sparkline } from '@/components/Sparkline'
 import { StatusBadge } from '@/components/StatusBadge'
-import { spineBorderStyle } from '@/components/StatusSpine'
+import { INSET_SURFACE, spineBorderStyle } from '@/components/StatusSpine'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/toast'
@@ -52,7 +52,18 @@ export function HoldingsTable({
   return (
     // The table is wide by nature; it scrolls inside its own box rather than
     // pushing the page sideways.
-    <div className="overflow-x-auto rounded-xl border border-border">
+    /* ⚠️ THE INSET SHELL GOES ON THE TABLE, NOT ON EACH ROW, and that is the
+       only honest way to apply it here. The rows are contiguous — they share
+       hairlines and have no gap at all — so a ring per row would have nothing to
+       stand in and every ring would collide with its neighbours'. The status
+       still reads per row: each one carries its own spine, as before. So the
+       portfolio's status-bearing surface is the table, and it gets the same
+       face, the same hairline and the same outer ring as a thesis card.
+
+       No hover on this one: the whole table is not a target, and brightening its
+       frame because the cursor crossed a cell would be noise. Row hover is
+       unchanged and still lands on the row. */
+    <div className={cn('overflow-x-auto bg-surface-inset', INSET_SURFACE)}>
       <table className="w-full border-collapse">
         <caption className="sr-only">
           Your holdings, with size, cost, current value and the status of any thesis
