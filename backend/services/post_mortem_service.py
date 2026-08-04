@@ -84,6 +84,7 @@ def _fallback_question(claim_statement: str) -> str:
 def generate_question(
     db: Session,
     post_mortem_id: str,
+    user_id: str,
     provider: LLMProvider | None = None,
     force: bool = False,
 ) -> PostMortem:
@@ -93,7 +94,7 @@ def generate_question(
     can call this every time it displays a post-mortem without burning a token or
     changing wording under the user. `force=True` regenerates deliberately.
     """
-    post_mortem = post_mortem_repository.get_post_mortem(db, post_mortem_id)
+    post_mortem = post_mortem_repository.get_post_mortem(db, post_mortem_id, user_id)
     if post_mortem is None:
         raise PostMortemNotFound(f"Post-mortem {post_mortem_id} not found")
 
@@ -113,7 +114,7 @@ def generate_question(
 
     contradicting = [
         event.evidence_quote
-        for event in evidence_repository.list_evidence_for_claim(db, claim.id)
+        for event in evidence_repository.list_evidence_for_claim(db, claim.id, user_id)
         if event.verdict == "contradicts" and event.evidence_quote
     ][:MAX_EVIDENCE_QUOTES]
 

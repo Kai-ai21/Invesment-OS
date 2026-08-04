@@ -118,9 +118,9 @@ def add_evidence(db, thesis, *, when: datetime.date, verdict: str, quote="A quot
 # --- the join ---------------------------------------------------------------------
 
 
-def test_unknown_thesis_returns_none(db):
+def test_unknown_thesis_returns_none(db, thesis):
     # Arrange / Act / Assert — the endpoint turns this into a 404.
-    assert build_chart_data(db, "no-such-thesis", source=FakePriceSource()) is None
+    assert build_chart_data(db, "no-such-thesis", thesis.user_id, source=FakePriceSource()) is None
 
 
 def test_evidence_and_status_changes_are_both_annotated(db, thesis):
@@ -130,6 +130,7 @@ def test_evidence_and_status_changes_are_both_annotated(db, thesis):
     alert = alert_repository.create_alert(
         db,
         thesis_id=thesis.id,
+        user_id=thesis.user_id,
         prev_status="weakening",
         new_status="breaking",
         summary="NVDA moved from weakening to breaking",
@@ -140,7 +141,7 @@ def test_evidence_and_status_changes_are_both_annotated(db, thesis):
     db.commit()
 
     # Act
-    chart = build_chart_data(db, thesis.id, source=FakePriceSource(prices))
+    chart = build_chart_data(db, thesis.id, thesis.user_id, source=FakePriceSource(prices))
 
     # Assert
     assert chart is not None
@@ -164,7 +165,7 @@ def test_events_outside_the_price_range_are_excluded(db, thesis):
     )
 
     # Act
-    chart = build_chart_data(db, thesis.id, source=FakePriceSource(prices))
+    chart = build_chart_data(db, thesis.id, thesis.user_id, source=FakePriceSource(prices))
 
     # Assert
     assert [event.quote for event in chart.events] == ["Inside the window."]
@@ -176,7 +177,7 @@ def test_neutral_evidence_is_not_annotated(db, thesis):
     add_evidence(db, thesis, when=TODAY - datetime.timedelta(days=2), verdict="neutral")
 
     # Act
-    chart = build_chart_data(db, thesis.id, source=FakePriceSource(prices))
+    chart = build_chart_data(db, thesis.id, thesis.user_id, source=FakePriceSource(prices))
 
     # Assert
     assert chart.events == []
@@ -188,13 +189,14 @@ def test_only_this_thesis_events_are_included(db, thesis):
     db.add(other)
     db.commit()
     alert_repository.create_alert(
-        db, thesis_id=other.id, prev_status="pending", new_status="weakening",
+        db, thesis_id=other.id, user_id=thesis.user_id,
+        prev_status="pending", new_status="weakening",
         summary="AAPL moved",
     )
     prices = window(TODAY - datetime.timedelta(days=5), 6)
 
     # Act
-    chart = build_chart_data(db, thesis.id, source=FakePriceSource(prices))
+    chart = build_chart_data(db, thesis.id, thesis.user_id, source=FakePriceSource(prices))
 
     # Assert
     assert chart.events == []
@@ -213,7 +215,7 @@ def test_price_failure_still_returns_events_with_the_flag_set(db, thesis):
     failing = FakePriceSource(raises=PriceNetworkError("yahoo unreachable"))
 
     # Act
-    chart = build_chart_data(db, thesis.id, source=failing)
+    chart = build_chart_data(db, thesis.id, thesis.user_id, source=failing)
 
     # Assert
     assert chart is not None
@@ -231,7 +233,7 @@ def test_no_price_data_keeps_every_event(db, thesis):
     )
 
     # Act
-    chart = build_chart_data(db, thesis.id, source=FakePriceSource([]))
+    chart = build_chart_data(db, thesis.id, thesis.user_id, source=FakePriceSource([]))
 
     # Assert
     assert chart.prices == []
@@ -244,7 +246,7 @@ def test_successful_prices_do_not_set_the_unavailable_flag(db, thesis):
     prices = window(TODAY - datetime.timedelta(days=5), 6)
 
     # Act
-    chart = build_chart_data(db, thesis.id, source=FakePriceSource(prices))
+    chart = build_chart_data(db, thesis.id, thesis.user_id, source=FakePriceSource(prices))
 
     # Assert
     assert chart.prices_unavailable is False

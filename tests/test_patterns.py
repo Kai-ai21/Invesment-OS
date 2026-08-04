@@ -55,10 +55,11 @@ def _answered(db, thesis, count: int) -> list[str]:
     ids = []
     for index in range(count):
         created = post_mortem_repository.create_post_mortem(
-            db, thesis_id=thesis.id, broken_claim_id=None, status_at_break="breaking"
+            db, thesis_id=thesis.id, user_id=thesis.user_id,
+            broken_claim_id=None, status_at_break="breaking",
         )
         post_mortem_repository.answer_post_mortem(
-            db, created.id, f"Reflection number {index}."
+            db, created.id, thesis.user_id, f"Reflection number {index}."
         )
         ids.append(created.id)
     return ids
@@ -73,7 +74,7 @@ def test_below_the_minimum_returns_nothing_and_never_calls_the_ai(db, thesis):
     provider = FakeProvider([PatternData(statement="x", source_post_mortem_ids=["a", "b"])])
 
     # Act
-    result = generate_patterns(db, provider=provider)
+    result = generate_patterns(db, thesis.user_id, provider=provider)
 
     # Assert — an AI asked to find patterns in two data points always finds some, so
     # it is never asked.
@@ -86,12 +87,13 @@ def test_unanswered_post_mortems_do_not_count_towards_the_minimum(db, thesis):
     _answered(db, thesis, MINIMUM_POST_MORTEMS - 1)
     for _ in range(3):
         post_mortem_repository.create_post_mortem(
-            db, thesis_id=thesis.id, broken_claim_id=None, status_at_break="breaking"
+            db, thesis_id=thesis.id, user_id=thesis.user_id,
+            broken_claim_id=None, status_at_break="breaking",
         )
     provider = FakeProvider()
 
     # Act
-    result = generate_patterns(db, provider=provider)
+    result = generate_patterns(db, thesis.user_id, provider=provider)
 
     # Assert
     assert result == []
@@ -102,12 +104,13 @@ def test_only_answered_post_mortems_are_sent_to_the_provider(db, thesis):
     # Arrange
     answered_ids = _answered(db, thesis, MINIMUM_POST_MORTEMS)
     post_mortem_repository.create_post_mortem(
-        db, thesis_id=thesis.id, broken_claim_id=None, status_at_break="breaking"
+        db, thesis_id=thesis.id, user_id=thesis.user_id,
+        broken_claim_id=None, status_at_break="breaking",
     )
     provider = FakeProvider()
 
     # Act
-    generate_patterns(db, provider=provider)
+    generate_patterns(db, thesis.user_id, provider=provider)
 
     # Assert
     sent = {item["post_mortem_id"] for item in provider.last_payload}
@@ -130,11 +133,11 @@ def test_pattern_citing_an_unsupplied_id_is_rejected(db, thesis):
     )
 
     # Act
-    result = generate_patterns(db, provider=provider)
+    result = generate_patterns(db, thesis.user_id, provider=provider)
 
     # Assert — an observation about a person built on invented evidence is never shown.
     assert result == []
-    assert pattern_repository.list_patterns(db) == []
+    assert pattern_repository.list_patterns(db, thesis.user_id) == []
 
 
 def test_pattern_citing_only_one_id_is_rejected(db, thesis):
@@ -145,7 +148,7 @@ def test_pattern_citing_only_one_id_is_rejected(db, thesis):
     )
 
     # Act
-    result = generate_patterns(db, provider=provider)
+    result = generate_patterns(db, thesis.user_id, provider=provider)
 
     # Assert
     assert result == []
@@ -164,7 +167,7 @@ def test_pattern_citing_the_same_id_twice_is_rejected(db, thesis):
     )
 
     # Act
-    result = generate_patterns(db, provider=provider)
+    result = generate_patterns(db, thesis.user_id, provider=provider)
 
     # Assert
     assert result == []
@@ -179,7 +182,7 @@ def test_a_valid_pattern_is_saved_with_its_source_ids(db, thesis):
     )
 
     # Act
-    result = generate_patterns(db, provider=provider)
+    result = generate_patterns(db, thesis.user_id, provider=provider)
 
     # Assert
     assert len(result) == 1
@@ -198,7 +201,7 @@ def test_valid_patterns_survive_alongside_rejected_ones(db, thesis):
     )
 
     # Act
-    result = generate_patterns(db, provider=provider)
+    result = generate_patterns(db, thesis.user_id, provider=provider)
 
     # Assert
     assert [pattern.statement for pattern in result] == ["Genuine."]
@@ -224,17 +227,17 @@ def test_regeneration_replaces_rather_than_appends(db, thesis):
     first = FakeProvider(
         [PatternData(statement="First run.", source_post_mortem_ids=[ids[0], ids[1]])]
     )
-    generate_patterns(db, provider=first)
+    generate_patterns(db, thesis.user_id, provider=first)
 
     second = FakeProvider(
         [PatternData(statement="Second run.", source_post_mortem_ids=[ids[1], ids[2]])]
     )
 
     # Act
-    generate_patterns(db, provider=second)
+    generate_patterns(db, thesis.user_id, provider=second)
 
     # Assert — one current set, not an accumulating history.
-    stored = pattern_repository.list_patterns(db)
+    stored = pattern_repository.list_patterns(db, thesis.user_id)
     assert [pattern.statement for pattern in stored] == ["Second run."]
 
 
@@ -243,6 +246,7 @@ def test_an_empty_list_from_the_provider_is_handled_cleanly(db, thesis):
     ids = _answered(db, thesis, MINIMUM_POST_MORTEMS)
     generate_patterns(
         db,
+        thesis.user_id,
         provider=FakeProvider(
             [PatternData(statement="Stale.", source_post_mortem_ids=[ids[0], ids[1]])]
         ),
@@ -250,11 +254,11 @@ def test_an_empty_list_from_the_provider_is_handled_cleanly(db, thesis):
     provider = FakeProvider([])
 
     # Act
-    result = generate_patterns(db, provider=provider)
+    result = generate_patterns(db, thesis.user_id, provider=provider)
 
     # Assert — no error, and the stale pattern is cleared rather than left standing.
     assert result == []
-    assert pattern_repository.list_patterns(db) == []
+    assert pattern_repository.list_patterns(db, thesis.user_id) == []
     assert provider.calls == 1
 
 
@@ -263,6 +267,7 @@ def test_dismissed_patterns_are_excluded_from_the_list(db, thesis):
     ids = _answered(db, thesis, MINIMUM_POST_MORTEMS)
     generate_patterns(
         db,
+        thesis.user_id,
         provider=FakeProvider(
             [
                 PatternData(statement="Kept.", source_post_mortem_ids=[ids[0], ids[1]]),
@@ -272,19 +277,19 @@ def test_dismissed_patterns_are_excluded_from_the_list(db, thesis):
     )
     to_dismiss = next(
         pattern
-        for pattern in pattern_repository.list_patterns(db)
+        for pattern in pattern_repository.list_patterns(db, thesis.user_id)
         if pattern.statement == "Dismissed."
     )
 
     # Act
-    pattern_repository.dismiss_pattern(db, to_dismiss.id)
+    pattern_repository.dismiss_pattern(db, to_dismiss.id, thesis.user_id)
 
     # Assert
-    visible = pattern_repository.list_patterns(db)
+    visible = pattern_repository.list_patterns(db, thesis.user_id)
     assert [pattern.statement for pattern in visible] == ["Kept."]
-    assert len(pattern_repository.list_patterns(db, include_dismissed=True)) == 2
+    assert len(pattern_repository.list_patterns(db, thesis.user_id, include_dismissed=True)) == 2
 
 
-def test_dismissing_a_missing_pattern_returns_none(db):
+def test_dismissing_a_missing_pattern_returns_none(db, thesis):
     # Arrange / Act / Assert
-    assert pattern_repository.dismiss_pattern(db, "no-such-id") is None
+    assert pattern_repository.dismiss_pattern(db, "no-such-id", thesis.user_id) is None

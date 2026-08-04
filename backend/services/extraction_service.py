@@ -33,8 +33,8 @@ def extract_and_save_thesis(
             continue
 
         thesis = thesis_repository.create_thesis(db, user_id=user_id, ticker=ticker, reasoning_raw=reasoning)
-        thesis_repository.add_claims(db, thesis_id=thesis.id, claims=claims)
-        thesis_repository.set_status(db, thesis_id=thesis.id, status="active")
+        thesis_repository.add_claims(db, thesis_id=thesis.id, user_id=user_id, claims=claims)
+        thesis_repository.set_status(db, thesis_id=thesis.id, user_id=user_id, status="active")
         db.refresh(thesis)
         return thesis
 

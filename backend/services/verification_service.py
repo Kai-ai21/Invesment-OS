@@ -92,15 +92,17 @@ def quote_is_grounded(quote: str, source_text: str) -> bool:
     return normalized_quote in _normalize(source_text)
 
 
-def recompute_thesis(db: Session, thesis_id: str) -> tuple[str, str]:
+def recompute_thesis(db: Session, thesis_id: str, user_id: str) -> tuple[str, str]:
     """Re-score every claim from its evidence, roll it up to the thesis, and alert on change."""
-    thesis = thesis_repository.get_thesis(db, thesis_id)
+    thesis = thesis_repository.get_thesis(db, thesis_id, user_id)
+    if thesis is None:
+        raise ValueError("Thesis not found")
     prev_status = thesis.status
 
     # The status functions are pure: hand them plain data, never the session.
     claim_states: list[tuple[str, bool]] = []
     for claim in thesis.claims:
-        events = evidence_repository.list_evidence_for_claim(db, claim.id)
+        events = evidence_repository.list_evidence_for_claim(db, claim.id, user_id)
         claim.status = compute_claim_status(events)
         claim_states.append((claim.status, claim.is_core))
 
@@ -111,6 +113,7 @@ def recompute_thesis(db: Session, thesis_id: str) -> tuple[str, str]:
         alert_repository.create_alert(
             db,
             thesis_id=thesis_id,
+            user_id=user_id,
             prev_status=prev_status,
             new_status=new_status,
             summary=f"{thesis.ticker} thesis moved from {prev_status} to {new_status}",
@@ -120,13 +123,13 @@ def recompute_thesis(db: Session, thesis_id: str) -> tuple[str, str]:
     # transition, not the state, so a thesis that stays broken across many checks
     # prompts once rather than every run.
     if new_status == "breaking" and prev_status != "breaking":
-        _open_post_mortem(db, thesis, new_status)
+        _open_post_mortem(db, thesis, user_id, new_status)
 
     db.commit()
     return prev_status, new_status
 
 
-def _open_post_mortem(db: Session, thesis, status_at_break: str) -> None:
+def _open_post_mortem(db: Session, thesis, user_id: str, status_at_break: str) -> None:
     """Create a pending post-mortem for a thesis that has just broken.
 
     Never raises: saving evidence is the primary job of this run, and a reflection
@@ -137,7 +140,7 @@ def _open_post_mortem(db: Session, thesis, status_at_break: str) -> None:
         # One open question at a time. A second pending prompt for the same thesis
         # would just be nagging, and the user has not answered the first one yet.
         if post_mortem_repository.list_post_mortems(
-            db, thesis_id=thesis.id, pending_only=True
+            db, user_id, thesis_id=thesis.id, pending_only=True
         ):
             return
 
@@ -155,6 +158,7 @@ def _open_post_mortem(db: Session, thesis, status_at_break: str) -> None:
         post_mortem_repository.create_post_mortem(
             db,
             thesis_id=thesis.id,
+            user_id=user_id,
             # None is valid: the thesis broke, but no single core claim is identifiable.
             broken_claim_id=broken_core.id if broken_core is not None else None,
             status_at_break=status_at_break,
@@ -177,29 +181,50 @@ def _retrieval_query(claim) -> str:
 def verify_document_against_thesis(
     db: Session,
     thesis_id: str,
+    user_id: str,
     raw_text: str,
     title: str | None = None,
     source_type: str = "paste",
     retriever: EvidenceRetriever | None = None,
     provider: LLMProvider | None = None,
 ) -> list[EvidenceEvent]:
+    # 0. OWNERSHIP, BEFORE ANY WORK. Checked first so a request for someone else's
+    # thesis costs nothing — no hashing, no retrieval, and above all no AI calls.
+    thesis = thesis_repository.get_thesis(db, thesis_id, user_id)
+    if thesis is None:
+        return []
+
     # 1. DEDUP — hash the text (hashing is content-based, so PasteSource works for any
     # source) and skip re-verification if we've seen this exact content before.
+    #
+    # ⚠️ THE DEDUP IS GLOBAL BUT THE SHORT-CIRCUIT IS PER (document, thesis).
+    # `documents` has no owner — it is deduplicated across everyone by content hash,
+    # which is the right call for storage: the same 10-K submitted by two people is
+    # one row. But the OLD early return keyed only on the document existing, so if
+    # ANY user had ever submitted this text, this thesis was handed back its existing
+    # evidence WITHOUT being verified against the document at all. Two users, same
+    # filing, and the second one's thesis silently never gets checked.
+    #
+    # The fix is to ask the question that actually matters: has THIS thesis already
+    # been verified against THIS document? If so there is nothing to redo; if not, we
+    # verify against the stored row rather than creating a duplicate of it.
     document_data = PasteSource().load(raw_text, title=title)
-    existing = document_repository.get_document_by_hash(db, document_data.content_hash)
-    if existing is not None:
-        return evidence_repository.list_evidence_for_thesis(db, thesis_id)
-
-    document = document_repository.create_document(
-        db,
-        source_type=source_type,
-        title=document_data.title,
-        content_hash=document_data.content_hash,
-        raw_text=document_data.raw_text,
-    )
+    document = document_repository.get_document_by_hash(db, document_data.content_hash)
+    if document is not None:
+        if evidence_repository.thesis_has_evidence_from_document(
+            db, thesis_id=thesis_id, document_id=document.id, user_id=user_id
+        ):
+            return evidence_repository.list_evidence_for_thesis(db, thesis_id, user_id)
+    else:
+        document = document_repository.create_document(
+            db,
+            source_type=source_type,
+            title=document_data.title,
+            content_hash=document_data.content_hash,
+            raw_text=document_data.raw_text,
+        )
 
     # 2. LOOP OVER CLAIMS
-    thesis = thesis_repository.get_thesis(db, thesis_id)
     # Constructed here, not as default arguments, so the defaults aren't built at import
     # time and tests can inject fakes (NaiveRetriever, a stub provider).
     #
@@ -253,16 +278,18 @@ def verify_document_against_thesis(
         event = evidence_repository.create_evidence_event(
             db,
             claim_id=claim.id,
+            user_id=user_id,
             document_id=document.id,
             verdict=verdict.verdict,
             confidence=verdict.confidence,
             evidence_quote=verdict.evidence_quote,
             reasoning=verdict.reasoning,
         )
-        created.append(event)
+        if event is not None:
+            created.append(event)
 
     # 5. Re-score claims and the thesis now that new evidence has landed.
-    recompute_thesis(db, thesis_id)
+    recompute_thesis(db, thesis_id, user_id)
 
     # 6. Return only the events we actually created.
     return created

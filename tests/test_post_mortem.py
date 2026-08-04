@@ -87,11 +87,11 @@ def test_thesis_transitioning_to_breaking_creates_a_pending_post_mortem(db, thes
     _break_the_core_claim(db, thesis)
 
     # Act
-    prev_status, new_status = recompute_thesis(db, thesis.id)
+    prev_status, new_status = recompute_thesis(db, thesis.id, thesis.user_id)
 
     # Assert
     assert (prev_status, new_status) == ("pending", "breaking")
-    post_mortems = post_mortem_repository.list_post_mortems(db, thesis_id=thesis.id)
+    post_mortems = post_mortem_repository.list_post_mortems(db, thesis.user_id, thesis_id=thesis.id)
     assert len(post_mortems) == 1
     created = post_mortems[0]
     assert created.user_response is None  # pending
@@ -104,30 +104,31 @@ def test_thesis_transitioning_to_breaking_creates_a_pending_post_mortem(db, thes
 def test_thesis_already_breaking_does_not_create_a_second_post_mortem(db, thesis):
     # Arrange — first transition into "breaking" opens one.
     _break_the_core_claim(db, thesis)
-    recompute_thesis(db, thesis.id)
-    assert len(post_mortem_repository.list_post_mortems(db, thesis_id=thesis.id)) == 1
+    recompute_thesis(db, thesis.id, thesis.user_id)
+    assert len(post_mortem_repository.list_post_mortems(db, thesis.user_id, thesis_id=thesis.id)) == 1
 
     # Act — recomputing again while ALREADY breaking is not a new transition.
-    prev_status, new_status = recompute_thesis(db, thesis.id)
+    prev_status, new_status = recompute_thesis(db, thesis.id, thesis.user_id)
 
     # Assert
     assert (prev_status, new_status) == ("breaking", "breaking")
-    assert len(post_mortem_repository.list_post_mortems(db, thesis_id=thesis.id)) == 1
+    assert len(post_mortem_repository.list_post_mortems(db, thesis.user_id, thesis_id=thesis.id)) == 1
 
 
 def test_thesis_with_an_unanswered_post_mortem_does_not_get_another(db, thesis):
     # Arrange — an open post-mortem already exists, and the thesis is not yet breaking
     # so the transition guard alone would NOT stop a second one.
     post_mortem_repository.create_post_mortem(
-        db, thesis_id=thesis.id, broken_claim_id=None, status_at_break="weakening"
+        db, thesis_id=thesis.id, user_id=thesis.user_id,
+        broken_claim_id=None, status_at_break="weakening"
     )
     _break_the_core_claim(db, thesis)
 
     # Act
-    recompute_thesis(db, thesis.id)
+    recompute_thesis(db, thesis.id, thesis.user_id)
 
     # Assert — the pending-duplicate guard held.
-    assert len(post_mortem_repository.list_post_mortems(db, thesis_id=thesis.id)) == 1
+    assert len(post_mortem_repository.list_post_mortems(db, thesis.user_id, thesis_id=thesis.id)) == 1
 
 
 def test_a_failure_creating_the_post_mortem_does_not_break_verification(
@@ -141,7 +142,7 @@ def test_a_failure_creating_the_post_mortem_does_not_break_verification(
     _break_the_core_claim(db, thesis)
 
     # Act — must not raise.
-    prev_status, new_status = recompute_thesis(db, thesis.id)
+    prev_status, new_status = recompute_thesis(db, thesis.id, thesis.user_id)
 
     # Assert — the status change still landed and was still persisted.
     assert (prev_status, new_status) == ("pending", "breaking")
@@ -155,12 +156,13 @@ def test_a_failure_creating_the_post_mortem_does_not_break_verification(
 def test_answering_sets_the_response_and_the_answered_timestamp(db, thesis):
     # Arrange
     created = post_mortem_repository.create_post_mortem(
-        db, thesis_id=thesis.id, broken_claim_id=None, status_at_break="breaking"
+        db, thesis_id=thesis.id, user_id=thesis.user_id,
+        broken_claim_id=None, status_at_break="breaking"
     )
 
     # Act
     answered = post_mortem_repository.answer_post_mortem(
-        db, created.id, "I anchored on one quarter of data."
+        db, created.id, thesis.user_id, "I anchored on one quarter of data."
     )
 
     # Assert
@@ -169,23 +171,25 @@ def test_answering_sets_the_response_and_the_answered_timestamp(db, thesis):
     assert answered.answered_at is not None
 
 
-def test_answering_a_missing_post_mortem_returns_none(db):
+def test_answering_a_missing_post_mortem_returns_none(db, thesis):
     # Arrange / Act / Assert
-    assert post_mortem_repository.answer_post_mortem(db, "no-such-id", "text") is None
+    assert post_mortem_repository.answer_post_mortem(db, "no-such-id", thesis.user_id, "text") is None
 
 
 def test_answered_post_mortems_are_excluded_from_pending_only(db, thesis):
     # Arrange
     pending = post_mortem_repository.create_post_mortem(
-        db, thesis_id=thesis.id, broken_claim_id=None, status_at_break="breaking"
+        db, thesis_id=thesis.id, user_id=thesis.user_id,
+        broken_claim_id=None, status_at_break="breaking"
     )
     answered = post_mortem_repository.create_post_mortem(
-        db, thesis_id=thesis.id, broken_claim_id=None, status_at_break="breaking"
+        db, thesis_id=thesis.id, user_id=thesis.user_id,
+        broken_claim_id=None, status_at_break="breaking"
     )
-    post_mortem_repository.answer_post_mortem(db, answered.id, "Answered.")
+    post_mortem_repository.answer_post_mortem(db, answered.id, thesis.user_id, "Answered.")
 
     # Act
-    open_ones = post_mortem_repository.list_post_mortems(db, pending_only=True)
+    open_ones = post_mortem_repository.list_post_mortems(db, thesis.user_id, pending_only=True)
 
     # Assert
     assert [item.id for item in open_ones] == [pending.id]
@@ -194,35 +198,40 @@ def test_answered_post_mortems_are_excluded_from_pending_only(db, thesis):
 def test_deleting_a_post_mortem_works_and_is_reported(db, thesis):
     # Arrange — deletable by design, unlike evidence events.
     created = post_mortem_repository.create_post_mortem(
-        db, thesis_id=thesis.id, broken_claim_id=None, status_at_break="breaking"
+        db, thesis_id=thesis.id, user_id=thesis.user_id,
+        broken_claim_id=None, status_at_break="breaking"
     )
 
     # Act
-    deleted = post_mortem_repository.delete_post_mortem(db, created.id)
+    deleted = post_mortem_repository.delete_post_mortem(db, created.id, thesis.user_id)
 
     # Assert
     assert deleted is True
-    assert post_mortem_repository.get_post_mortem(db, created.id) is None
+    assert post_mortem_repository.get_post_mortem(db, created.id, thesis.user_id) is None
 
 
-def test_deleting_a_missing_post_mortem_returns_false(db):
+def test_deleting_a_missing_post_mortem_returns_false(db, thesis):
     # Arrange / Act / Assert
-    assert post_mortem_repository.delete_post_mortem(db, "no-such-id") is False
+    assert post_mortem_repository.delete_post_mortem(db, "no-such-id", thesis.user_id) is False
 
 
 def test_count_answered_ignores_pending_ones(db, thesis):
     # Arrange
     post_mortem_repository.create_post_mortem(
-        db, thesis_id=thesis.id, broken_claim_id=None, status_at_break="breaking"
+        db, thesis_id=thesis.id, user_id=thesis.user_id,
+        broken_claim_id=None, status_at_break="breaking"
     )
     answered = post_mortem_repository.create_post_mortem(
-        db, thesis_id=thesis.id, broken_claim_id=None, status_at_break="breaking"
+        db, thesis_id=thesis.id, user_id=thesis.user_id,
+        broken_claim_id=None, status_at_break="breaking"
     )
 
     # Act / Assert — still 0 while it is only pending.
-    assert post_mortem_repository.count_answered(db) == 0
-    post_mortem_repository.answer_post_mortem(db, answered.id, "Because I over-anchored.")
-    assert post_mortem_repository.count_answered(db) == 1
+    assert post_mortem_repository.count_answered(db, thesis.user_id) == 0
+    post_mortem_repository.answer_post_mortem(
+        db, answered.id, thesis.user_id, "Because I over-anchored."
+    )
+    assert post_mortem_repository.count_answered(db, thesis.user_id) == 1
 
 
 def test_denormalised_fields_are_reachable_for_the_api(db, thesis):
@@ -230,12 +239,13 @@ def test_denormalised_fields_are_reachable_for_the_api(db, thesis):
     created = post_mortem_repository.create_post_mortem(
         db,
         thesis_id=thesis.id,
+        user_id=thesis.user_id,
         broken_claim_id=thesis.claims[0].id,
         status_at_break="breaking",
     )
 
     # Act
-    fetched = post_mortem_repository.get_post_mortem(db, created.id)
+    fetched = post_mortem_repository.get_post_mortem(db, created.id, thesis.user_id)
 
     # Assert
     assert fetched is not None
@@ -246,11 +256,12 @@ def test_denormalised_fields_are_reachable_for_the_api(db, thesis):
 def test_broken_claim_statement_is_none_when_no_claim_is_linked(db, thesis):
     # Arrange — a manually requested post-mortem has no specific claim.
     created = post_mortem_repository.create_post_mortem(
-        db, thesis_id=thesis.id, broken_claim_id=None, status_at_break="weakening"
+        db, thesis_id=thesis.id, user_id=thesis.user_id,
+        broken_claim_id=None, status_at_break="weakening"
     )
 
     # Act
-    fetched = post_mortem_repository.get_post_mortem(db, created.id)
+    fetched = post_mortem_repository.get_post_mortem(db, created.id, thesis.user_id)
 
     # Assert
     assert fetched is not None

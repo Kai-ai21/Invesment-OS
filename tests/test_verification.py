@@ -111,7 +111,7 @@ def test_provider_receives_only_the_retrieved_passages_not_the_whole_document(db
 
     # Act
     verify_document_against_thesis(
-        db, thesis.id, DOCUMENT, retriever=retriever, provider=provider
+        db, thesis.id, thesis.user_id, DOCUMENT, retriever=retriever, provider=provider
     )
 
     # Assert — the prompt carried the retrieved passage and nothing else from the doc.
@@ -129,7 +129,7 @@ def test_multiple_passages_are_joined_with_a_separator(db, thesis):
 
     # Act
     verify_document_against_thesis(
-        db, thesis.id, DOCUMENT, retriever=retriever, provider=provider
+        db, thesis.id, thesis.user_id, DOCUMENT, retriever=retriever, provider=provider
     )
 
     # Assert — both passages present, visibly separated as distinct excerpts.
@@ -154,7 +154,7 @@ def test_quote_found_only_in_unretrieved_text_is_rejected(db, thesis):
 
     # Act
     created = verify_document_against_thesis(
-        db, thesis.id, DOCUMENT, retriever=retriever, provider=provider
+        db, thesis.id, thesis.user_id, DOCUMENT, retriever=retriever, provider=provider
     )
 
     # Assert — ...but not in what the model saw, so no evidence is recorded.
@@ -168,7 +168,7 @@ def test_quote_grounded_in_the_retrieved_passage_is_accepted(db, thesis):
 
     # Act
     created = verify_document_against_thesis(
-        db, thesis.id, DOCUMENT, retriever=retriever, provider=provider
+        db, thesis.id, thesis.user_id, DOCUMENT, retriever=retriever, provider=provider
     )
 
     # Assert
@@ -186,7 +186,7 @@ def test_claim_is_skipped_without_calling_the_ai_when_retrieval_returns_nothing(
 
     # Act
     created = verify_document_against_thesis(
-        db, thesis.id, DOCUMENT, retriever=retriever, provider=provider
+        db, thesis.id, thesis.user_id, DOCUMENT, retriever=retriever, provider=provider
     )
 
     # Assert — no prompt was sent and no evidence recorded.
@@ -204,7 +204,7 @@ def test_retrieval_query_includes_statement_and_both_conditions(db, thesis):
 
     # Act
     verify_document_against_thesis(
-        db, thesis.id, DOCUMENT, retriever=retriever, provider=provider
+        db, thesis.id, thesis.user_id, DOCUMENT, retriever=retriever, provider=provider
     )
 
     # Assert — evidence is often phrased in the conditions' language, not the

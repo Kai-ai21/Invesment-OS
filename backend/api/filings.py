@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from backend.api.dependencies import current_user_id
 from backend.api.schemas import FilingOut, FilingSummariseRequest, FilingSummaryOut
 from backend.models.database import get_db
 from backend.services.filing_service import (
@@ -41,7 +42,11 @@ def read_filings(
 
 
 @router.post("/summarise", response_model=FilingSummaryOut)
-def summarise(request: FilingSummariseRequest, db: Session = Depends(get_db)):
+def summarise(
+    request: FilingSummariseRequest,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(current_user_id),
+):
     """One filing, restated in plain language.
 
     ⚠️ READ-ONLY. This creates no evidence, moves no claim or thesis status, and
@@ -59,7 +64,7 @@ def summarise(request: FilingSummariseRequest, db: Session = Depends(get_db)):
     SEC or the AI call failed.
     """
     try:
-        summary = summarise_filing(db, request.ticker, request.url)
+        summary = summarise_filing(db, request.ticker, request.url, user_id)
     except FilingNotListedError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except FilingSourceError as exc:

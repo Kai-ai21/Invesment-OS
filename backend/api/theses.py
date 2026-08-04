@@ -15,13 +15,13 @@ from backend.api.schemas import (
     ThesisCreateRequest,
     ThesisOut,
 )
+from backend.api.dependencies import current_user_id
 from backend.domain.status import BROKEN_CLAIM_STATUS, compute_claim_score
 from backend.models.database import get_db
 from backend.repositories import (
     evidence_repository,
     post_mortem_repository,
     thesis_repository,
-    user_repository,
 )
 from backend.repositories.evidence_repository import EMPTY_SUMMARY, EvidenceSummary
 from backend.services.chart_service import build_chart_data
@@ -42,11 +42,11 @@ def create_thesis(
     body: ThesisCreateRequest,
     db: Session = Depends(get_db),
     provider: GeminiProvider = Depends(get_llm_provider),
+    user_id: str = Depends(current_user_id),
 ):
-    user = user_repository.get_demo_user(db)
     try:
         thesis = extract_and_save_thesis(
-            db, user_id=user.id, ticker=body.ticker, reasoning=body.reasoning, provider=provider
+            db, user_id=user_id, ticker=body.ticker, reasoning=body.reasoning, provider=provider
         )
     except ExtractionError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
@@ -113,51 +113,79 @@ def _thesis_out(
 
 
 @router.get("", response_model=list[ThesisOut])
-def list_theses(db: Session = Depends(get_db)):
-    user = user_repository.get_demo_user(db)
-    theses = thesis_repository.list_theses_for_user(db, user_id=user.id)
+def list_theses(
+    db: Session = Depends(get_db), user_id: str = Depends(current_user_id)
+):
+    theses = thesis_repository.list_theses_for_user(db, user_id=user_id)
     ids = [thesis.id for thesis in theses]
     # Two queries for the whole list, however many theses it holds.
-    summaries = evidence_repository.summarise_for_theses(db, ids)
-    events = evidence_repository.events_by_claim(db, ids)
+    summaries = evidence_repository.summarise_for_theses(db, ids, user_id)
+    events = evidence_repository.events_by_claim(db, ids, user_id)
     return [_thesis_out(thesis, summaries, events) for thesis in theses]
 
 
 @router.get("/{thesis_id}", response_model=ThesisOut)
-def get_thesis(thesis_id: str, db: Session = Depends(get_db)):
-    thesis = thesis_repository.get_thesis(db, thesis_id)
+def get_thesis(
+    thesis_id: str,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(current_user_id),
+):
+    """⚠️ 404, NOT 403, for a thesis that exists and is someone else's.
+
+    The repository returns None for both cases, so there is nothing here that could
+    leak the difference. A 403 would tell whoever is walking uuids that they had just
+    found a real one.
+    """
+    thesis = thesis_repository.get_thesis(db, thesis_id, user_id)
     if thesis is None:
         raise HTTPException(status_code=404, detail="Thesis not found")
     return _thesis_out(
         thesis,
-        evidence_repository.summarise_for_theses(db, [thesis.id]),
-        evidence_repository.events_by_claim(db, [thesis.id]),
+        evidence_repository.summarise_for_theses(db, [thesis.id], user_id),
+        evidence_repository.events_by_claim(db, [thesis.id], user_id),
     )
 
 
 @router.post("/{thesis_id}/documents", response_model=list[EvidenceEventOut])
-def submit_document(thesis_id: str, body: DocumentSubmitRequest, db: Session = Depends(get_db)):
-    if thesis_repository.get_thesis(db, thesis_id) is None:
+def submit_document(
+    thesis_id: str,
+    body: DocumentSubmitRequest,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(current_user_id),
+):
+    if thesis_repository.get_thesis(db, thesis_id, user_id) is None:
         raise HTTPException(status_code=404, detail="Thesis not found")
-    return verify_document_against_thesis(db, thesis_id, body.raw_text, body.title)
+    return verify_document_against_thesis(db, thesis_id, user_id, body.raw_text, body.title)
 
 
 @router.get("/{thesis_id}/evidence", response_model=list[EvidenceEventOut])
-def list_evidence(thesis_id: str, db: Session = Depends(get_db)):
-    if thesis_repository.get_thesis(db, thesis_id) is None:
+def list_evidence(
+    thesis_id: str,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(current_user_id),
+):
+    if thesis_repository.get_thesis(db, thesis_id, user_id) is None:
         raise HTTPException(status_code=404, detail="Thesis not found")
-    return evidence_repository.list_evidence_for_thesis(db, thesis_id)
+    return evidence_repository.list_evidence_for_thesis(db, thesis_id, user_id)
 
 
 @router.get("/{thesis_id}/post-mortems", response_model=list[PostMortemOut])
-def list_thesis_post_mortems(thesis_id: str, db: Session = Depends(get_db)):
-    if thesis_repository.get_thesis(db, thesis_id) is None:
+def list_thesis_post_mortems(
+    thesis_id: str,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(current_user_id),
+):
+    if thesis_repository.get_thesis(db, thesis_id, user_id) is None:
         raise HTTPException(status_code=404, detail="Thesis not found")
-    return post_mortem_repository.list_post_mortems(db, thesis_id=thesis_id)
+    return post_mortem_repository.list_post_mortems(db, user_id, thesis_id=thesis_id)
 
 
 @router.post("/{thesis_id}/post-mortems", response_model=PostMortemOut)
-def create_thesis_post_mortem(thesis_id: str, db: Session = Depends(get_db)):
+def create_thesis_post_mortem(
+    thesis_id: str,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(current_user_id),
+):
     """Open a post-mortem on demand, without waiting for the thesis to break.
 
     Reflection is useful when a thesis merely wobbles, or when the user simply wants
@@ -165,7 +193,7 @@ def create_thesis_post_mortem(thesis_id: str, db: Session = Depends(get_db)):
     Unlike the automatic trigger there is no duplicate guard: asking for one is an
     explicit act, and refusing it would be surprising.
     """
-    thesis = thesis_repository.get_thesis(db, thesis_id)
+    thesis = thesis_repository.get_thesis(db, thesis_id, user_id)
     if thesis is None:
         raise HTTPException(status_code=404, detail="Thesis not found")
 
@@ -180,6 +208,7 @@ def create_thesis_post_mortem(thesis_id: str, db: Session = Depends(get_db)):
     return post_mortem_repository.create_post_mortem(
         db,
         thesis_id=thesis_id,
+        user_id=user_id,
         broken_claim_id=broken_core.id if broken_core is not None else None,
         status_at_break=thesis.status,
     )
@@ -190,6 +219,7 @@ def get_chart(
     thesis_id: str,
     days: int = Query(default=365, ge=1, le=1825),
     db: Session = Depends(get_db),
+    user_id: str = Depends(current_user_id),
 ):
     """Prices for the thesis's ticker, annotated with its evidence and status changes.
 
@@ -197,18 +227,26 @@ def get_chart(
     prices_unavailable set and the events intact, because a broken third party must
     never hide the user's own record.
     """
-    chart = build_chart_data(db, thesis_id, days=days)
+    chart = build_chart_data(db, thesis_id, user_id, days=days)
     if chart is None:
         raise HTTPException(status_code=404, detail="Thesis not found")
     return chart
 
 
 @router.post("/{thesis_id}/check", response_model=CheckResultOut)
-def run_check(thesis_id: str, limit: int = 3, db: Session = Depends(get_db)):
-    if thesis_repository.get_thesis(db, thesis_id) is None:
+def run_check(
+    thesis_id: str,
+    limit: int = 3,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(current_user_id),
+):
+    """⚠️ SCOPED BEFORE ANY WORK IS DONE. Unscoped, this let anyone spend AI calls
+    and SEC requests against a stranger's thesis, and write evidence that moves its
+    status — the most expensive IDOR in the app, in both senses."""
+    if thesis_repository.get_thesis(db, thesis_id, user_id) is None:
         raise HTTPException(status_code=404, detail="Thesis not found")
     try:
-        return check_thesis(db, thesis_id, limit=limit)
+        return check_thesis(db, thesis_id, user_id, limit=limit)
     except CheckError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     except EdgarError as exc:

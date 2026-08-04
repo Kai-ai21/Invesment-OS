@@ -102,7 +102,11 @@ def post_mortem(db):
     )
     db.commit()
     return post_mortem_repository.create_post_mortem(
-        db, thesis_id=thesis.id, broken_claim_id=claim.id, status_at_break="breaking"
+        db,
+        thesis_id=thesis.id,
+        user_id=user.id,
+        broken_claim_id=claim.id,
+        status_at_break="breaking",
     )
 
 
@@ -171,7 +175,7 @@ def test_grounded_question_is_accepted_and_stored(db, post_mortem):
     provider = FakeProvider([good])
 
     # Act
-    result = generate_question(db, post_mortem.id, provider=provider)
+    result = generate_question(db, post_mortem.id, post_mortem.thesis.user_id, provider=provider)
 
     # Assert
     assert result.prompt_question == good
@@ -183,7 +187,7 @@ def test_only_contradicting_evidence_is_offered_to_the_model(db, post_mortem):
     provider = FakeProvider(["Margins fell. What made you confident?"])
 
     # Act
-    generate_question(db, post_mortem.id, provider=provider)
+    generate_question(db, post_mortem.id, post_mortem.thesis.user_id, provider=provider)
 
     # Assert — the "supports" quote must not be presented as what broke the claim.
     quotes = provider.last_kwargs["evidence_quotes"]
@@ -196,7 +200,7 @@ def test_ungrounded_question_is_rejected_retried_then_falls_back(db, post_mortem
     provider = FakeProvider([fabricated, fabricated])
 
     # Act
-    result = generate_question(db, post_mortem.id, provider=provider)
+    result = generate_question(db, post_mortem.id, post_mortem.thesis.user_id, provider=provider)
 
     # Assert — retried once, then stored the safe fallback rather than a fabrication.
     assert provider.calls == 2
@@ -210,7 +214,7 @@ def test_fallback_contains_the_claim_statement_verbatim(db, post_mortem):
     provider = FakeProvider([fabricated, fabricated])
 
     # Act
-    result = generate_question(db, post_mortem.id, provider=provider)
+    result = generate_question(db, post_mortem.id, post_mortem.thesis.user_id, provider=provider)
 
     # Assert
     assert CLAIM_STATEMENT in result.prompt_question
@@ -223,7 +227,7 @@ def test_a_retry_that_succeeds_is_used(db, post_mortem):
     provider = FakeProvider([fabricated, good])
 
     # Act
-    result = generate_question(db, post_mortem.id, provider=provider)
+    result = generate_question(db, post_mortem.id, post_mortem.thesis.user_id, provider=provider)
 
     # Assert
     assert provider.calls == 2
@@ -237,12 +241,12 @@ def test_generating_twice_does_not_overwrite_an_existing_question(db, post_morte
     # Arrange
     first = f'The filing reported "{CONTRADICTING_QUOTE}" What made you confident?'
     provider = FakeProvider([first])
-    generate_question(db, post_mortem.id, provider=provider)
+    generate_question(db, post_mortem.id, post_mortem.thesis.user_id, provider=provider)
 
     second_provider = FakeProvider(["A completely different question?"])
 
     # Act — the frontend may call this every time it displays the post-mortem.
-    result = generate_question(db, post_mortem.id, provider=second_provider)
+    result = generate_question(db, post_mortem.id, post_mortem.thesis.user_id, provider=second_provider)
 
     # Assert — no second call, no reworded question under the user.
     assert second_provider.calls == 0
@@ -252,13 +256,13 @@ def test_generating_twice_does_not_overwrite_an_existing_question(db, post_morte
 def test_force_regenerates_the_question(db, post_mortem):
     # Arrange
     first = f'The filing reported "{CONTRADICTING_QUOTE}" What made you confident?'
-    generate_question(db, post_mortem.id, provider=FakeProvider([first]))
+    generate_question(db, post_mortem.id, post_mortem.thesis.user_id, provider=FakeProvider([first]))
 
     replacement = f'Margins moved: "{CONTRADICTING_QUOTE}" What were you reading then?'
     provider = FakeProvider([replacement])
 
     # Act
-    result = generate_question(db, post_mortem.id, provider=provider, force=True)
+    result = generate_question(db, post_mortem.id, post_mortem.thesis.user_id, provider=provider, force=True)
 
     # Assert
     assert provider.calls == 1
@@ -268,10 +272,12 @@ def test_force_regenerates_the_question(db, post_mortem):
 # --- error paths ------------------------------------------------------------------
 
 
-def test_missing_post_mortem_raises_not_found(db):
+def test_missing_post_mortem_raises_not_found(db, post_mortem):
     # Arrange / Act / Assert
     with pytest.raises(PostMortemNotFound):
-        generate_question(db, "no-such-id", provider=FakeProvider(["x"]))
+        generate_question(
+            db, "no-such-id", post_mortem.thesis.user_id, provider=FakeProvider(["x"])
+        )
 
 
 def test_post_mortem_without_a_broken_claim_cannot_be_asked_about(db):
@@ -286,12 +292,16 @@ def test_post_mortem_without_a_broken_claim_cannot_be_asked_about(db):
     db.flush()
     db.commit()
     created = post_mortem_repository.create_post_mortem(
-        db, thesis_id=thesis.id, broken_claim_id=None, status_at_break="weakening"
+        db,
+        thesis_id=thesis.id,
+        user_id=user.id,
+        broken_claim_id=None,
+        status_at_break="weakening",
     )
     provider = FakeProvider(["should never be called"])
 
     # Act / Assert — a generic question is worse than none, so this refuses rather
     # than inventing one.
     with pytest.raises(PostMortemError):
-        generate_question(db, created.id, provider=provider)
+        generate_question(db, created.id, user.id, provider=provider)
     assert provider.calls == 0

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from backend.adapters.rss_news_source import NewsError, RssNewsSource
 from backend.ports.news_source import NewsItem, NewsSource
-from backend.repositories import thesis_repository, user_repository
+from backend.repositories import thesis_repository
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +100,7 @@ def get_news_for_ticker(
 
 def get_news_for_all_theses(
     db: Session,
+    user_id: str,
     limit_per_ticker: int = 5,
     source: NewsSource | None = None,
 ) -> list[NewsItem]:
@@ -110,8 +111,7 @@ def get_news_for_all_theses(
     if source is None:
         source = RssNewsSource()
 
-    user = user_repository.get_demo_user(db)
-    theses = thesis_repository.list_theses_for_user(db, user_id=user.id)
+    theses = thesis_repository.list_theses_for_user(db, user_id=user_id)
 
     # Distinct tickers, preserving the thesis ordering so the feed is stable between
     # calls. Several theses on the same ticker must not fetch it twice.

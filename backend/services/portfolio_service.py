@@ -25,7 +25,7 @@ from backend.domain.portfolio import (
 )
 from backend.models.thesis import Thesis
 from backend.ports.price_source import PriceSource
-from backend.repositories import holding_repository, user_repository
+from backend.repositories import holding_repository
 from backend.services.price_service import get_price
 
 # Why a row has no price, as a value the frontend can BRANCH on. `price_error` carries
@@ -36,11 +36,15 @@ PRICE_UNKNOWN_TICKER = "unknown_ticker"
 PRICE_SOURCE_UNAVAILABLE = "source_unavailable"
 
 
-def get_portfolio(db: Session, source: PriceSource | None = None) -> dict:
-    """Every holding with its computed values, plus totals over the priced ones."""
-    user = user_repository.get_demo_user(db)
-    holdings = holding_repository.list_holdings_for_user(db, user_id=user.id)
-    theses_by_ticker = _theses_by_ticker(db, user_id=user.id)
+def get_portfolio(db: Session, user_id: str, source: PriceSource | None = None) -> dict:
+    """Every holding with its computed values, plus totals over the priced ones.
+
+    The user is now an ARGUMENT rather than something this looks up for itself. It
+    used to call get_demo_user(), which is the pattern A2 removes everywhere: a
+    service that decides whose data it is answers the same way no matter who asked.
+    """
+    holdings = holding_repository.list_holdings_for_user(db, user_id=user_id)
+    theses_by_ticker = _theses_by_ticker(db, user_id=user_id)
 
     rows = [_price_and_compute(holding, theses_by_ticker, source) for holding in holdings]
 

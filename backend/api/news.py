@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from backend.adapters.rss_news_source import NewsError
+from backend.api.dependencies import current_user_id
 from backend.api.schemas import NewsItemOut
 from backend.models.database import get_db
 from backend.services.news_service import get_news_for_all_theses, get_news_for_ticker
@@ -13,13 +14,14 @@ router = APIRouter(prefix="/news", tags=["news"])
 def list_news(
     limit_per_ticker: int = Query(default=5, ge=1, le=50),
     db: Session = Depends(get_db),
+    user_id: str = Depends(current_user_id),
 ):
     """Headlines across every ticker the user holds a thesis on, newest first.
 
     Returns [] when the user has no theses. Individual feed failures are isolated in
     the service, so a dead feed drops that ticker rather than failing the request.
     """
-    return get_news_for_all_theses(db, limit_per_ticker=limit_per_ticker)
+    return get_news_for_all_theses(db, user_id, limit_per_ticker=limit_per_ticker)
 
 
 @router.get("/{ticker}", response_model=list[NewsItemOut])

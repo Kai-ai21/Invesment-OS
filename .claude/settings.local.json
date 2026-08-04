@@ -251,7 +251,22 @@
       "WebFetch(domain:pyjwt.readthedocs.io)",
       "Bash(./venv/bin/python -m pytest tests/test_auth.py -q)",
       "Bash(./venv/bin/python -m pytest tests/test_verification.py -q)",
-      "Bash(./venv/bin/python -c \"import backend.main; print\\('backend.main imports OK'\\)\")"
+      "Bash(./venv/bin/python -c \"import backend.main; print\\('backend.main imports OK'\\)\")",
+      "Bash(./venv/bin/python -c \"import backend.main; print\\('imports OK'\\)\")",
+      "Bash(./venv/bin/python -m pytest tests/test_verification.py tests/test_chart.py tests/test_patterns.py -q)",
+      "Bash(./venv/bin/python -m pytest tests/test_chart.py::test_neutral_evidence_is_not_annotated tests/test_patterns.py::test_dismissing_a_missing_pattern_returns_none -q)",
+      "Bash(./venv/bin/python -m pytest tests/test_chart.py tests/test_patterns.py tests/test_verification.py -q)",
+      "Bash(./venv/bin/python -m pytest tests/test_post_mortem.py -q)",
+      "Bash(./venv/bin/python -m pytest tests/test_post_mortem_question.py -q)",
+      "Bash(./venv/bin/python -m pytest tests/test_portfolio.py::test_update_distinguishes_an_omitted_note_from_an_explicit_null -q)",
+      "Bash(./venv/bin/python -m pytest tests/test_scoping.py -q)",
+      "Bash(cp backend/repositories/thesis_repository.py /tmp/tr.bak)",
+      "Bash(cp backend/repositories/holding_repository.py /tmp/hr.bak)",
+      "Bash(cp backend/repositories/pattern_repository.py /tmp/pr.bak)",
+      "Bash(cp /tmp/tr.bak backend/repositories/thesis_repository.py)",
+      "Bash(cp /tmp/hr.bak backend/repositories/holding_repository.py)",
+      "Bash(cp /tmp/pr.bak backend/repositories/pattern_repository.py)",
+      "Bash(rm -f /tmp/tr.bak /tmp/hr.bak /tmp/pr.bak)"
     ]
   }
 }

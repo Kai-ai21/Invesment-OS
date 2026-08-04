@@ -182,6 +182,7 @@ def run(db, **kwargs):
     """summarise_filing with every dependency faked unless overridden."""
     defaults = {
         "ticker": "NVDA",
+        "user_id": db.query(User).filter(User.email == "demo@local").one().id,
         "url": TEN_K["url"],
         "edgar": FakeEdgar(),
         "retriever": FakeRetriever(),

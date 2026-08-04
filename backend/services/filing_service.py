@@ -31,7 +31,7 @@ from backend.adapters.hybrid_retriever import HybridRetriever
 from backend.domain.filing import FilingSummary, NotableNumber
 from backend.ports.evidence_retriever import EvidenceRetriever
 from backend.ports.llm_provider import LLMProvider
-from backend.repositories import thesis_repository, user_repository
+from backend.repositories import thesis_repository
 
 # ⚠️ THE WIDER SET IS THIS FEATURE'S ALONE.
 #
@@ -221,18 +221,17 @@ def _find_filing(edgar: EdgarSource, ticker: str, url: str) -> FilingRef | None:
     return None
 
 
-def _claims_for_ticker(db: Session, ticker: str) -> dict[str, RelevantClaim]:
+def _claims_for_ticker(db: Session, ticker: str, user_id: str) -> dict[str, RelevantClaim]:
     """Every claim the user has written about this ticker, by claim id.
 
     Empty is entirely normal — filings are browsable for any company, including ones
     the user has never written about.
     """
-    user = user_repository.get_demo_user(db)
     return {
         claim.id: RelevantClaim(
             claim_id=claim.id, thesis_id=thesis.id, statement=claim.statement
         )
-        for thesis in thesis_repository.list_theses_for_user(db, user_id=user.id)
+        for thesis in thesis_repository.list_theses_for_user(db, user_id=user_id)
         if thesis.ticker == ticker
         for claim in thesis.claims
     }
@@ -266,6 +265,7 @@ def summarise_filing(
     db: Session,
     ticker: str,
     url: str,
+    user_id: str,
     edgar: EdgarSource | None = None,
     retriever: EvidenceRetriever | None = None,
     provider: LLMProvider | None = None,
@@ -304,7 +304,7 @@ def summarise_filing(
             f"{url} is not one of the SEC's recent filings for {normalised}"
         )
 
-    known_claims = _claims_for_ticker(db, normalised)
+    known_claims = _claims_for_ticker(db, normalised, user_id)
 
     cached = _summary_cache.get((normalised, filing.accession_number))
     if cached is not None and time.monotonic() - cached[0] < SUMMARY_TTL_SECONDS:

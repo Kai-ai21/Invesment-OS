@@ -9,9 +9,15 @@ class CheckError(Exception):
     pass
 
 
-def check_thesis(db: Session, thesis_id: str, limit: int = 3) -> dict:
-    """Pull recent filings for a thesis's ticker and run each one through verification."""
-    thesis = thesis_repository.get_thesis(db, thesis_id)
+def check_thesis(db: Session, thesis_id: str, user_id: str, limit: int = 3) -> dict:
+    """Pull recent filings for a thesis's ticker and run each one through verification.
+
+    Scoped: an unscoped check let one user spend AI calls and SEC requests against
+    another user's thesis, and write evidence onto it that moves its status.
+    """
+    thesis = thesis_repository.get_thesis(db, thesis_id, user_id)
+    if thesis is None:
+        raise CheckError("Thesis not found")
     source = EdgarSource()
 
     cik = source.resolve_cik(thesis.ticker)
@@ -36,6 +42,7 @@ def check_thesis(db: Session, thesis_id: str, limit: int = 3) -> dict:
         events = verify_document_against_thesis(
             db,
             thesis_id,
+            user_id,
             document.raw_text,
             title=document.title,
             source_type=document.source_type,

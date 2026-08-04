@@ -31,11 +31,12 @@ def _as_date(value: datetime.datetime) -> datetime.date:
 def build_chart_data(
     db: Session,
     thesis_id: str,
+    user_id: str,
     days: int = 365,
     source: PriceSource | None = None,
 ) -> ChartDataOut | None:
-    """Chart payload for one thesis, or None when the thesis does not exist."""
-    thesis = thesis_repository.get_thesis(db, thesis_id)
+    """Chart payload for one thesis, or None when this user has no such thesis."""
+    thesis = thesis_repository.get_thesis(db, thesis_id, user_id)
     if thesis is None:
         return None
 
@@ -53,7 +54,7 @@ def build_chart_data(
         print(f"Price history unavailable for {thesis.ticker}: {exc}")
         prices_unavailable = True
 
-    events = _collect_events(db, thesis_id)
+    events = _collect_events(db, thesis_id, user_id)
 
     # Only events the chart can actually place. With no prices there is no axis at
     # all, so everything is kept and the frontend renders the events without a line
@@ -72,7 +73,7 @@ def build_chart_data(
     )
 
 
-def _collect_events(db: Session, thesis_id: str) -> list[ChartEventOut]:
+def _collect_events(db: Session, thesis_id: str, user_id: str) -> list[ChartEventOut]:
     """Evidence and status changes, flattened into one annotation list."""
     events: list[ChartEventOut] = []
 
@@ -100,9 +101,10 @@ def _collect_events(db: Session, thesis_id: str) -> list[ChartEventOut]:
 
     # Status changes come from the alerts table, which is already the record of every
     # meaningful transition — no second source to keep in step.
-    for alert in alert_repository.list_alerts(db):
-        if alert.thesis_id != thesis_id:
-            continue
+    # Scoped AND narrowed to this thesis in the query. This used to load every alert
+    # in the table and skip the non-matching ones in Python, which read the whole
+    # alerts table of every user to draw one chart.
+    for alert in alert_repository.list_alerts_for_thesis(db, thesis_id, user_id):
         events.append(
             ChartEventOut(
                 date=_as_date(alert.created_at),

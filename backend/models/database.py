@@ -24,6 +24,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
     _add_missing_user_auth_columns()
+    _add_missing_pattern_owner_column()
 
 
 def _add_missing_user_auth_columns() -> None:
@@ -58,6 +59,40 @@ def _add_missing_user_auth_columns() -> None:
             )
         connection.exec_driver_sql(
             "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_email ON users (email)"
+        )
+
+
+def _add_missing_pattern_owner_column() -> None:
+    """Give an EXISTING patterns table its user_id. Idempotent.
+
+    Same reasoning as _add_missing_user_auth_columns — `create_all` does not alter
+    tables that already exist, so without this the column exists in Python and not in
+    SQLite and every pattern query fails.
+
+    ⚠️ EXISTING PATTERNS ARE BACKFILLED TO demo@local, NOT DELETED. They are derived
+    data and regenerating them would be cheap, but they are derived from the user's
+    own reflections and deleting rows to simplify a migration is not this migration's
+    call to make. The empty-string default is a placeholder that exists only between
+    the two statements below; the UPDATE immediately replaces it.
+    """
+    with engine.begin() as connection:
+        columns = {
+            row[1] for row in connection.exec_driver_sql("PRAGMA table_info(patterns)")
+        }
+        if not columns or "user_id" in columns:
+            return
+
+        connection.exec_driver_sql(
+            "ALTER TABLE patterns ADD COLUMN user_id VARCHAR(36) NOT NULL DEFAULT ''"
+        )
+        connection.exec_driver_sql(
+            "UPDATE patterns SET user_id = "
+            "(SELECT id FROM users WHERE email = 'demo@local') "
+            "WHERE user_id = '' "
+            "AND EXISTS (SELECT 1 FROM users WHERE email = 'demo@local')"
+        )
+        connection.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_patterns_user_id ON patterns (user_id)"
         )
 
 

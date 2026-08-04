@@ -54,7 +54,9 @@ def pattern_is_grounded(
     return unique_ids.issubset(supplied_ids)
 
 
-def generate_patterns(db: Session, provider: LLMProvider | None = None) -> list[Pattern]:
+def generate_patterns(
+    db: Session, user_id: str, provider: LLMProvider | None = None
+) -> list[Pattern]:
     """Rebuild the pattern set from every answered post-mortem.
 
     Returns [] without calling the AI when there is not enough material. Regenerating
@@ -62,7 +64,7 @@ def generate_patterns(db: Session, provider: LLMProvider | None = None) -> list[
     """
     answered = [
         item
-        for item in post_mortem_repository.list_post_mortems(db)
+        for item in post_mortem_repository.list_post_mortems(db, user_id)
         if item.user_response is not None
     ]
 
@@ -80,7 +82,7 @@ def generate_patterns(db: Session, provider: LLMProvider | None = None) -> list[
     # An empty list is a valid, expected answer — most small sets share nothing real.
     # Still replace the old set, so a pattern that no longer holds disappears rather
     # than lingering because this run found nothing.
-    pattern_repository.delete_all_patterns(db)
+    pattern_repository.delete_all_patterns(db, user_id)
 
     saved: list[Pattern] = []
     for candidate in candidates:
@@ -93,6 +95,7 @@ def generate_patterns(db: Session, provider: LLMProvider | None = None) -> list[
         saved.append(
             pattern_repository.create_pattern(
                 db,
+                user_id=user_id,
                 statement=candidate.statement,
                 # Deduplicated and ordered so the stored citations match what was
                 # actually validated.

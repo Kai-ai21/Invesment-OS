@@ -25,6 +25,15 @@ from backend.services.portfolio_service import get_portfolio
 TODAY = datetime.date(2026, 7, 28)
 
 
+def demo_id(db) -> str:
+    """Whose portfolio these tests mean.
+
+    A2 made user_id required on every user-owned repository and service call, so the
+    test has to name a user — the unscoped call it used to make no longer exists.
+    """
+    return db.query(User).filter(User.email == "demo@local").one().id
+
+
 # --- pure functions ---------------------------------------------------------------
 
 
@@ -158,7 +167,7 @@ def test_one_failing_ticker_does_not_break_the_rest(db):
     )
 
     # Act
-    rows = rows_by_ticker(get_portfolio(db, source=source))
+    rows = rows_by_ticker(get_portfolio(db, demo_id(db), source=source))
 
     # Assert — the healthy rows computed normally.
     assert rows["NVDA"]["market_value"] == 1500.0
@@ -189,7 +198,7 @@ def test_totals_exclude_unavailable_holdings_and_report_the_count(db):
     )
 
     # Act
-    totals = get_portfolio(db, source=source)["totals"]
+    totals = get_portfolio(db, demo_id(db), source=source)["totals"]
 
     # Assert — AAPL contributes to NOTHING, including the cost basis. Counting its
     # 1000 basis while its market value is absent would show a fake 1140 loss.
@@ -209,7 +218,7 @@ def test_unknown_ticker_is_excluded_and_distinguished_from_a_failure(db):
     source = FakePriceSource({"NVDA": 150.0, "NVDAA": None})
 
     # Act
-    portfolio = get_portfolio(db, source=source)
+    portfolio = get_portfolio(db, demo_id(db), source=source)
     rows = rows_by_ticker(portfolio)
 
     # Assert — same `price_unavailable`, DIFFERENT status, so the UI can say which.
@@ -227,7 +236,7 @@ def test_allocation_percentages_cover_the_priced_portfolio(db):
     source = FakePriceSource({"NVDA": 150.0, "MSFT": 250.0})
 
     # Act
-    rows = rows_by_ticker(get_portfolio(db, source=source))
+    rows = rows_by_ticker(get_portfolio(db, demo_id(db), source=source))
 
     # Assert
     assert rows["NVDA"]["allocation_percent"] == 75.0
@@ -244,7 +253,7 @@ def test_thesis_status_is_attached_when_one_exists_and_null_otherwise(db):
     source = FakePriceSource({"NVDA": 150.0, "MSFT": 320.0})
 
     # Act
-    rows = rows_by_ticker(get_portfolio(db, source=source))
+    rows = rows_by_ticker(get_portfolio(db, demo_id(db), source=source))
 
     # Assert
     assert rows["NVDA"]["thesis_status"] == "breaking"
@@ -256,7 +265,7 @@ def test_empty_portfolio_totals_are_zero_not_none(db):
     # Arrange — no holdings at all. Zero here is CORRECT: an empty portfolio really is
     # worth nothing, unlike an unpriced one.
     # Act
-    portfolio = get_portfolio(db, source=FakePriceSource({}))
+    portfolio = get_portfolio(db, demo_id(db), source=FakePriceSource({}))
 
     # Assert
     assert portfolio["holdings"] == []
@@ -276,7 +285,7 @@ def test_every_holding_failing_leaves_totals_visibly_partial(db):
     )
 
     # Act
-    totals = get_portfolio(db, source=source)["totals"]
+    totals = get_portfolio(db, demo_id(db), source=source)["totals"]
 
     # Assert — 0 with a count of 0 and 2 excluded reads as "nothing could be priced",
     # which is recoverable; 0 with 2 counted would read as "your portfolio is worthless".
@@ -292,23 +301,27 @@ def test_update_distinguishes_an_omitted_note_from_an_explicit_null(db):
     # Arrange
     holding = add(db, "NVDA", 10.0, 100.0)
     holding_repository.update_holding(
-        db, holding.id, note="conviction buy", fields_set={"note"}
+        db, holding.id, demo_id(db), note="conviction buy", fields_set={"note"}
     )
 
     # Act — a shares-only edit, with `note` omitted.
-    holding_repository.update_holding(db, holding.id, shares=12.0, fields_set={"shares"})
+    holding_repository.update_holding(
+        db, holding.id, demo_id(db), shares=12.0, fields_set={"shares"}
+    )
 
     # Assert — the note survived an unrelated edit.
     assert holding.shares == 12.0
     assert holding.note == "conviction buy"
 
     # Act — now clear it explicitly.
-    holding_repository.update_holding(db, holding.id, note=None, fields_set={"note"})
+    holding_repository.update_holding(
+        db, holding.id, demo_id(db), note=None, fields_set={"note"}
+    )
 
     # Assert
     assert holding.note is None
 
 
 def test_update_and_delete_report_a_missing_holding(db):
-    assert holding_repository.update_holding(db, "no-such-id", shares=1.0) is None
-    assert holding_repository.delete_holding(db, "no-such-id") is False
+    assert holding_repository.update_holding(db, "no-such-id", demo_id(db), shares=1.0) is None
+    assert holding_repository.delete_holding(db, "no-such-id", demo_id(db)) is False
