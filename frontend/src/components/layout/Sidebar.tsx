@@ -13,6 +13,7 @@ import type { LucideIcon } from 'lucide-react'
 import { useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router'
 
+import { LogoMark } from '@/components/LogoMark'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
 import { useAuth } from '@/hooks/useAuth'
@@ -260,9 +261,9 @@ export function Sidebar({
       >
         <div
           aria-hidden
-          className="grid size-8 shrink-0 place-items-center rounded-lg bg-surface-raised text-xs font-medium text-text-primary"
+          className="grid size-8 shrink-0 place-items-center rounded-lg bg-surface-raised text-text-primary"
         >
-          KO
+          <LogoMark />
         </div>
         {/* Wordmark in the display font, weight 400 (no font-medium — Righteous
             is single-weight and would otherwise be synthetically bolded). */}

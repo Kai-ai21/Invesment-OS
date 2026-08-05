@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 
+import { LogoMark } from '@/components/LogoMark'
+
 /**
  * The frame both /login and /signup sit in. Extracted so the two cannot drift —
  * they are the same screen with a different form in the middle, and a user moving
@@ -33,9 +35,9 @@ export function AuthLayout({
         >
           <span
             aria-hidden
-            className="grid size-8 shrink-0 place-items-center rounded-lg bg-surface-raised text-xs font-medium text-text-primary"
+            className="grid size-8 shrink-0 place-items-center rounded-lg bg-surface-raised text-text-primary"
           >
-            KO
+            <LogoMark />
           </span>
           <span className="font-display text-sm tracking-[0.01em] text-text-primary">
             Kailaas OS

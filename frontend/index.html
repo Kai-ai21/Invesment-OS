@@ -12,7 +12,22 @@
       content="Kailaas OS remembers why you invested and checks whether it still holds. Write a thesis as testable claims, then have filings read against them."
     />
 
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- ⚠️ THE SIMPLIFIED MARK, NOT /logo.svg, AND THE DIFFERENCE IS DELIBERATE.
+         logo.svg carries a DOTTED tail off the summit; measured at a real 16x16
+         rasterisation those dashes are sub-pixel and land as a scatter of grey —
+         they read as dirt on the glyph rather than as a tail. logo-icon.svg is the
+         same ridge with a solid thin tail, which survives.
+
+         It also carries its own dark tile, for two reasons logo.svg cannot solve:
+         a favicon is a separate document, so `currentColor` has no page to inherit
+         from, and a fixed light stroke on transparent would vanish against a light
+         browser tab. The tile makes it legible on any chrome. -->
+    <link rel="icon" type="image/svg+xml" href="/logo-icon.svg" />
+
+    <!-- iOS ignores SVG here and applies its own rounded mask, so this is a PNG and
+         is FULL BLEED — a pre-rounded source would show as corners inside corners.
+         180x180 is the size current iPhones ask for. -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
     <!-- Matches --background (#0f1115). Without it, mobile Chrome paints its
          address bar the default light grey above a near-black page, which reads
