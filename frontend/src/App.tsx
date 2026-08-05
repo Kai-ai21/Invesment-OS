@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router'
 
 import { RequireAuth } from '@/components/auth/RequireAuth'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AppShell } from '@/components/layout/AppShell'
 import { PageTransition } from '@/components/layout/PageTransition'
 import { ToastProvider } from '@/components/ui/toast'
@@ -57,7 +58,28 @@ function App() {
                     protection nobody forgets. Same reasoning as the backend's A3
                     audit, where three endpoints had been missed by hand. */}
                 <Route element={<RequireAuth />}>
-                  <Route element={<AppShell />}>
+                  {/* ⚠️ THE BOUNDARY IS THE ROUTE ELEMENT, WRAPPING AppShell rather
+                      than sitting inside it. React unmounts the whole root on an
+                      uncaught error, so what matters is that SOMETHING above the
+                      crash survives to render a fallback — and the shell itself
+                      (sidebar, ambient background) is as capable of throwing as any
+                      page inside it. Placed here, the providers, the router and the
+                      transition all stay mounted and the user gets a message.
+
+                      The trade this accepts: a crash in one PAGE takes the shell's
+                      chrome down with it, because the boundary is above both. A
+                      second boundary around <Outlet /> would keep the nav usable,
+                      and is the obvious next move if page-level crashes ever become
+                      common enough to be worth the extra component. One is the
+                      difference between a black screen and a message; the second is
+                      a refinement on top of that. */}
+                  <Route
+                    element={
+                      <ErrorBoundary>
+                        <AppShell />
+                      </ErrorBoundary>
+                    }
+                  >
                     <Route path="theses" element={<ThesesPage />} />
                     {/* "new" is declared before ":id" for readability; React Router
                         ranks static segments above dynamic ones regardless of order. */}
