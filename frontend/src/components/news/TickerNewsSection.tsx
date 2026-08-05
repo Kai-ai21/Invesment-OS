@@ -3,7 +3,7 @@ import { Newspaper } from 'lucide-react'
 import { Link } from 'react-router'
 
 import { Count } from '@/components/Count'
-import { INSET_SURFACE } from '@/components/StatusSpine'
+import { INSET_SURFACE } from '@/components/StatusSurface'
 import { NewsList } from '@/components/news/NewsList'
 import { useTickerNews } from '@/hooks/useNews'
 import { cn } from '@/lib/utils'

@@ -83,6 +83,39 @@ export function formatRelative(iso: string): string {
   return 'just now'
 }
 
+/** Same ladder as RELATIVE_UNITS, with the suffix each unit abbreviates to. */
+const COMPACT_UNITS: Array<[string, number]> = [
+  ['y', 365 * 24 * 60 * 60 * 1000],
+  ['mo', 30 * 24 * 60 * 60 * 1000],
+  ['w', 7 * 24 * 60 * 60 * 1000],
+  ['d', 24 * 60 * 60 * 1000],
+  ['h', 60 * 60 * 1000],
+  ['m', 60 * 1000],
+]
+
+/**
+ * An age in the fewest characters that still say it: "3h", "2d", "1w", "5mo".
+ *
+ * For a STATS CELL, where the label above already says what the number is and the
+ * column is a quarter of a card wide — "checked 1 week ago" does not fit there and
+ * would not be read if it did. Everywhere the sentence fits, formatRelative is
+ * still the right one; this is deliberately not a replacement for it.
+ *
+ * FLOORS rather than rounds, unlike formatRelative. "8 days ago" reads as 1w here
+ * and stays 1w until the second week is actually complete, which is what an age
+ * counter is expected to do — rounding would tick to 2w at day 11.
+ */
+export function formatCompactAge(iso: string): string {
+  const date = parseBackendDate(iso)
+  if (Number.isNaN(date.getTime())) return UNAVAILABLE
+
+  const magnitude = Math.abs(Date.now() - date.getTime())
+  for (const [suffix, unitMs] of COMPACT_UNITS) {
+    if (magnitude >= unitMs) return `${Math.floor(magnitude / unitMs)}${suffix}`
+  }
+  return 'now'
+}
+
 /**
  * The full instant, for the tooltip behind a relative time: "28 Jul 2026, 02:04 GMT+1".
  *

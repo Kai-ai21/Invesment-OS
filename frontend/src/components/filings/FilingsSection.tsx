@@ -4,7 +4,7 @@ import { Link } from 'react-router'
 
 import { Count } from '@/components/Count'
 import { ErrorState } from '@/components/ErrorState'
-import { INSET_SURFACE } from '@/components/StatusSpine'
+import { INSET_SURFACE } from '@/components/StatusSurface'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAsync } from '@/hooks/useAsync'
 import {

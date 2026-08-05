@@ -5,7 +5,7 @@ import { Link } from 'react-router'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import { Sparkline } from '@/components/Sparkline'
 import { StatusBadge } from '@/components/StatusBadge'
-import { INSET_SURFACE, spineBorderStyle } from '@/components/StatusSpine'
+import { INSET_SURFACE, StatusGlow } from '@/components/StatusSurface'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/toast'
@@ -56,9 +56,9 @@ export function HoldingsTable({
        only honest way to apply it here. The rows are contiguous — they share
        hairlines and have no gap at all — so a ring per row would have nothing to
        stand in and every ring would collide with its neighbours'. The status
-       still reads per row: each one carries its own spine, as before. So the
-       portfolio's status-bearing surface is the table, and it gets the same
-       face, the same hairline and the same outer ring as a thesis card.
+       still reads per row: each one blooms from the top-left of its leading
+       cell. So the portfolio's status-bearing surface is the table, and it gets
+       the same face, the same hairline and the same outer ring as a thesis card.
 
        No hover on this one: the whole table is not a target, and brightening its
        frame because the cursor crossed a cell would be noise. Row hover is
@@ -171,13 +171,22 @@ function HoldingRow({
       <tr
         {...entryProps(
           index,
-          'border-b border-border/60 last:border-b-0 hover:bg-surface-raised/40',
+          'group/glow border-b border-border/60 last:border-b-0 hover:bg-surface-raised/40',
         )}
       >
-        {/* Holding. The left border is the status spine — same colour map as the
-            cards, transparent when this holding has no thesis so the column
-            stays aligned. */}
-        <td className="px-3 py-3" style={spineBorderStyle(holding.thesis_status)}>
+        {/* Holding, and the cell the status blooms out of — same colour map and
+            same component as the cards.
+
+            ⚠️ THE ONLY PLACE GLOW_HOST IS SPLIT ACROSS TWO ELEMENTS, and both
+            halves are forced. `relative isolate` has to be on the CELL: a <tr>
+            is not a reliable positioning context — an absolutely positioned
+            child of one resolves against the table or the page rather than the
+            row — while a <td> positions its children like any other box.
+            `group/glow` has to be on the ROW: hovering the P&L column should
+            light the corner, the same as the row's own background hover, and a
+            group scoped to this cell would only fire over the ticker. */}
+        <td className="relative isolate px-3 py-3">
+          <StatusGlow status={holding.thesis_status} />
           <div className="flex items-center gap-2.5">
             <CompanyLogo ticker={holding.ticker} logoUrl={holding.logo_url} size={28} />
             <div className="min-w-0">

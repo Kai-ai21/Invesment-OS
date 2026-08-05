@@ -78,6 +78,29 @@ export function statusColor(status: string | null | undefined): string {
 }
 
 /**
+ * The same status colour as a WASH to lay over a surface, e.g. the thesis card's
+ * header zone.
+ *
+ * ⚠️ TRANSLUCENT, NOT PRE-MIXED WITH A BACKGROUND. It mixes the status colour with
+ * `transparent`, so it composites over whatever is beneath it — which is what lets
+ * the thesis card keep its hover lift: the fill underneath brightens by one step
+ * and the tint rides on top unchanged. Mixing against a hard-coded surface colour
+ * instead would freeze the tint to one background and kill the hover.
+ *
+ * ⚠️ THE DEFAULT IS 8% AND IT IS A CEILING, NOT A STARTING POINT. These sit ten to
+ * a list. At 8% over the inset surface a red card is about #1c1317 — enough to
+ * sort a column by eye, not enough to read as an alert. `--status-pending` is the
+ * neutral grey, so an unscored thesis tints to nothing in particular for free.
+ *
+ * Note this follows STATUS, never price direction: green here means "the claims
+ * are holding up", the same as it means everywhere else in the app. See the
+ * warning on Sparkline for the other half of that rule.
+ */
+export function statusTint(status: string | null | undefined, percent = 8): string {
+  return `color-mix(in srgb, ${statusColor(status)} ${percent}%, transparent)`
+}
+
+/**
  * Fires once when `status` becomes something it was not, and never on the way in.
  *
  * ⚠️ THE PREVIOUS VALUE IS SEEDED WITH THE FIRST ONE, so the opening render can

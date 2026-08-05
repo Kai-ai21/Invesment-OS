@@ -5,7 +5,7 @@ import { Link } from 'react-router'
 import { EmptyIllustration } from '@/components/EmptyIllustration'
 import { RelativeTime } from '@/components/RelativeTime'
 import { StatusBadge } from '@/components/StatusBadge'
-import { INSET_CARD, INSET_SURFACE, StatusSpine } from '@/components/StatusSpine'
+import { GLOW_HOST, INSET_CARD, INSET_SURFACE, StatusGlow } from '@/components/StatusSurface'
 import { ErrorState } from '@/components/ErrorState'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -143,10 +143,12 @@ function AlertCard({
   return (
     <Card
       className={cn(
-        // The left edge used to carry READ/UNREAD as a grey bar. That slot now
-        // carries the thesis status, which is the more useful signal and matches
-        // every other status-bearing card.
-        'relative bg-surface-inset',
+        // The left edge used to carry READ/UNREAD as a grey bar. It then carried
+        // the thesis status as a spine, which is the more useful signal; the
+        // signal is the same now and the corner glow is how every status-bearing
+        // card draws it.
+        'bg-surface-inset',
+        GLOW_HOST,
         INSET_CARD,
         // ⚠️ READ/UNREAD MOVED OFF THE BACKGROUND, and it had to. It used to be
         // #171a21 against #1d212b; on the inset surface the equivalent pair would
@@ -162,7 +164,7 @@ function AlertCard({
     >
       {/* Coloured by the status the thesis moved INTO — the alert is about where
           it ended up, not where it came from. */}
-      <StatusSpine status={alert.new_status} />
+      <StatusGlow status={alert.new_status} />
       <div className="flex items-start justify-between gap-4 px-(--card-spacing)">
         {/* The link wraps only the card body so the button isn't nested inside
             an anchor. */}

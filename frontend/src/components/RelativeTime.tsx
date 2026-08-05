@@ -1,5 +1,5 @@
 import { Tooltip } from '@/components/ui/tooltip'
-import { formatExact, formatRelative, toMachineDate } from '@/lib/format'
+import { formatCompactAge, formatExact, formatRelative, toMachineDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 /**
@@ -22,11 +22,21 @@ import { cn } from '@/lib/utils'
 export function RelativeTime({
   iso,
   prefix,
+  compact = false,
   className,
 }: {
   iso: string
   /** Read aloud with the time, e.g. "checked" -> "checked 2 days ago". */
   prefix?: string
+  /**
+   * "1w" instead of "1 week ago", for a cell whose LABEL already supplies the
+   * sentence around it — the thesis card's stats strip. The tooltip and the
+   * machine-readable `dateTime` are unchanged, so the precise value is still one
+   * hover away and still correct to anything parsing the page. Do not use this
+   * where the time stands on its own; abbreviations only read as times when
+   * something nearby says they are times.
+   */
+  compact?: boolean
   className?: string
 }) {
   const machine = toMachineDate(iso)
@@ -39,7 +49,7 @@ export function RelativeTime({
         className={cn('cursor-help', className)}
       >
         {prefix ? `${prefix} ` : ''}
-        {formatRelative(iso)}
+        {compact ? formatCompactAge(iso) : formatRelative(iso)}
       </time>
     </Tooltip>
   )
