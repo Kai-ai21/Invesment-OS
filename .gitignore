@@ -49,9 +49,12 @@ htmlcov/
 .dmypy.json
 dmypy.json
 
-# IDEs
+# IDEs and agent tooling. Claude Code's own config, not the application's — it
+# is per-machine (settings.local.json carries a permission allowlist built up by
+# one person's sessions) and nothing in the app reads it.
 .idea/
 .vscode/
+.claude/
 
 # OS
 .DS_Store
