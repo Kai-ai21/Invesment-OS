@@ -12,7 +12,7 @@ from backend.models.holding import Holding  # noqa: F401 (registers mapper with 
 from backend.models.pattern import Pattern  # noqa: F401 (registers mapper with Base)
 from backend.models.post_mortem import PostMortem  # noqa: F401 (registers mapper with Base)
 from backend.models.thesis import Thesis  # noqa: F401 (registers mapper with Base)
-from backend.models.user import UNUSABLE_PASSWORD_HASH, User
+from backend.models.user import UNUSABLE_PASSWORD_HASH, User  # noqa: F401 (User registers mapper with Base)
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "investment_os.db")
 DATABASE_URL = f"sqlite:///{DB_PATH}"
@@ -94,26 +94,6 @@ def _add_missing_pattern_owner_column() -> None:
         connection.exec_driver_sql(
             "CREATE INDEX IF NOT EXISTS ix_patterns_user_id ON patterns (user_id)"
         )
-
-
-def seed_demo_user() -> None:
-    """The pre-auth demo account, which owns every row created before A1.
-
-    ⚠️ IT IS SEEDED LOCKED, not passwordless. The brief offered a nullable
-    password_hash as the alternative; this is the other option it allowed, and it was
-    chosen because "nullable" is a schema-level statement that some accounts have no
-    password, which then has to be defended in code at every call site, forever. A
-    locked account needs no defending — see UNUSABLE_PASSWORD_HASH in models/user.py.
-
-    The practical consequence: demo@local keeps all its data and cannot be logged
-    into. Nothing is protected yet (that is A3), so nothing is lost today; when A3
-    lands, this account needs a real password set through whatever reset path exists
-    by then, or its data reassigned.
-    """
-    with SessionLocal() as db:
-        if not db.query(User).first():
-            db.add(User(email="demo@local", password_hash=UNUSABLE_PASSWORD_HASH))
-            db.commit()
 
 
 def get_db():

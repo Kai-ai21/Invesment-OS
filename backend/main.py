@@ -16,7 +16,7 @@ from backend.api.research import router as research_router
 from backend.api.post_mortems import router as post_mortems_router
 from backend.api.theses import router as theses_router
 from backend.api.tickers import router as tickers_router
-from backend.models.database import init_db, seed_demo_user
+from backend.models.database import init_db
 
 load_dotenv()
 
@@ -24,7 +24,6 @@ load_dotenv()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
-    seed_demo_user()
     yield
 
 

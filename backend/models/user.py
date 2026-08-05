@@ -13,9 +13,12 @@ from backend.models.base import Base
 # that into a plain False. So no password on earth verifies against it — including,
 # importantly, the empty string.
 #
-# It exists for one row: the seeded demo@local user, which predates authentication
-# and owns all the existing data. See seed_demo_user in models/database.py for why
-# this was chosen over making the column nullable.
+# It originated with the pre-auth demo@local account, which predated authentication
+# and owned all the existing data; that account has since been claimed and renamed, so
+# nothing seeds it any more. The value stays because it is what the password_hash
+# column defaults to (see below) and what the users-table migration in
+# models/database.py backfills legacy rows with — a locked account rather than a
+# nullable column.
 UNUSABLE_PASSWORD_HASH = "!"
 
 

@@ -277,7 +277,10 @@
       "Bash(rm -f /tmp/al.bak /tmp/dp.bak)",
       "Bash(./node_modules/.bin/tsc --version)",
       "Bash(./node_modules/.bin/tsc --noEmit -p tsconfig.app.json)",
-      "Bash(curl -s -X POST http://127.0.0.1:8000/auth/signup -H 'Content-Type: application/json' -d '{\"email\":\"a4probe@example.com\",\"password\":\"a-real-password\"}' -o /dev/null -w \"signup: %{http_code}\\\\n\")"
+      "Bash(curl -s -X POST http://127.0.0.1:8000/auth/signup -H 'Content-Type: application/json' -d '{\"email\":\"a4probe@example.com\",\"password\":\"a-real-password\"}' -o /dev/null -w \"signup: %{http_code}\\\\n\")",
+      "Bash(./venv/bin/python -m scripts.claim_demo_user --help)",
+      "Bash(python -m pytest -q)",
+      "Bash(venv/bin/python -m pytest -q)"
     ]
   }
 }
