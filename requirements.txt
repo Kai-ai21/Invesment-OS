@@ -3,6 +3,25 @@ uvicorn
 sqlalchemy
 pydantic
 python-dotenv
+
+# --- database ---------------------------------------------------------------------
+# psycopg 3, NOT psycopg2-binary. SQLAlchemy 2.0 ships a first-class `psycopg`
+# dialect (postgresql+psycopg://), psycopg 3 is where the project's development
+# happens, and psycopg2 is maintenance-only — still supported, but not receiving new
+# features. There is nothing in this app that needs psycopg2 specifically.
+#
+# ⚠️ THE DIALECT MUST BE NAMED IN THE URL, and that is the one cost of this choice.
+# SQLAlchemy's docs are explicit that "the PostgreSQL dialect uses psycopg2 as the
+# default DBAPI", so a bare `postgresql://` URL — which is what every managed host
+# hands you — tries to import psycopg2 and dies at startup with ModuleNotFoundError.
+# normalise_database_url() in backend/models/database.py rewrites the driver for
+# exactly this reason; do not remove it thinking it is only about `postgres://`.
+#
+# [binary] ships a self-contained wheel with libpq bundled, so no system libpq or
+# build toolchain is needed. psycopg's own docs prefer a source build in production;
+# the binary wheel is the pragmatic choice for a container image and can be swapped
+# for plain `psycopg` plus libpq-dev whenever that trade stops being worth it.
+psycopg[binary]>=3.2,<4
 google-genai
 httpx
 beautifulsoup4
