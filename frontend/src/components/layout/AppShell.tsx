@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Menu } from 'lucide-react'
 import { Outlet, useLocation } from 'react-router'
 
 import { DashboardBackground } from '@/components/effects/DashboardBackground'
 import { usePageLeaving } from '@/components/layout/PageTransition'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { NewsPanel } from '@/components/news/NewsPanel'
+import { Button } from '@/components/ui/button'
 import type { ShellContext } from '@/hooks/useShellContext'
+import { useNarrowViewport } from '@/hooks/useMediaQuery'
 import { listAlerts, listPostMortems } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
@@ -20,6 +23,15 @@ export function AppShell() {
   const location = useLocation()
   const leaving = usePageLeaving()
   const [collapsed, setCollapsed] = useState(false)
+  // ⚠️ A WIDTH QUERY, NOT A POINTER ONE, and the difference is the point. The
+  // background asks about the INPUT DEVICE because a comet needs a cursor to chase;
+  // the sidebar asks about AVAILABLE ROOM because 240px of permanent chrome is the
+  // problem whether a mouse or a thumb is driving. A 12" tablet gets the full
+  // sidebar and the static backdrop; a laptop window dragged narrow gets the drawer
+  // and keeps the comet. Conflating the two would get both of those backwards.
+  const narrow = useNarrowViewport()
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const closeDrawer = useCallback(() => setDrawerOpen(false), [])
   const [unreadCount, setUnreadCount] = useState(0)
   const [pendingReflections, setPendingReflections] = useState(0)
   // React state only — the panel is a transient view, not a preference to persist.
@@ -67,13 +79,42 @@ export function AppShell() {
       <DashboardBackground />
       <div aria-hidden className="ambient-backdrop pointer-events-none fixed inset-0 z-0" />
 
+      {/* The drawer's only opener. Fixed rather than in the page flow so it does
+          not scroll away from a reader halfway down a long list — reaching the nav
+          should never cost a scroll to the top. z-40 keeps it above the drawer
+          itself, so the same control closes what it opened. */}
+      {narrow && (
+        <Button
+          variant="secondary"
+          size="icon-sm"
+          onClick={() => setDrawerOpen((open) => !open)}
+          aria-expanded={drawerOpen}
+          aria-label={drawerOpen ? 'Close navigation' : 'Open navigation'}
+          // Solid, overriding the variant's translucent glass: this floats over
+          // whatever happens to be scrolling under it, and a see-through control
+          // sitting on top of body text is the one place translucency costs more
+          // than it gives.
+          className="fixed top-3 left-3 z-40 border-border bg-surface-raised backdrop-blur-none"
+        >
+          <Menu aria-hidden />
+        </Button>
+      )}
+
       <Sidebar
-        collapsed={collapsed}
+        // Never collapsed in drawer mode: the drawer is either open with full
+        // labels or gone, and an icon rail is not one of its two states.
+        collapsed={narrow ? false : collapsed}
         onToggle={() => setCollapsed((c) => !c)}
         unreadCount={unreadCount}
         pendingReflections={pendingReflections}
-        onOpenNews={() => setNewsOpen(true)}
+        onOpenNews={() => {
+          setNewsOpen(true)
+          setDrawerOpen(false)
+        }}
         newsOpen={newsOpen}
+        drawer={narrow}
+        drawerOpen={drawerOpen}
+        onDrawerClose={closeDrawer}
       />
       <main className="scroll-stable relative z-10 flex-1 overflow-y-auto">
         {/* Keyed on the path so the entry animation replays on every route
@@ -84,7 +125,14 @@ export function AppShell() {
           key={location.pathname}
           className={cn(
             leaving ? 'page-leave' : 'page-enter',
-            'mx-auto max-w-[1100px] px-12 py-12',
+            // ⚠️ THE PADDING IS PART OF THE NARROW-VIEWPORT FIX, not a tidy-up.
+            // A flat px-12 is 96px of margin on a 390px phone — a quarter of the
+            // screen spent on whitespace, on top of whatever the sidebar took.
+            // Freeing the sidebar's 240px and then keeping desktop padding would
+            // have solved half the problem.
+            // pt-16 on narrow clears the fixed menu button, which would otherwise
+            // sit on top of every page's <h1>.
+            'mx-auto max-w-[1100px] px-5 pt-16 pb-8 sm:px-8 lg:px-12 lg:pt-12 lg:pb-12',
           )}
         >
           <Outlet context={context} />

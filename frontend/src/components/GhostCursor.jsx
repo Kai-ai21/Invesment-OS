@@ -250,15 +250,39 @@ const GhostCursor = ({
       parent.style.position = 'relative';
     }
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: !isTouch,
-      alpha: true,
-      depth: false,
-      stencil: false,
-      powerPreference: isTouch ? 'low-power' : 'high-performance',
-      premultipliedAlpha: false,
-      preserveDrawingBuffer: false
-    });
+    // ⚠️ THIS CONSTRUCTOR THROWS, AND AN UNCAUGHT THROW HERE TAKES DOWN THE WHOLE APP.
+    // three.js raises "Error creating WebGL context" when the browser will not hand
+    // one out — mobile Safari under memory pressure, Low Power Mode, Lockdown Mode,
+    // too many live contexts across tabs, or a GPU driver blocklist. This runs inside
+    // a useEffect, so the throw escapes into React's commit phase, and this app has no
+    // error boundary: React responds by unmounting the entire root. The observed
+    // symptom was a COMPLETELY BLACK dashboard — not a missing effect, the whole
+    // application gone, with only <body>'s background colour left on screen.
+    //
+    // A decorative background layer must never be able to do that. Failing to get a
+    // context is a normal thing for a browser to do, so it is handled rather than
+    // propagated: bail out, render nothing, leave the CSS ambient layers to carry the
+    // page. Nothing below this line has run, so there is nothing to clean up.
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: !isTouch,
+        alpha: true,
+        depth: false,
+        stencil: false,
+        powerPreference: isTouch ? 'low-power' : 'high-performance',
+        premultipliedAlpha: false,
+        preserveDrawingBuffer: false
+      });
+    } catch (err) {
+      // Warn, not error: this is a degraded-but-working state, and on a browser that
+      // simply has no WebGL it would otherwise cry wolf on every single page load.
+      console.warn('GhostCursor: no WebGL context, ambient effect disabled.', err);
+      if (!prevParentPos || prevParentPos === 'static') {
+        parent.style.position = prevParentPos;
+      }
+      return;
+    }
     renderer.setClearColor(0x000000, 0);
     rendererRef.current = renderer;
 

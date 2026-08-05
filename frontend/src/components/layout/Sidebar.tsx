@@ -10,6 +10,7 @@ import {
   Wallet,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router'
 
 import { Button } from '@/components/ui/button'
@@ -180,6 +181,9 @@ export function Sidebar({
   pendingReflections,
   onOpenNews,
   newsOpen,
+  drawer = false,
+  drawerOpen = false,
+  onDrawerClose,
 }: {
   collapsed: boolean
   onToggle: () => void
@@ -187,16 +191,69 @@ export function Sidebar({
   pendingReflections: number
   onOpenNews: () => void
   newsOpen: boolean
+  /** Narrow viewport: render as an off-canvas drawer rather than a column. */
+  drawer?: boolean
+  /** Drawer only — whether it is currently slid in. */
+  drawerOpen?: boolean
+  /** Drawer only — dismiss, for the scrim, Escape, and following a nav link. */
+  onDrawerClose?: () => void
 }) {
   const counts = { unread: unreadCount, pending: pendingReflections }
   const { pathname } = useLocation()
+
+  // Escape closes the drawer. Bound only while it is open, so nothing listens on a
+  // desktop layout where there is no drawer to dismiss.
+  useEffect(() => {
+    if (!drawer || !drawerOpen || !onDrawerClose) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onDrawerClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [drawer, drawerOpen, onDrawerClose])
+
   return (
-    <aside
-      className={cn(
-        'glass-chrome relative z-10 flex h-full shrink-0 flex-col border-r py-4 transition-[width] duration-200',
-        collapsed ? 'w-16 px-2' : 'w-60 px-3',
+    <>
+      {/* Scrim. Drawer only, and only while open — it both dims the page and gives
+          the "tap outside to dismiss" gesture something to land on. */}
+      {drawer && (
+        <div
+          aria-hidden
+          onClick={onDrawerClose}
+          className={cn(
+            'fixed inset-0 z-20 bg-black/60 transition-opacity duration-200',
+            drawerOpen ? 'opacity-100' : 'pointer-events-none opacity-0',
+          )}
+        />
       )}
-    >
+
+      <aside
+        // ⚠️ INERT WHEN CLOSED, not merely translated off-screen. A drawer parked at
+        // -100% is still in the accessibility tree and still focusable: tabbing from
+        // the page would walk into six invisible nav links. `inert` takes the whole
+        // subtree out of focus order and out of the a11y tree in one attribute.
+        //
+        // Passed as a real boolean, not `inert=""`. React 19 treats `inert` as a
+        // boolean prop and drops an empty string as falsy — which silently produced
+        // no attribute at all, i.e. exactly the focus trap this line exists to stop.
+        inert={drawer && !drawerOpen}
+        className={cn(
+          'flex h-full flex-col border-r py-4',
+          drawer
+            ? [
+                // Fixed and above the scrim, so it slides OVER the content rather
+                // than displacing it — the content column keeps the full viewport
+                // width at every drawer state.
+                'glass-chrome glass-chrome-solid fixed inset-y-0 left-0 z-30 w-64 px-3',
+                'transition-transform duration-200 will-change-transform',
+                drawerOpen ? 'translate-x-0' : '-translate-x-full',
+              ]
+            : [
+                'glass-chrome relative z-10 shrink-0 transition-[width] duration-200',
+                collapsed ? 'w-16 px-2' : 'w-60 px-3',
+              ],
+        )}
+      >
       {/* Wordmark. The mark stays put when collapsed so nothing jumps. */}
       <div
         className={cn('flex shrink-0 items-center gap-2.5', collapsed && 'justify-center')}
@@ -284,6 +341,11 @@ export function Sidebar({
                       ) : (
                         <NavLink
                           to={to}
+                          // Following a link dismisses the drawer. Without this it
+                          // would stay open over the page it just navigated to,
+                          // which on a phone means arriving somewhere you cannot
+                          // see — the drawer covers most of the viewport.
+                          onClick={onDrawerClose}
                           className={navItemClasses(
                             collapsed,
                             isActivePath(pathname, to),
@@ -309,22 +371,30 @@ export function Sidebar({
       <div className="mt-4 shrink-0 border-t border-border pt-3">
         <AccountBlock collapsed={collapsed} />
 
-        <div className={cn('mt-1', collapsed && 'flex justify-center')}>
-          {/* Secondary rather than muted: against the glass panel #6b7280
-              measures 2.9:1, below AA-large. */}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={onToggle}
-            aria-expanded={!collapsed}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="text-text-secondary hover:text-text-primary"
-          >
-            {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
-          </Button>
-        </div>
+        {/* The collapse control is a DESKTOP affordance and is not rendered in the
+            drawer. Collapsing a drawer to an icon rail would leave a 64px strip
+            floating over the page, which is neither open nor closed; the drawer's
+            two states are its whole interface, and it is dismissed by the scrim,
+            Escape, the menu button, or following a link. */}
+        {!drawer && (
+          <div className={cn('mt-1', collapsed && 'flex justify-center')}>
+            {/* Secondary rather than muted: against the glass panel #6b7280
+                measures 2.9:1, below AA-large. */}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={onToggle}
+              aria-expanded={!collapsed}
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              className="text-text-secondary hover:text-text-primary"
+            >
+              {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+            </Button>
+          </div>
+        )}
       </div>
-    </aside>
+      </aside>
+    </>
   )
 }
 

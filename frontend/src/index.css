@@ -353,6 +353,25 @@
     }
   }
 
+  /**
+   * ⚠️ THE MOBILE DRAWER IS SOLID, AND THIS IS A LEGIBILITY RULE RATHER THAN A
+   * COMPATIBILITY ONE. On a desktop the sidebar is a permanent column with the page
+   * BESIDE it, so 7%-white over a blur reads as glass over the ambient wash. As a
+   * drawer it slides OVER the content instead, and a translucent panel with live text
+   * showing through it is unreadable at any blur radius — the thing behind it is
+   * high-contrast body copy, not a soft gradient.
+   *
+   * It also happens to sidestep the shakiest corner of mobile Safari's compositor
+   * (backdrop-filter on a moving, transformed overlay), which is a welcome side
+   * effect and not the reason. Legibility beats the effect; both arguments point the
+   * same way.
+   */
+  .glass-chrome-solid {
+    background-color: var(--surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
   /* From Uiverse.io by vinodjangid07 */
   /**
    * Circle-sweep hover for the shared Button (src/components/ui/button.tsx): a
@@ -575,6 +594,31 @@
       radial-gradient(60rem 45rem at 6% -8%, rgb(124 152 205 / 9%), transparent 62%),
       radial-gradient(55rem 42rem at 104% 106%, rgb(116 140 190 / 8%), transparent 60%),
       radial-gradient(32rem 60rem at -6% 52%, rgb(140 162 208 / 7%), transparent 66%);
+  }
+
+  /**
+   * The TOUCH-DEVICE ambient layer, standing in for the cursor comet.
+   *
+   * Rendered by DashboardBackground instead of GhostCursor when the pointer is
+   * coarse — see the fault written up there. It is the same visual family as the
+   * layer above (cool blue-greys, very soft, viewport-fixed) at roughly half again
+   * the strength, because on a phone this is doing the job two layers do on a
+   * desktop: there is no moving light underneath it.
+   *
+   * ⚠️ STATIC BY DESIGN — no animation, no canvas, no WebGL context, no rAF. That is
+   * the entire point. This layer cannot fail to initialise, cannot be lost under
+   * memory pressure and costs nothing per frame, which is what makes it the right
+   * thing on a device that is likely to be doing all three badly.
+   *
+   * The blobs are placed to bleed in from the corners rather than sit in the middle
+   * of the reading area: at phone width the content column occupies the centre, and
+   * a wash directly behind body text is the one place this would cost legibility.
+   */
+  .ambient-backdrop-static {
+    background-image:
+      radial-gradient(38rem 30rem at 0% -6%, rgb(124 152 205 / 13%), transparent 64%),
+      radial-gradient(34rem 28rem at 106% 12%, rgb(116 140 190 / 10%), transparent 62%),
+      radial-gradient(42rem 34rem at 50% 108%, rgb(140 162 208 / 11%), transparent 66%);
   }
 
   /* ---- route change --------------------------------------------------------
