@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Navigate, Outlet, useLocation } from 'react-router'
 
@@ -11,6 +12,33 @@ import { useAuth } from '@/hooks/useAuth'
 export function RequireAuth() {
   const { status, expiredMessage } = useAuth()
   const location = useLocation()
+
+  // ⚠️ THIS OBJECT MUST BE REFERENTIALLY STABLE, AND IT IS NOT A MICRO-OPTIMISATION.
+  // It used to be an inline `{ from: location, message: … }` literal in the JSX
+  // below, and that one line produced a 400-navigation redirect storm on every
+  // signed-out click into the app.
+  //
+  // <Navigate> in React Router 8 navigates from an effect whose dependency array
+  // includes `state` (react-router/dist/.../components.js). A fresh literal is a new
+  // identity on every render, so: effect fires -> navigate() -> location changes ->
+  // this component re-renders -> new literal -> effect fires again. It only stops
+  // because the router eventually settles, not because anything here is correct.
+  //
+  // Built from the location's PARTS rather than the location object, deliberately.
+  // Every navigation in that storm produces a new location object — same path, new
+  // `key` — so memoising on the object would be memoising on the thing that keeps
+  // changing. These three strings are all `from` has ever needed: LoginPage
+  // reassembles the destination as `${pathname}${search}${hash}` and reads nothing
+  // else off it. Depending on exactly what is used is also what keeps this honest
+  // to the linter, with no suppression to go stale.
+  const { pathname, search, hash } = location
+  const redirectState = useMemo(
+    () => ({
+      from: { pathname, search, hash },
+      message: expiredMessage ?? undefined,
+    }),
+    [pathname, search, hash, expiredMessage],
+  )
 
   if (status === 'checking') {
     return <CheckingSession />
@@ -32,11 +60,7 @@ export function RequireAuth() {
       // (see AuthContext) — a plain anonymous visitor gets no explanation because
       // there is nothing to explain. This is the ONE place an anonymous user is
       // sent to /login, so the message cannot be lost to a competing redirect.
-      <Navigate
-        to="/login"
-        replace
-        state={{ from: location, message: expiredMessage ?? undefined }}
-      />
+      <Navigate to="/login" replace state={redirectState} />
     )
   }
 

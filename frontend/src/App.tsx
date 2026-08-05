@@ -34,6 +34,19 @@ function App() {
     <AuthProvider>
       <ToastProvider>
         <TooltipProvider>
+          {/* ⚠️ THE BOUNDARY WRAPS EVERY ROUTE, NOT JUST THE SHELL. It first went
+              in around <AppShell> alone, which left the landing page, the login
+              form and the signup form outside it — so a crash on any of the three
+              screens a signed-out visitor can actually reach still unmounted the
+              root and painted the page black. That is the wrong half of the app to
+              protect: those are the screens a first-time visitor sees.
+
+              Here it covers the whole route table while staying INSIDE the three
+              providers, which is what lets the fallback render as part of a working
+              app rather than replacing all of it. Above PageTransition rather than
+              below, so a crash thrown while a route is being swapped — the shape of
+              the bug this was added for — is caught too. */}
+          <ErrorBoundary>
           {/* The route table is matched against the location PageTransition is
               holding, which lags the real one by the length of the outgoing fade.
               See the notes there — this is what lets the page being left render
@@ -58,28 +71,7 @@ function App() {
                     protection nobody forgets. Same reasoning as the backend's A3
                     audit, where three endpoints had been missed by hand. */}
                 <Route element={<RequireAuth />}>
-                  {/* ⚠️ THE BOUNDARY IS THE ROUTE ELEMENT, WRAPPING AppShell rather
-                      than sitting inside it. React unmounts the whole root on an
-                      uncaught error, so what matters is that SOMETHING above the
-                      crash survives to render a fallback — and the shell itself
-                      (sidebar, ambient background) is as capable of throwing as any
-                      page inside it. Placed here, the providers, the router and the
-                      transition all stay mounted and the user gets a message.
-
-                      The trade this accepts: a crash in one PAGE takes the shell's
-                      chrome down with it, because the boundary is above both. A
-                      second boundary around <Outlet /> would keep the nav usable,
-                      and is the obvious next move if page-level crashes ever become
-                      common enough to be worth the extra component. One is the
-                      difference between a black screen and a message; the second is
-                      a refinement on top of that. */}
-                  <Route
-                    element={
-                      <ErrorBoundary>
-                        <AppShell />
-                      </ErrorBoundary>
-                    }
-                  >
+                  <Route element={<AppShell />}>
                     <Route path="theses" element={<ThesesPage />} />
                     {/* "new" is declared before ":id" for readability; React Router
                         ranks static segments above dynamic ones regardless of order. */}
@@ -97,6 +89,7 @@ function App() {
               </Routes>
             )}
           </PageTransition>
+          </ErrorBoundary>
         </TooltipProvider>
       </ToastProvider>
     </AuthProvider>

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useLocation, type Location } from 'react-router'
 
 import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
@@ -46,24 +46,47 @@ export function PageTransition({
   const [displayed, setDisplayed] = useState(location)
   const [leaving, setLeaving] = useState(false)
 
+  // ⚠️ THE EFFECT IS KEYED ON THE PATH, NOT THE LOCATION OBJECT, AND THAT IS WHAT
+  // STOPS THE FADE FROM BEING STARVED. Its cleanup clears the pending timer, so
+  // every re-run cancels the swap that was already in flight and starts a new
+  // 140ms wait. Re-run it faster than every 140ms and `displayed` NEVER advances.
+  //
+  // That is not hypothetical: a signed-out click into the app produced hundreds of
+  // redirects to the same path in a burst, each one a NEW location object with a
+  // new key. The object identity changed every time while the path never did, so
+  // the clock reset continuously, `displayed` stayed on the route being left, and
+  // the user watched <Navigate> render null — a blank page — until the burst
+  // finished. The redirect storm is fixed at its source in RequireAuth; this makes
+  // the transition robust to any future burst rather than trusting that none
+  // happens again.
+  //
+  // The location is read through a ref so the swap still lands on the CURRENT one,
+  // complete with its search and hash, without those being effect dependencies.
+  const latest = useRef(location)
+  latest.current = location
+
+  const target = location.pathname
+  const shown = displayed.pathname
+
   useEffect(() => {
-    if (location.pathname === displayed.pathname) return
+    if (target === shown) return
 
     if (reduced) {
-      setDisplayed(location)
+      setDisplayed(latest.current)
       return
     }
 
     setLeaving(true)
     const timer = setTimeout(() => {
-      setDisplayed(location)
+      setDisplayed(latest.current)
       setLeaving(false)
     }, LEAVE_MS)
 
-    // A second navigation mid-fade restarts the clock against the newest
-    // location rather than landing on the one we were already leaving.
+    // A navigation to a DIFFERENT path mid-fade restarts the clock against the
+    // newest one rather than landing on the one we were already leaving. A repeat
+    // of the same path no longer re-runs this effect at all.
     return () => clearTimeout(timer)
-  }, [location, displayed, reduced])
+  }, [target, shown, reduced])
 
   return (
     <LeavingContext.Provider value={leaving}>
