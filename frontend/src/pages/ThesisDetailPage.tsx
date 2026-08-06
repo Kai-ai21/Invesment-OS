@@ -565,11 +565,14 @@ function SectionHeading({ children }: { children: ReactNode }) {
 
 function BackLink() {
   return (
+    // A pill for the same reason the "Company research" link is one: this sits on
+    // the raw page, where the ambient backdrop glows through and washed out a bare
+    // run of text. Arrow LEFT, and it travels left — this goes back.
     <Link
       to="/theses"
-      className="flex w-fit items-center gap-1.5 rounded-lg text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+      className="nav-pill nav-pill-back w-fit focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
     >
-      <ArrowLeft className="size-4" aria-hidden />
+      <ArrowLeft className="nav-pill-arrow size-3" aria-hidden />
       All theses
     </Link>
   )

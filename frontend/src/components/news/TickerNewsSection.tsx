@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import { Newspaper } from 'lucide-react'
+import { ArrowRight, Newspaper } from 'lucide-react'
 import { Link } from 'react-router'
 
 import { Count } from '@/components/Count'
@@ -53,13 +53,22 @@ export function TickerNewsSection({
               one that arrives with the list it describes. */}
           {!loading && !error && <Count value={items.length} />}
         </h2>
+        {/* ⚠️ A PILL, NOT A BARE RUN OF TEXT. This link sits on the raw page, and
+            this page's background is not a flat colour — the ambient backdrop
+            glows through it, and it was landing straight behind these words and
+            washing them out. The same thing that happened to the filings rows,
+            for the same reason. The border is the fix: it gives the control an
+            edge the glow cannot erase, which unstyled text never had.
+
+            The arrow follows the label here, unlike the filings pill where it
+            leads: that one opens a panel in place, this one leaves the page. */}
         {moreHref && (
           <Link
             to={moreHref}
-            className="inline-flex items-center gap-1 rounded-lg text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+            className="nav-pill shrink-0 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
             {moreLabel}
-            <span aria-hidden>→</span>
+            <ArrowRight className="nav-pill-arrow size-3" aria-hidden />
           </Link>
         )}
       </div>

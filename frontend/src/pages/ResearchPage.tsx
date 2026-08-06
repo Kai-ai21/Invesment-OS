@@ -180,11 +180,12 @@ export function ResearchPage() {
 
 function BackLink() {
   return (
+    // See the matching back-link on ThesisDetailPage — the three are one set.
     <Link
       to="/market"
-      className="flex w-fit items-center gap-1.5 rounded-lg text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+      className="nav-pill nav-pill-back w-fit focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
     >
-      <ArrowLeft className="size-4" aria-hidden />
+      <ArrowLeft className="nav-pill-arrow size-3" aria-hidden />
       Market
     </Link>
   )
@@ -257,10 +258,28 @@ function ResearchHeader({
                   <StatusBadge status={thesis.status} />
                 </Link>
               )}
+              {/* ⚠️ A SURFACE, NOT A PILL. This is a VALUE, not an action — it
+                  reports what you hold and happens to be clickable, so it must not
+                  wear the outlined pill the back-links and "Company research" use.
+                  It sits inline beside a StatusBadge, and that badge's opaque-ish
+                  weight was exactly why a bare run of text next to it read as
+                  underweight.
+
+                  So it borrows the badge's GEOMETRY — same h-5, same rounded-xs,
+                  same px-2, same mono 2xs — and takes a fill instead of an
+                  outline: an outline here would have made it a second badge, and
+                  a status badge that reports no status is the one thing this
+                  cannot look like.
+
+                  bg-surface-raised is #1d212b, a solid hex. That matters and is
+                  not interchangeable with a translucent fill: the glow is BEHIND
+                  this element, so anything you can see through still lets it
+                  through. See the closing note on DashboardBackground, which
+                  names a real surface as the lever for exactly this. */}
               {holding && (
                 <Link
                   to="/portfolio"
-                  className="rounded-lg font-mono text-xs tabular-nums text-text-secondary underline-offset-4 transition-colors hover:text-text-primary hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                  className="inline-flex h-5 items-center rounded-xs bg-surface-raised px-2 font-mono text-2xs tabular-nums text-text-secondary transition-colors hover:text-text-primary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                 >
                   Held {formatShares(holding.shares)}
                 </Link>

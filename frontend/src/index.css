@@ -1155,6 +1155,90 @@
       transform: rotate(90deg);
     }
   }
+
+  /* A "there is more of this elsewhere" link, as a pill.
+   *
+   * ⚠️ WHY THIS EXISTS RATHER THAN A .filing-action VARIANT. The two look alike
+   * on purpose, but they differ on the two things that class's comments treat as
+   * load-bearing, and folding them together would make one of them wrong:
+   *
+   *   - .filing-action sits on the OPAQUE #0a0c10 card, which is why its edge was
+   *     taken to 35% white — it has nothing helping it there. This one sits on the
+   *     raw page, where the ambient backdrop lifts the local background behind it,
+   *     and 30% is the value that reads as an edge in that setting rather than as
+   *     a box drawn around the words. Same figure the filings pill used back when
+   *     it was on the page too.
+   *   - its arrow points INTO the row and rotates when the row expands. This one
+   *     NAVIGATES AWAY, so the arrow sits after the label and points off the end
+   *     of it. Nothing here rotates, and there is no data-expanded state.
+   *
+   * The transparent face is deliberate and is not the thing the fix depends on:
+   * what was washing out was a bare run of text with no edge at all. The border
+   * is what gives it a boundary the glow cannot erase.
+   */
+  .nav-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid rgb(255 255 255 / 0.3);
+    border-radius: 99px;
+    background: transparent;
+    padding: 5px 13px;
+    font-size: 13px;
+    line-height: 1;
+    color: var(--text-primary);
+    transition:
+      border-color 260ms cubic-bezier(0.22, 0.61, 0.36, 1),
+      background-color 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  /* Same asymmetry as the filings pill: 200ms in, 260ms out. Arriving should feel
+     immediate; leaving should not snap. */
+  .nav-pill:hover {
+    border-color: rgb(255 255 255 / 0.5);
+    background-color: rgb(255 255 255 / 0.06);
+    transition-duration: 200ms;
+  }
+
+  .nav-pill-arrow {
+    transition: transform 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  /* HOVER ONLY, never :focus-visible — the ring is already the focus signal, and
+     sliding on focus too would leave a keyboard user unable to tell the two
+     states apart. Same rule as .filing-action-arrow. */
+  .nav-pill:hover .nav-pill-arrow {
+    transform: translateX(3px);
+    transition-duration: 200ms;
+  }
+
+  /* The BACK variant. Worn alongside .nav-pill, never instead of it — border,
+     fill, padding, radius and both timings come from the rules above, so the two
+     directions cannot drift apart on any of the things that make them one set.
+     The only thing this overrides is which way the arrow points and travels.
+     (The arrow's LEFT position is markup, not CSS: it is simply rendered before
+     the label, which keeps the DOM order and the reading order the same.)
+
+     Equal specificity to the .nav-pill:hover rule above, so this must stay AFTER
+     it in source order to win. It is also listed explicitly in the
+     reduced-motion block below rather than leaning on that same ordering — a
+     rule that silently depends on being last is a rule that breaks when someone
+     reorders the file. */
+  .nav-pill-back:hover .nav-pill-arrow {
+    transform: translateX(-3px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* The border still brightens — that is a colour change, not travel, and it is
+       what tells you the thing is interactive. Only the slide goes, in both
+       directions. */
+    .nav-pill-arrow,
+    .nav-pill:hover .nav-pill-arrow,
+    .nav-pill-back:hover .nav-pill-arrow {
+      transform: none;
+      transition: none;
+    }
+  }
 }
 
 /* Outside every layer: @property is not subject to the cascade, and registering

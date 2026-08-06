@@ -62,11 +62,12 @@ export function NewThesisPage() {
 
   return (
     <div>
+      {/* See the matching back-link on ThesisDetailPage — the three are one set. */}
       <Link
         to="/theses"
-        className="inline-flex items-center gap-1.5 rounded-lg text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+        className="nav-pill nav-pill-back w-fit focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
       >
-        <ArrowLeft className="size-4" aria-hidden />
+        <ArrowLeft className="nav-pill-arrow size-3" aria-hidden />
         All theses
       </Link>
 
