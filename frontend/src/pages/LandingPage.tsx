@@ -46,7 +46,7 @@ export function LandingPage() {
         {/* Scaled with the wordmark but on a much shallower curve, so the gap
             between them widens as the screen grows and the tagline stays
             unmistakably secondary rather than competing. */}
-        <p className="max-w-xl text-[clamp(1rem,2.2vw,1.375rem)] leading-snug text-text-secondary">
+        <p className="font-subtitle max-w-xl text-[clamp(1rem,2.2vw,1.375rem)] leading-snug text-text-secondary">
           Remembers why you invested. Checks if it still holds.
         </p>
 

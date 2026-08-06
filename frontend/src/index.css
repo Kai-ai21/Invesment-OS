@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import "@fontsource/fraunces";
 
 /* Righteous — DISPLAY ONLY (app name, landing headline, page titles, detail
    ticker). Self-hosted from /public/fonts (OFL.txt ships alongside per the
@@ -57,6 +58,11 @@
        download. Both fall back gracefully. */
     --font-serif: 'Newsreader', ui-serif, Georgia, serif;
     --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    /* Landing hero subtitle ONLY — one line of copy. Deliberately NOT --font-serif:
+       that one is the prose face for claim statements and reasoning quotes, and
+       widening its remit would change type on every thesis page. The face is
+       imported at the top of this file, beside Geist. */
+    --font-subtitle: 'Fraunces', serif;
 
     /* Investment OS surface + text scale (in addition to the shadcn tokens below) */
     --color-surface: var(--surface);
