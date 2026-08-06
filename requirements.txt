@@ -23,6 +23,12 @@ python-dotenv
 # for plain `psycopg` plus libpq-dev whenever that trade stops being worth it.
 psycopg[binary]>=3.2,<4
 google-genai
+
+# Groq. OpenAI-compatible on the wire, but the first-party SDK is used for its
+# retry handling: the free tier meters TOKENS PER MINUTE, so 429s are a routine
+# condition here rather than an exceptional one. See adapters/groq_provider.py.
+groq
+
 httpx
 beautifulsoup4
 pytest

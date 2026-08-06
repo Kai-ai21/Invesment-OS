@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from backend.adapters.edgar_source import EdgarError
-from backend.adapters.gemini_provider import GeminiProvider
+from backend.adapters.llm_factory import create_llm_provider
 from backend.api.schemas import (
     ChartDataOut,
     ClaimOut,
@@ -19,6 +19,7 @@ from backend.api.deps import get_current_user
 from backend.domain.status import BROKEN_CLAIM_STATUS, compute_claim_score
 from backend.models.database import get_db
 from backend.models.user import User
+from backend.ports.llm_provider import LLMProvider
 from backend.repositories import (
     evidence_repository,
     post_mortem_repository,
@@ -34,15 +35,15 @@ from backend.services.verification_service import verify_document_against_thesis
 router = APIRouter(prefix="/theses", tags=["theses"])
 
 
-def get_llm_provider() -> GeminiProvider:
-    return GeminiProvider()
+def get_llm_provider() -> LLMProvider:
+    return create_llm_provider()
 
 
 @router.post("", response_model=ThesisOut)
 def create_thesis(
     body: ThesisCreateRequest,
     db: Session = Depends(get_db),
-    provider: GeminiProvider = Depends(get_llm_provider),
+    provider: LLMProvider = Depends(get_llm_provider),
     user: User = Depends(get_current_user),
 ):
     try:
@@ -57,7 +58,7 @@ def create_thesis(
 @router.post("/enhance-reasoning", response_model=EnhanceReasoningOut)
 def enhance_thesis_reasoning(
     body: EnhanceReasoningRequest,
-    provider: GeminiProvider = Depends(get_llm_provider),
+    provider: LLMProvider = Depends(get_llm_provider),
     user: User = Depends(get_current_user),
 ):
     """Sharpen the user's own wording. Returns a CANDIDATE — nothing is stored.

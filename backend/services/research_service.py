@@ -28,7 +28,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from backend.adapters.edgar_source import EdgarSource
-from backend.adapters.gemini_provider import GeminiProvider
+from backend.adapters.llm_factory import create_llm_provider
 from backend.adapters.hybrid_retriever import HybridRetriever
 from backend.adapters.yfinance_price_source import PriceError, YFinancePriceSource
 from backend.domain.research import ResearchSummary
@@ -174,7 +174,7 @@ def _attach_filing_summary(
         business = retriever.retrieve(BUSINESS_QUERY, text, document_id, k=PASSAGES_PER_QUERY)
         risks = retriever.retrieve(RISK_QUERY, text, document_id, k=PASSAGES_PER_QUERY)
 
-        provider = provider if provider is not None else GeminiProvider()
+        provider = provider if provider is not None else create_llm_provider()
         summary = provider.summarise_company(
             ticker=data.ticker,
             profile_summary=data.profile.long_business_summary if data.profile else None,

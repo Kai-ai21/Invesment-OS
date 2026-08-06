@@ -26,7 +26,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from backend.adapters.edgar_source import EdgarError, EdgarSource
-from backend.adapters.gemini_provider import GeminiProvider
+from backend.adapters.llm_factory import create_llm_provider
 from backend.adapters.hybrid_retriever import HybridRetriever
 from backend.domain.filing import FilingSummary, NotableNumber
 from backend.ports.evidence_retriever import EvidenceRetriever
@@ -330,7 +330,7 @@ def summarise_filing(
             EVENTS_QUERY, text, document_id, k=PASSAGES_PER_QUERY
         )
 
-        provider = provider if provider is not None else GeminiProvider()
+        provider = provider if provider is not None else create_llm_provider()
         summary = provider.summarise_filing(
             ticker=normalised,
             form=filing.form,

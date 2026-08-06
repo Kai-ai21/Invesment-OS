@@ -18,7 +18,7 @@ import re
 
 from pydantic import BaseModel
 
-from backend.adapters.gemini_provider import GeminiProvider
+from backend.adapters.llm_factory import create_llm_provider
 from backend.ports.llm_provider import LLMProvider
 
 # Below this there is nothing to sharpen — "amazon good" is a preference, not
@@ -58,7 +58,7 @@ def enhance_reasoning(
     if not ticker.strip():
         raise EnhancementError("A ticker is required.")
 
-    provider = provider if provider is not None else GeminiProvider()
+    provider = provider if provider is not None else create_llm_provider()
     enhanced = provider.enhance_reasoning(ticker.strip().upper(), trimmed).strip()
 
     # An empty or whitespace-only response is a failed rewrite, not an enhancement.

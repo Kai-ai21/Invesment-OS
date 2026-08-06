@@ -4,7 +4,7 @@ import re
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 
-from backend.adapters.gemini_provider import GeminiProvider
+from backend.adapters.llm_factory import create_llm_provider
 from backend.adapters.hybrid_retriever import HybridRetriever
 from backend.adapters.paste_source import PasteSource
 from backend.domain.status import (
@@ -240,7 +240,7 @@ def verify_document_against_thesis(
     if retriever is None:
         retriever = HybridRetriever()
     if provider is None:
-        provider = GeminiProvider()
+        provider = create_llm_provider()
     created: list[EvidenceEvent] = []
 
     for claim in thesis.claims:

@@ -8,7 +8,7 @@ from is discarded rather than shown.
 
 from sqlalchemy.orm import Session
 
-from backend.adapters.gemini_provider import GeminiProvider
+from backend.adapters.llm_factory import create_llm_provider
 from backend.models.pattern import Pattern
 from backend.ports.llm_provider import LLMProvider
 from backend.repositories import pattern_repository, post_mortem_repository
@@ -74,7 +74,7 @@ def generate_patterns(
         return []
 
     if provider is None:
-        provider = GeminiProvider()
+        provider = create_llm_provider()
 
     supplied_ids = {item.id for item in answered}
     candidates = provider.generate_patterns([_to_payload(item) for item in answered])

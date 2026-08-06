@@ -10,7 +10,7 @@ import re
 
 from sqlalchemy.orm import Session
 
-from backend.adapters.gemini_provider import GeminiProvider
+from backend.adapters.llm_factory import create_llm_provider
 from backend.models.post_mortem import PostMortem
 from backend.ports.llm_provider import LLMProvider
 from backend.repositories import evidence_repository, post_mortem_repository
@@ -110,7 +110,7 @@ def generate_question(
         )
 
     if provider is None:
-        provider = GeminiProvider()
+        provider = create_llm_provider()
 
     contradicting = [
         event.evidence_quote
