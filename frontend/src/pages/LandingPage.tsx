@@ -1,3 +1,4 @@
+import { LogoMark } from '@/components/LogoMark'
 import { NeuralBackground } from '@/components/effects/NeuralBackground'
 import { ShinyText } from '@/components/effects/ShinyText'
 import { LandingCta } from '@/components/landing/LandingCta'
@@ -29,19 +30,46 @@ export function LandingPage() {
       />
 
       <main className="page-enter relative flex h-full flex-col items-center justify-center gap-6 px-6 text-center">
-        {/* Display font at WEIGHT 400 — `font-normal` is explicit rather than
-            inherited, because Righteous ships a single weight and anything above
-            400 makes the browser synthesise a bold by smearing the outlines.
+        {/* Mark and wordmark are ONE unit, which is the whole reason for this
+            wrapper. As siblings of the tagline they would inherit the stack's
+            gap-6 and sit as far from the wordmark as the tagline does, reading as
+            three stacked things instead of a lockup with a caption under it. The
+            tighter gap-5 groups them; the outer gap-6 still separates the pair
+            from the tagline, so nothing below here moves. */}
+        <div className="flex flex-col items-center gap-5">
+          {/* The same inlined component the sidebar and auth pages use — NOT a
+              copy, and not <img src="/logo.svg">, which could not inherit colour
+              (see LogoMark). Only the size and colour change here.
 
-            clamp() rather than breakpoint steps: the wordmark is now large enough
-            that a fixed size would overflow a narrow phone. 9vw is the preferred
-            track; the 2.5rem floor keeps it readable at 320px, and the 5.5rem
-            ceiling is where it stops growing on a wide desktop (~1.5x the 3.75rem
-            it used to reach). Positive tracking stays — Righteous's letterforms
-            are wide and crowd at negative values. */}
-        <h1 className="font-display text-[clamp(2.5rem,9vw,5.5rem)] leading-[1.05] font-normal tracking-[0.01em]">
-          <ShinyText text="Kailaas OS" color="#b5b5b5" shineColor="#ffffff" speed={3} />
-        </h1>
+              Sized on a shallower track than the wordmark (6vw against its 9vw)
+              so the gap between them widens with the viewport and the mark stays
+              subordinate: 72px against an 88px wordmark on a wide desktop. The
+              2.5rem floor is what keeps it from overtaking the wordmark on a
+              phone, where the wordmark has bottomed out at its own 2.5rem floor
+              and a mark held at 56px would be the biggest thing on screen.
+
+              No entry animation, deliberately. The page-enter fade on <main>
+              already carries the whole hero in as one piece; a second, separate
+              fade here would re-introduce exactly the staggered-arrival feel the
+              font preloading was meant to remove. */}
+          <LogoMark
+            className="size-[clamp(2.5rem,6vw,4.5rem)] text-text-primary"
+          />
+
+          {/* Display font at WEIGHT 400 — `font-normal` is explicit rather than
+              inherited, because Righteous ships a single weight and anything above
+              400 makes the browser synthesise a bold by smearing the outlines.
+
+              clamp() rather than breakpoint steps: the wordmark is now large enough
+              that a fixed size would overflow a narrow phone. 9vw is the preferred
+              track; the 2.5rem floor keeps it readable at 320px, and the 5.5rem
+              ceiling is where it stops growing on a wide desktop (~1.5x the 3.75rem
+              it used to reach). Positive tracking stays — Righteous's letterforms
+              are wide and crowd at negative values. */}
+          <h1 className="font-display text-[clamp(2.5rem,9vw,5.5rem)] leading-[1.05] font-normal tracking-[0.01em]">
+            <ShinyText text="Kailaas OS" color="#b5b5b5" shineColor="#ffffff" speed={3} />
+          </h1>
+        </div>
 
         {/* Scaled with the wordmark but on a much shallower curve, so the gap
             between them widens as the screen grows and the tagline stays
