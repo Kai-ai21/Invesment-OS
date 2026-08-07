@@ -12,6 +12,40 @@
       content="Kailaas OS remembers why you invested and checks whether it still holds. Write a thesis as testable claims, then have filings read against them."
     />
 
+    <!-- ⚠️ THE TWO LANDING-HERO FACES, AND ONLY THOSE TWO.
+         Righteous is the "Kailaas OS" wordmark, Fraunces the line under it. They
+         are the first text painted on a cold visit, and without these links they
+         were the LAST things fetched: a font is not requested until some text
+         needs it, and the hero is client-rendered, so the request waited behind
+         the CSS, the bundle, React's first render and layout — the hero painted
+         in the fallback and swapped once the real face landed. Preloading starts
+         both downloads while the HTML is still being parsed instead.
+
+         `crossorigin` is REQUIRED even though these are same-origin: fonts are
+         fetched in CORS mode, and a preload without it is cached under a
+         different key, so the CSS request misses it and downloads the file a
+         second time. The href must byte-match the url() in index.css for the
+         same reason — that is also why these paths are hand-written under
+         /public/fonts rather than resolved by Vite, which would hash them.
+
+         Do NOT add the body face (Geist) or Newsreader here. Preload is a
+         queue-jumping request the browser cannot defer; spending it on
+         below-the-fold faces delays the two that are actually on screen. -->
+    <link
+      rel="preload"
+      href="/fonts/righteous-400.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/fraunces-latin-400.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
     <!-- ⚠️ THE SIMPLIFIED MARK, NOT /logo.svg, AND THE DIFFERENCE IS DELIBERATE.
          logo.svg carries a DOTTED tail off the summit; measured at a real 16x16
          rasterisation those dashes are sub-pixel and land as a scatter of grey —

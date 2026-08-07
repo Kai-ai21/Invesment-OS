@@ -2,18 +2,70 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
-@import "@fontsource/fraunces";
+
+/* ⚠️ THE TWO FACES BELOW ARE PRELOADED FROM index.html, AND THE `src` URLs HERE
+   ARE HALF OF THAT CONTRACT.
+ *
+ * Righteous and Fraunces are the only two faces in the landing hero, and the
+ * hero is the first thing painted on a cold visit. Left to the normal order —
+ * HTML, then CSS, then the JS bundle, then React's first render, then layout,
+ * and only THEN a font request, because a face is not fetched until some text
+ * actually needs it — both arrived after the hero had already painted in the
+ * fallback, which is the swap you could see.
+ *
+ * So index.html preloads both files, and each `href` there must BYTE-MATCH the
+ * `url()` here. A mismatch of any kind — a different path, a hash in the
+ * filename, `crossorigin` missing on the link — is not a no-op: the preload
+ * misses, the CSS opens its own request, and the file is downloaded TWICE.
+ *
+ * That byte-match is also why both files live at hand-written paths under
+ * /public/fonts rather than coming in through a package import. Anything Vite
+ * resolves gets a content hash in its emitted filename (fraunces-latin-400-
+ * normal-6IfK1voy.woff2), which changes whenever the file does and cannot be
+ * written into a static <link> ahead of the build.
+ *
+ * Keep exactly ONE @font-face per family here for the same reason — a second
+ * source for the same family and weight would be a second download. Fraunces
+ * was previously pulled in via `@import "@fontsource/fraunces"`; that import is
+ * deliberately gone.
+ */
 
 /* Righteous — DISPLAY ONLY (app name, landing headline, page titles, detail
-   ticker). Self-hosted from /public/fonts (OFL.txt ships alongside per the
-   licence). Single weight 400: hierarchy comes from size and colour, never
-   font-weight, or the browser would synthesise an ugly bold. */
+   ticker). Self-hosted from /public/fonts (Righteous-OFL.txt ships alongside per
+   the licence). Single weight 400: hierarchy comes from size and colour, never
+   font-weight, or the browser would synthesise an ugly bold.
+
+   NOT subsetted, and not named for one: this face carries every heading in the
+   app, including thesis titles the user types, so the 129 latin-ext codepoints
+   in it have to stay. woff2 of the full original ttf — 40.9kB -> 16.3kB for
+   byte-identical glyph coverage. */
 @font-face {
   font-family: 'Righteous';
-  src: url('/fonts/Righteous-Regular.ttf') format('truetype');
+  src: url('/fonts/righteous-400.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
+}
+
+/* Fraunces — the landing hero subtitle and nothing else (see --font-subtitle).
+   Self-hosted from /public/fonts (Fraunces-OFL.txt ships alongside per the
+   licence). The latin subset alone, lifted verbatim from @fontsource/fraunces,
+   whose own latin unicode-range is reproduced below. This is one line of fixed
+   English copy, so the latin-ext and vietnamese subsets that import also
+   carried were dead weight in the bundle — never downloaded, since unicode-range
+   already kept the browser from asking for them, but emitted on every build and
+   impossible to preload by a stable name. The range is kept rather than dropped
+   so that anything outside it still falls through to the serif stack instead of
+   rendering from a face with no glyph for it. */
+@font-face {
+  font-family: 'Fraunces';
+  src: url('/fonts/fraunces-latin-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 /* Newsreader — SERIF for prose only (claim statements + the reasoning quote on
@@ -51,7 +103,7 @@
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
     /* Display face for chrome/titles only. Falls back to the sans (so text is
-       readable during swap and if the ttf ever fails to load). */
+       readable during swap and if the woff2 ever fails to load). */
     --font-display: 'Righteous', var(--font-sans);
     /* Serif for prose (claim statements + reasoning quote); mono for the proof/
        break condition values and status badges. Mono is the system stack — no
@@ -61,7 +113,8 @@
     /* Landing hero subtitle ONLY — one line of copy. Deliberately NOT --font-serif:
        that one is the prose face for claim statements and reasoning quotes, and
        widening its remit would change type on every thesis page. The face is
-       imported at the top of this file, beside Geist. */
+       declared at the top of this file and preloaded from index.html; keeping it
+       to this one line is what makes shipping only the latin subset safe. */
     --font-subtitle: 'Fraunces', serif;
 
     /* Investment OS surface + text scale (in addition to the shadcn tokens below) */
