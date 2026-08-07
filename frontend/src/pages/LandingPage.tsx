@@ -39,7 +39,12 @@ export function LandingPage() {
         <div className="flex flex-col items-center gap-5">
           {/* The same inlined component the sidebar and auth pages use — NOT a
               copy, and not <img src="/logo.svg">, which could not inherit colour
-              (see LogoMark). Only the size and colour change here.
+              (see LogoMark).
+
+              `inverted` is this page only: the ridge knocked out of a solid white
+              tile. Everywhere else — sidebar, login, signup, favicon — keeps the
+              outline default, which is why this is a variant and not a change to
+              the component's baseline.
 
               Sized on a shallower track than the wordmark (6vw against its 9vw)
               so the gap between them widens with the viewport and the mark stays
@@ -53,7 +58,8 @@ export function LandingPage() {
               fade here would re-introduce exactly the staggered-arrival feel the
               font preloading was meant to remove. */}
           <LogoMark
-            className="size-[clamp(2.5rem,6vw,4.5rem)] text-text-primary"
+            variant="inverted"
+            className="size-[clamp(2.5rem,6vw,4.5rem)]"
           />
 
           {/* Display font at WEIGHT 400 — `font-normal` is explicit rather than
