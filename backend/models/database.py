@@ -1,15 +1,22 @@
 import os
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
+# The default the claims migration backfills with, from the module that defines the
+# vocabulary rather than from models/claim.py, which merely imports it too.
+from backend.domain.claim import CHECKABLE
 from backend.models.base import Base
 from backend.models.alert import Alert  # noqa: F401 (registers mapper with Base)
 from backend.models.claim import Claim  # noqa: F401 (registers mapper with Base)
 from backend.models.document import Document  # noqa: F401 (registers mapper with Base)
 from backend.models.evidence_event import EvidenceEvent  # noqa: F401 (registers mapper with Base)
 from backend.models.holding import Holding  # noqa: F401 (registers mapper with Base)
+# A NEW table, so create_all() below builds it on both backends and no hand-rolled
+# migration is needed — the two functions further down exist only because create_all
+# does not ALTER tables that already exist, which is not the situation here.
+from backend.models.login_event import LoginEvent  # noqa: F401 (registers mapper with Base)
 from backend.models.pattern import Pattern  # noqa: F401 (registers mapper with Base)
 from backend.models.post_mortem import PostMortem  # noqa: F401 (registers mapper with Base)
 from backend.models.thesis import Thesis  # noqa: F401 (registers mapper with Base)
@@ -105,6 +112,19 @@ def init_db() -> None:
         _add_missing_user_auth_columns()
         _add_missing_pattern_owner_column()
 
+    # ⚠️ OUTSIDE THE GATE, DELIBERATELY, AND IT IS THE ONLY ONE. The two above are
+    # SQLite-only because the tables they patch only ever existed in SQLite: both
+    # predate Postgres being an option, so on Postgres create_all built those tables
+    # complete and there is nothing to add.
+    #
+    # `claims` is not in that position. It exists ALREADY, with rows, in the deployed
+    # Postgres database, and create_all does not ALTER an existing table on any
+    # backend. Gating this would mean the columns appear in Python and not in
+    # Postgres, and every query touching Claim — which is every thesis page —
+    # would fail with "column claims.verifiability does not exist" on the first
+    # request after deploy. Local SQLite would look perfect throughout.
+    _add_missing_claim_verifiability_columns()
+
 
 def _add_missing_user_auth_columns() -> None:
     """Bring an EXISTING users table up to the current model. Idempotent.
@@ -173,6 +193,50 @@ def _add_missing_pattern_owner_column() -> None:
         connection.exec_driver_sql(
             "CREATE INDEX IF NOT EXISTS ix_patterns_user_id ON patterns (user_id)"
         )
+
+
+def _add_missing_claim_verifiability_columns() -> None:
+    """Give an EXISTING claims table its verifiability columns. Idempotent, both backends.
+
+    ⚠️ WRITTEN IN PORTABLE SQL, WHICH IS WHY IT DOES NOT LOOK LIKE THE TWO ABOVE.
+    Those open with `PRAGMA table_info(...)`, which Postgres rejects outright. This one
+    has to run on both, so it asks SQLAlchemy's inspector — which speaks every dialect —
+    and then issues `ALTER TABLE ... ADD COLUMN`, which SQLite and Postgres both accept
+    in this exact form. No `IF NOT EXISTS`: Postgres supports it and SQLite does not,
+    so the existence check is done in Python where it works everywhere.
+
+    ⚠️ THE DEFAULT IS WHAT MAKES THIS SAFE FOR EXISTING ROWS. Every claim already in the
+    table gets "checkable" in the same statement that adds the column, so the table is
+    never momentarily in a state where the NOT NULL is a lie and no existing claim is
+    ever falsely flagged. "Checkable" is also the truthful label for them: it is exactly
+    what this app assumed about every claim before the extractor started saying
+    otherwise. The note defaults to empty, which is what checkable claims carry anyway.
+
+    This is the third hand-rolled migration in this module, and the first that needs a
+    dialect it cannot express with PRAGMA. That is the signal the note in
+    _add_missing_user_auth_columns was describing: the next one is Alembic's job.
+    """
+    inspector = inspect(engine)
+    if not inspector.has_table("claims"):
+        return  # No claims table yet; create_all just built it from the model.
+
+    existing = {column["name"] for column in inspector.get_columns("claims")}
+    statements = []
+    if "verifiability" not in existing:
+        statements.append(
+            "ALTER TABLE claims ADD COLUMN verifiability VARCHAR NOT NULL "
+            f"DEFAULT '{CHECKABLE}'"
+        )
+    if "verifiability_note" not in existing:
+        statements.append(
+            "ALTER TABLE claims ADD COLUMN verifiability_note VARCHAR NOT NULL DEFAULT ''"
+        )
+    if not statements:
+        return
+
+    with engine.begin() as connection:
+        for statement in statements:
+            connection.exec_driver_sql(statement)
 
 
 def get_db():

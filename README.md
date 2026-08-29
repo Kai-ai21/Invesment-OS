@@ -155,6 +155,27 @@ Set `LLM_PROVIDER=groq` to use Groq instead of Gemini.
 
 ---
 
+## What's recorded when you sign in
+
+The demo account is shared, so this is stated here rather than left to be discovered:
+**a successful sign-in records a timestamp.**
+
+That is the entire record — one row holding a row id, the account id, and the time.
+Nothing else about the session is stored: no IP address, no user agent, no location, no
+device, no session or token id, and nothing about what you do once you're in. Failed
+sign-ins are not recorded at all, so a mistyped password leaves no trace.
+
+Why it exists: the demo account was shared with a few dozen people, and the only
+question was how many times anyone actually signed in. A count of sign-ins answers it,
+so a count of sign-ins is all that is kept.
+
+Rows are deleted after 90 days. No endpoint serves them — they are readable only with
+the database credentials, via `python -m scripts.login_activity`. And because everyone
+shares one account, they count **sign-ins, not people**: one visitor returning and two
+different visitors are indistinguishable.
+
+---
+
 ## What it deliberately doesn't do
 
 **No buy/sell recommendations.** Ever. It reports thesis status and behavioural

@@ -404,6 +404,40 @@ def test_holding_list_contains_none_of_the_other_users(world):
 # --- the registry -----------------------------------------------------------------
 
 
+def test_no_endpoint_reads_login_events():
+    """Why `login_events` is excluded from the registry below rather than scoped.
+
+    It carries a user_id, so the guard is right to notice it — but there is no route,
+    no response schema and no repository read that serves it to anybody. An IDOR needs
+    an endpoint to be an IDOR, and this table has none: it is written on login and read
+    only by `python -m scripts.login_activity`, which needs the database credentials.
+
+    ⚠️ THAT IS A PROPERTY OF TODAY'S CODE, NOT A PROMISE, so it is asserted rather than
+    written down. The API package may mention login events in exactly one file — the
+    recording call in auth.py — and the day someone adds an endpoint that returns them,
+    this fails and sends them to write the cross-user test above.
+    """
+    from pathlib import Path
+
+    import backend.api
+
+    api_files = sorted(Path(backend.api.__file__).parent.glob("*.py"))
+    referencing = {
+        path.name
+        for path in api_files
+        if "login_event" in path.read_text() or "LoginEvent" in path.read_text()
+    }
+    assert referencing == {"auth.py"}, (
+        f"login events are referenced in {sorted(referencing)}. If an endpoint now "
+        "serves them, scope it and add a cross-user test above."
+    )
+
+    # And in auth.py it is the write, not a query: the model itself never appears.
+    auth_source = (Path(backend.api.__file__).parent / "auth.py").read_text()
+    assert "record_successful_login" in auth_source
+    assert "LoginEvent" not in auth_source
+
+
 def test_every_user_owned_table_is_covered_by_this_file():
     """⚠️ THE GUARD AGAINST THE NEXT TABLE.
 
@@ -412,6 +446,9 @@ def test_every_user_owned_table_is_covered_by_this_file():
     update: a new user-owned table fails here until it is scoped and tested.
 
     `users` is excluded — it is the owner, not an owned thing, and A1 covers it.
+
+    `login_events` is excluded because nothing serves it — see the test directly above,
+    which is what keeps that true. It is the one exclusion here that is itself tested.
     """
     mapped = {mapper.class_.__tablename__ for mapper in Base.registry.mappers}
     covered = {
@@ -424,7 +461,7 @@ def test_every_user_owned_table_is_covered_by_this_file():
         "patterns",
         "holdings",
     }
-    uncovered = mapped - covered - {"users"}
+    uncovered = mapped - covered - {"users", "login_events"}
     assert not uncovered, (
         f"user-owned tables with no cross-user test: {sorted(uncovered)}. "
         "Scope the repository and add a test above before this passes."

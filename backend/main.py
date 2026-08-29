@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import os
 from contextlib import asynccontextmanager
 
@@ -17,9 +19,19 @@ from backend.api.research import router as research_router
 from backend.api.post_mortems import router as post_mortems_router
 from backend.api.theses import router as theses_router
 from backend.api.tickers import router as tickers_router
-from backend.models.database import init_db
+from backend.models.database import SessionLocal, init_db
+from backend.repositories.login_event_repository import (
+    RETENTION_DAYS,
+    purge_expired_login_events,
+)
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+# How often the retention sweep runs. Daily, because the thing it enforces is measured
+# in days — a tighter interval would delete the same zero rows more often.
+RETENTION_SWEEP_SECONDS = 24 * 60 * 60
 
 # The Vite dev server, on both spellings of localhost. This is the whole list for
 # local development, and it stays the default so that running the app from a fresh
@@ -78,10 +90,60 @@ def cors_origins() -> list[str]:
     return origins
 
 
+def _purge_login_events_once() -> int:
+    """One retention sweep, on its own short-lived session.
+
+    ⚠️ ITS OWN SESSION, not a request's. This runs outside the request cycle, so there
+    is no get_db to borrow from, and holding a session open between daily sweeps would
+    be a connection idling for 24 hours — precisely what the pooler drops.
+    """
+    with SessionLocal() as db:
+        return purge_expired_login_events(db)
+
+
+async def _login_retention_loop() -> None:
+    """Delete login events older than RETENTION_DAYS, now and once a day after.
+
+    ⚠️ SCHEDULED, NOT CHECKED-ON-WRITE, and the reason is the login path rather than
+    convenience. Pruning inside the login request would put a DELETE on the success
+    path only — the same asymmetry the constant-time login in api/auth.py exists to
+    avoid — and would make every user occasionally pay for a table-wide sweep. In here
+    it costs the request nothing, and it needs no cron, no worker and no add-on: a
+    deploy that can run the app can run its own retention.
+
+    to_thread because everything below it is synchronous SQLAlchemy; awaited directly
+    it would block the event loop, and therefore every in-flight request, for the
+    duration of the DELETE.
+
+    A failed sweep is logged and retried tomorrow. It must never take the app down —
+    the app's job is serving requests, and it can do that with a day's worth of
+    over-retained rows.
+    """
+    while True:
+        try:
+            deleted = await asyncio.to_thread(_purge_login_events_once)
+            if deleted:
+                logger.info(
+                    "Login retention: deleted %d event(s) older than %d days.",
+                    deleted,
+                    RETENTION_DAYS,
+                )
+        except Exception:
+            logger.warning("Login retention sweep failed; retrying tomorrow.", exc_info=True)
+        # CancelledError is a BaseException, so the `except Exception` above cannot
+        # swallow the shutdown signal that arrives here.
+        await asyncio.sleep(RETENTION_SWEEP_SECONDS)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
-    yield
+    retention = asyncio.create_task(_login_retention_loop())
+    try:
+        yield
+    finally:
+        # Cancelled rather than awaited: it never returns on its own.
+        retention.cancel()
 
 
 app = FastAPI(lifespan=lifespan)

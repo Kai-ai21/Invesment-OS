@@ -18,6 +18,7 @@ from backend.core.security import (
 )
 from backend.models.database import get_db
 from backend.models.user import User
+from backend.repositories.login_event_repository import record_successful_login
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -116,6 +117,29 @@ def login(body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
             # bearer authentication.
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    # ⚠️ BELOW THE RAISE, SO ONLY SUCCESSES ARE COUNTED — every failure has already
+    # left this function by here, which is what makes "no event" the definition of a
+    # failed login rather than a flag on a row.
+    #
+    # ⚠️ AND IT CANNOT AFFECT THIS RESPONSE. record_successful_login swallows and logs
+    # everything (see its docstring); if that contract is ever broken, this line turns
+    # a correct password into a 500. The token below is issued exactly as before,
+    # from exactly the same call — nothing about authentication or the JWT changed.
+    #
+    # ⚠️ IT DOES WIDEN THE SUCCESS/FAILURE TIMING GAP THE ANTI-ENUMERATION WORK ABOVE
+    # EXISTS TO CLOSE, AND THAT WAS MEASURED RATHER THAN ASSUMED. Interleaved in-process
+    # against SQLite, 150 samples per case: the gap was -0.13 ms before this line
+    # (p = 0.58, i.e. nothing) and +0.39 to +0.69 ms after it (p = 0.008 / 2e-7) — real,
+    # and 0.4% of the ~170 ms bcrypt cost both paths pay. Sub-millisecond against a
+    # 170 ms floor is not recoverable through internet jitter without tens of thousands
+    # of requests per address, but it is no longer zero.
+    #
+    # If it ever needs to be zero again, the fix is to move this OFF the response path
+    # — FastAPI BackgroundTasks, with its own session, running after the response is
+    # sent — NOT to add a matching write to the failure path, which would hand an
+    # unauthenticated caller a database write per request.
+    record_successful_login(db, user.id)
 
     return TokenResponse(access_token=create_access_token(user.id))
 

@@ -47,6 +47,8 @@ def add_claims(
             proof_condition=claim.proof_condition,
             break_condition=claim.break_condition,
             is_core=claim.is_core,
+            verifiability=claim.verifiability,
+            verifiability_note=claim.verifiability_note,
         )
         for claim in claims
     ]

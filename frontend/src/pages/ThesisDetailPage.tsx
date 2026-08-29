@@ -428,6 +428,8 @@ function ClaimCard({
 
           <EvidenceFilterButton claim={claim} active={filtered} onToggle={onFilter} />
 
+          <UnverifiableTag claim={claim} />
+
           {/* ⚠️ COLLAPSED BY DEFAULT. Proof and break conditions are the contract
               the claim is judged against — reference material you consult when a
               status surprises you, not something you scan a list of claims for.
@@ -453,6 +455,7 @@ function ClaimCard({
           <dl id={conditionsId} className="grid gap-3 border-t border-border pt-3 sm:grid-cols-2">
             <Condition label="Proof condition" value={claim.proof_condition} />
             <Condition label="Break condition" value={claim.break_condition} />
+            <UnverifiableNote claim={claim} />
           </dl>
         )}
       </div>
@@ -504,6 +507,74 @@ function EvidenceFilterButton({
         {label}
       </button>
     </Tooltip>
+  )
+}
+
+/**
+ * The marker on a claim no filing can ever settle.
+ *
+ * ⚠️ THIS IS INFORMATION, NOT A WARNING, AND THE STYLING IS THE WHOLE POINT. It
+ * carries no colour, no icon, no border and no emphasis — the same muted pill
+ * treatment as the `core`/`minor` label beside the statement. Nothing here is
+ * wrong: the investor wrote a precise claim about market share or a competitor,
+ * which is a perfectly good thing to believe and to track. The only fact being
+ * reported is that THIS APP will not be the thing that checks it, so they are
+ * not left waiting on evidence that cannot arrive. Amber, red, a triangle or the
+ * word "warning" would all say something the app does not mean and is not
+ * entitled to say — that the claim itself is a problem.
+ *
+ * Rendered ONLY when flagged. "Checkable" is also what uncertainty and every
+ * pre-existing claim look like, so a "checkable" badge would be a promise the
+ * backend never made.
+ */
+function UnverifiableTag({ claim }: { claim: Claim }) {
+  if (claim.verifiability !== 'unverifiable') return null
+
+  return (
+    <Tooltip
+      content={
+        <>
+          {claim.verifiability_note && <p>{claim.verifiability_note}</p>}
+          <p className={claim.verifiability_note ? 'mt-1.5' : undefined}>
+            The claim is kept exactly as written — it just won’t pick up evidence
+            from filings on its own.
+          </p>
+        </>
+      }
+    >
+      <span className="rounded-full bg-surface-raised px-2 py-0.5 text-xs text-text-muted">
+        filings won’t answer this
+      </span>
+    </Tooltip>
+  )
+}
+
+/**
+ * The same fact, spelled out under the conditions.
+ *
+ * ⚠️ NOT REDUNDANT WITH THE TOOLTIP ABOVE — it is the reachable copy. A tooltip
+ * is hover-only here (the pill is not a focusable control, and making it one
+ * would add a tab stop to a label that does nothing), so on touch and by
+ * keyboard this is the only way to read the note. It sits with the conditions
+ * because that is what it is about: these two lines are the ones nothing will
+ * check.
+ */
+function UnverifiableNote({ claim }: { claim: Claim }) {
+  if (claim.verifiability !== 'unverifiable') return null
+
+  return (
+    <div className="rounded-lg bg-surface-raised px-3 py-2 sm:col-span-2">
+      <dt className="text-xs tracking-wide text-text-muted uppercase">
+        Not answerable from filings
+      </dt>
+      <dd className="mt-1 text-xs leading-[1.5] text-text-secondary">
+        {claim.verifiability_note || 'No filing or standard financial figure reports this.'}{' '}
+        <span className="text-text-muted">
+          Checks will keep running for the rest of this thesis; this claim is yours
+          to track.
+        </span>
+      </dd>
+    </div>
   )
 }
 

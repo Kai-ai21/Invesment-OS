@@ -43,6 +43,20 @@ class ClaimOut(BaseModel):
     is_core: bool
     status: str
 
+    # "checkable" or "unverifiable", and one sentence of why when it is the latter.
+    #
+    # ⚠️ TYPED str, NOT A LITERAL, MATCHING `status` ABOVE. A Literal here would turn
+    # any unexpected value in the column into a 500 on a read path — the claim would
+    # become unreadable because of how it was LABELLED, which is a far worse failure
+    # than rendering an unknown label. The constraint that matters is enforced where
+    # the value is written: ClaimData in domain/claim.py.
+    #
+    # No default: with from_attributes the mapped class always carries both, so a
+    # missing one means the migration did not run, and that should fail loudly here
+    # rather than quietly reporting every claim as checkable.
+    verifiability: str
+    verifiability_note: str
+
     # How much evidence this claim has been judged on.
     evidence_count: int = 0
 

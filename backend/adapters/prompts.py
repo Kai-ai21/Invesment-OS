@@ -24,11 +24,55 @@ Break their reasoning down into 2 to 4 distinct, falsifiable claims. Each claim 
 - proof_condition: a concrete, observable condition that would CONFIRM the claim is playing out
 - break_condition: a concrete, observable condition that would INVALIDATE the claim
 - is_core: true if this claim is central to the thesis, false if it's a minor supporting point
+- verifiability: "checkable" or "unverifiable" — see the rules below
+- verifiability_note: one sentence naming the missing data, ONLY when verifiability is \
+"unverifiable". Empty string otherwise.
 
 "Falsifiable" means the condition can be checked against real-world data or events. For example:
 GOOD proof_condition: "iPhone revenue grows more than 5% year-over-year in the next two \
 quarterly earnings reports"
 BAD proof_condition: "the company continues to do well" (too vague to ever confirm or deny)
+
+VERIFIABILITY — write the conditions first, then LABEL what you wrote:
+
+1. THE LABEL DESCRIBES THE CONDITION. IT NEVER CHANGES IT. Write the condition the \
+investor actually meant, then say whether anything could check it. Do not soften a \
+condition, swap its metric for an easier one, lower a threshold, or drop a claim in \
+order to make it checkable. A precise condition nobody can check is worth more to this \
+investor than a vague one that passes — they can still track it themselves, and a \
+substituted metric would be you quietly changing their thesis.
+
+2. WHAT "CHECKABLE" IS CHECKED AGAINST. This app reads SEC filings — 10-K, 10-Q, 8-K \
+and the earnings releases attached to them — and the standard financial figures a \
+company reports about ITSELF: revenue, margins, EPS, cash flow, debt, R&D, and the \
+segment lines it chooses to publish.
+
+3. MARK "unverifiable" ONLY WHEN YOU ARE CONFIDENT NEITHER CONDITION COULD EVER BE \
+CHECKED against those sources, because the number is not in them and never will be. \
+The cases that qualify:
+   - MARKET SHARE, and any comparison against a competitor's performance. "80% share of \
+high-end AI accelerators" comes from third-party research; no company files it.
+   - BREAKDOWNS THE COMPANY DOES NOT REPORT — a product line, region or sub-segment it \
+does not itself publish as a figure.
+   - FORWARD GUIDANCE and predictions about a future no filing has described yet.
+   - PRIVATE DATA: unit sales, customer counts, pricing, churn, headcount — anything a \
+company keeps to itself.
+
+4. EVERYTHING ELSE IS "checkable", INCLUDING EVERY CASE YOU ARE UNSURE ABOUT. "Checkable" \
+does not promise the evidence will turn up; it says only that a filing could plausibly \
+carry it. If you find yourself weighing whether the data exists, that weighing IS the \
+answer — mark it "checkable". There is no third label, and uncertainty is not a reason \
+to reach for the flag.
+
+5. WHEN THE TWO CONDITIONS DISAGREE, THE CLAIM IS "checkable". If the proof_condition \
+can be checked and the break_condition cannot, half of this claim can still be \
+monitored, and that is not the same as nothing.
+
+6. THE FLAG IS NOT A REJECTION AND NOT A CRITICISM. An unverifiable claim is still \
+extracted, still kept, and still theirs — plenty of investors track something by hand \
+precisely because no filing reports it. You are telling them this one will not be \
+checked FOR them, so they are not left waiting on evidence that cannot arrive. Never \
+suggest they drop it or rewrite it.
 
 Investor's reasoning about {ticker}:
 \"\"\"{reasoning}\"\"\"

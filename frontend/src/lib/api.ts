@@ -20,6 +20,19 @@ export type ThesisStatus = "strengthening" | "weakening" | "breaking" | "pending
 /** Verdict an LLM verification returns for one claim against one document. */
 export type Verdict = "supports" | "contradicts" | "neutral"
 
+/**
+ * Whether any filing or standard financial figure could EVER settle a claim's
+ * conditions. Decided by the extractor when the claim is written, then stored —
+ * see backend/domain/claim.py, which owns the meaning.
+ *
+ * ⚠️ "checkable" IS ALSO WHAT UNCERTAINTY LOOKS LIKE, so it asserts nothing: the
+ * extractor only says "unverifiable" when it is confident nothing could ever
+ * check the claim, and every claim written before the field existed carries
+ * "checkable" too. Render the flag when it is there; never render its absence as
+ * a promise that evidence is coming.
+ */
+export type ClaimVerifiability = "checkable" | "unverifiable"
+
 /** ClaimOut */
 export interface Claim {
   id: string
@@ -28,6 +41,9 @@ export interface Claim {
   break_condition: string
   is_core: boolean
   status: ClaimStatus
+  verifiability: ClaimVerifiability
+  /** One sentence naming the data that does not exist. Empty when checkable. */
+  verifiability_note: string
   /** How much evidence this claim has been judged on. */
   evidence_count: number
   /**
