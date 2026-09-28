@@ -207,7 +207,29 @@
        2xs is the only added rung; the rest are Tailwind's. It exists because the
        micro-label role was being served by three ad-hoc sizes (10, 10.5 and 11px)
        that no scale contained, so there was nothing to snap them to. */
-    --text-2xs: 0.6875rem;
+
+    /* ⚠️ THE TWO SMALLEST RUNGS ARE FLUID, AND THEY GROW AS THE SCREEN SHRINKS —
+       the opposite of the usual clamp(). That is deliberate. These rungs carry
+       micro-labels; 11px is a comfortable caption on a 1280px desktop held at
+       arm's length and a squint on a 375px phone held in one hand. Type that got
+       SMALLER on a phone would be exactly backwards.
+
+       The maths is arranged so each lands on its OLD value at 1280px and above:
+       at a 1280px viewport 0.125vw is exactly 1.6px, so 12.6 - 1.6 = 11.0, and
+       past 1280 the min clamp pins it there forever. Desktop is unchanged by
+       construction, not by inspection — which is what lets the 1280px layout
+       fingerprints match before and after.
+
+       clamp() rather than a `sm:` jump because a jump is visible: a label that
+       snaps from 12px to 11px as you rotate a tablet draws the eye to the
+       resize. The fluid version is simply always the right size. */
+    --text-2xs: clamp(0.6875rem, 0.7875rem - 0.125vw, 0.7875rem);
+
+    /* The sidebar's section labels (TRACK / EXPLORE / OWN) — below 2xs because
+       they are wide-tracked uppercase, which reads larger than its size. Was a
+       hard-coded 9.5px in Sidebar.tsx with nothing to snap it to; same fluid
+       treatment, landing on 9.5px at 1280 and ~11px on a phone. */
+    --text-micro: clamp(0.59375rem, 0.71875rem - 0.15625vw, 0.71875rem);
 }
 
 /* Dark is the only theme. The palette lives on :root so it applies even before any
@@ -658,8 +680,8 @@
   /**
    * The TOUCH-DEVICE ambient layer, standing in for the cursor comet.
    *
-   * Rendered by DashboardBackground instead of GhostCursor when the pointer is
-   * coarse — see the fault written up there. It is the same visual family as the
+   * Rendered by DashboardBackground instead of the cursor spotlight when the
+   * pointer is coarse — see the note written up there. It is the same visual family as the
    * layer above (cool blue-greys, very soft, viewport-fixed) at roughly half again
    * the strength, because on a phone this is doing the job two layers do on a
    * desktop: there is no moving light underneath it.
@@ -678,6 +700,65 @@
       radial-gradient(38rem 30rem at 0% -6%, rgb(124 152 205 / 13%), transparent 64%),
       radial-gradient(34rem 28rem at 106% 12%, rgb(116 140 190 / 10%), transparent 62%),
       radial-gradient(42rem 34rem at 50% 108%, rgb(140 162 208 / 11%), transparent 66%);
+  }
+
+  /**
+   * The cursor spotlight — a gentle reveal that follows a fine pointer. Rendered
+   * by CursorSpotlight, which owns the coordinates; this owns the look.
+   *
+   * ⚠️ A FIXED-SIZE BOX MOVED BY transform, NOT A GRADIENT MOVED BY POSITION. The
+   * obvious build is a full-viewport layer whose `background-position` tracks the
+   * cursor, and it is the wrong one: repositioning a background repaints the whole
+   * viewport-sized layer every frame, on the main thread. A 460px box translated
+   * on the compositor repaints nothing — the gradient is rasterised once and the
+   * layer is moved. `translate(-50%, -50%)` re-centres it on the point without
+   * hard-coding half its size, so changing the size above needs no second edit.
+   *
+   * ⚠️ THE ALPHAS ARE THE WHOLE DESIGN, AND THEY ARE LOW ON PURPOSE. 3.5% white
+   * over the #0f1115 page is about #191b1f: a lift of eight values per channel.
+   * Visible as light, nowhere near enough to move text off its contrast ratio —
+   * which is the failure the effect this replaces actually had, on every list that
+   * has no surface of its own. Pure white keeps it achromatic; any tint here would
+   * read as a coloured glow rather than as a lamp.
+   *
+   * closest-side so the gradient's edge meets the box's edge exactly: the ramp
+   * finishes AT transparent rather than being clipped part-way, which is what
+   * would give it a visible rim.
+   */
+  .cursor-spotlight {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    width: 460px;
+    height: 460px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 320ms ease-out;
+    background-image: radial-gradient(
+      closest-side,
+      rgb(255 255 255 / 3.5%),
+      rgb(255 255 255 / 2.6%) 38%,
+      rgb(255 255 255 / 1.1%) 68%,
+      transparent 100%
+    );
+    transform: translate3d(var(--spotlight-x, 50vw), var(--spotlight-y, 50vh), 0)
+      translate(-50%, -50%);
+    will-change: transform;
+  }
+
+  .cursor-spotlight[data-active='true'] {
+    opacity: 1;
+  }
+
+  /* Belt and braces: DashboardBackground does not mount this at all under a
+     reduced-motion preference, so this rule should never have anything to apply
+     to. It is here so the class cannot animate if some future caller renders it
+     directly without making that check. */
+  @media (prefers-reduced-motion: reduce) {
+    .cursor-spotlight {
+      display: none;
+    }
   }
 
   /* ---- route change --------------------------------------------------------

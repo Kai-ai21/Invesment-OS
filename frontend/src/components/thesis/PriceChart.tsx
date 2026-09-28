@@ -1,4 +1,4 @@
-import { useCallback, useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 
 import {
   Area,
@@ -42,6 +42,30 @@ function xPosition(rows: Row[], date: string): number {
   if (rows.length < 2) return 0
   const index = rows.filter((row) => row.date <= date).length - 1
   return Math.min(Math.max(index, 0), rows.length - 1) / (rows.length - 1)
+}
+
+/**
+ * The chart's own rendered width, tracked as it changes.
+ *
+ * ⚠️ MEASURED, NOT INFERRED FROM THE VIEWPORT. The chart does not span the
+ * window: it sits inside a card, inside a main column, beside a sidebar that
+ * collapses. A media query would report the browser's width rather than the box
+ * the labels actually have to fit inside, and would be wrong by roughly the
+ * sidebar whenever the sidebar is open.
+ */
+function useMeasuredWidth<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null)
+  const [width, setWidth] = useState(0)
+
+  useEffect(() => {
+    const node = ref.current
+    if (!node) return
+    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width))
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
+
+  return [ref, width] as const
 }
 
 /** Entry animation is opt-out for users who asked for less motion. */
@@ -132,8 +156,24 @@ function ChartBody({
   const fillId = `price-fill-${uid}`
   const strokeId = `price-stroke-${uid}`
 
+  const [boxRef, boxWidth] = useMeasuredWidth<HTMLDivElement>()
+
+  // ⚠️ THE Y AXIS IS A FIXED 52px HOWEVER WIDE THE CHART IS, so on a phone it took
+  // 17% of the plot and squeezed the price line into what was left. A narrow chart
+  // gets a tighter gutter — its labels are three or four digits, not six.
+  const narrow = boxWidth > 0 && boxWidth < 420
+  const axisWidth = narrow ? 34 : 52
+
   return (
-    <div className="h-64 w-full">
+    // ⚠️ A RATIO BELOW lg, THE ORIGINAL FIXED HEIGHT AT lg AND ABOVE. `h-64` with a
+    // fluid width is not a shape: it renders 3.5:1 on a desktop and 1.09:1 on a
+    // phone, so the same chart arrives as a wide strip or very nearly a square
+    // depending on the device. A held ratio keeps it recognisably the same object,
+    // and min-h stops that ratio from ever making it too short to read.
+    //
+    // The lg overrides restore `h-64` exactly, so the desktop box is the one it has
+    // always been, to the pixel.
+    <div ref={boxRef} className="aspect-[16/10] min-h-52 w-full lg:aspect-auto lg:h-64">
       {/* ResponsiveContainer so the chart reflows when the sidebar collapses. */}
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
@@ -165,7 +205,7 @@ function ChartBody({
           />
           <XAxis
             dataKey="date"
-            tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
+            tick={{ fill: 'var(--text-muted)', fontSize: narrow ? 10 : 11 }}
             tickLine={false}
             axisLine={{ stroke: 'var(--border)' }}
             minTickGap={40}
@@ -173,10 +213,10 @@ function ChartBody({
           />
           <YAxis
             domain={['auto', 'auto']}
-            tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
+            tick={{ fill: 'var(--text-muted)', fontSize: narrow ? 10 : 11 }}
             tickLine={false}
             axisLine={false}
-            width={52}
+            width={axisWidth}
           />
           <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--border)' }} />
 
@@ -203,7 +243,14 @@ function ChartBody({
               they cluster at *now*, which is the right edge, so a right-hand label
               is clipped by the plot. Labels past the 70% mark flip to the left. */}
           {statusChanges.map((event, index) => {
-            const flip = xPosition(rows, event.date) > 0.7
+            // ⚠️ THE FLIP THRESHOLD HAS TO MOVE WITH THE PLOT WIDTH. A label is a
+            // fixed number of PIXELS wide while the threshold is a FRACTION, so the
+            // same "→ weakening" that takes 8% of a desktop plot takes 27% of a
+            // 231px phone plot. Pinned at 0.7 it flips far too late down there and
+            // the text runs off the right edge. Measured instead: a label is at
+            // most ~70px, so flip once less than that much room remains.
+            const labelRoom = boxWidth > 0 ? 1 - 70 / boxWidth : 0.7
+            const flip = xPosition(rows, event.date) > Math.min(0.7, labelRoom)
             return (
               <ReferenceLine
                 key={`${event.date}-${index}`}
@@ -217,7 +264,7 @@ function ChartBody({
                   // leftward into the plot instead of off the edge.
                   position: flip ? 'insideTopRight' : 'insideTopLeft',
                   fill: statusColor(event.new_status),
-                  fontSize: 10,
+                  fontSize: narrow ? 9 : 10,
                   // Cycle through rows so neighbouring lines never share one.
                   dy: 4 + (index % 4) * 12,
                   dx: flip ? -4 : 4,

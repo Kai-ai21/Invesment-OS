@@ -168,7 +168,7 @@ function SectionLabel({ label }: { label: string }) {
   return (
     <div aria-hidden className="mb-[7px] flex items-center gap-[7px] px-2.5">
       <span className="h-0.5 w-2.5 shrink-0 rounded-full bg-text-primary" />
-      <span className="font-mono text-[9.5px] leading-none tracking-[0.14em] text-text-primary uppercase">
+      <span className="font-mono text-[length:var(--text-micro)] leading-none tracking-[0.14em] text-text-primary uppercase">
         {label}
       </span>
     </div>

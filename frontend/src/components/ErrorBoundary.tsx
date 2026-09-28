@@ -14,19 +14,20 @@ import { Button } from '@/components/ui/button'
  * is a completely black page with no message, no controls and nothing in the UI
  * suggesting a reload would help.
  *
- * That is not hypothetical here. GhostCursor built a WebGL context in an effect
- * without guarding it; on a browser that would not grant one, three.js threw, and the
- * whole dashboard went black on phones while the landing page — which uses Canvas 2D
- * — was fine. That specific throw is now handled at its source, but "a component
- * threw" is a permanent category of bug and blanking the application is never the
- * right answer to it.
+ * That is not hypothetical here. A vendored WebGL cursor effect (GhostCursor, since
+ * removed in favour of a CSS spotlight) built a WebGL context in an effect without
+ * guarding it; on a browser that would not grant one, three.js threw, and the whole
+ * dashboard went black on phones while the landing page — which uses Canvas 2D — was
+ * fine. That particular component no longer exists, but "a component threw" is a
+ * permanent category of bug and blanking the application is never the right answer
+ * to it. The boundary is not kept for that one effect; it is kept for the next one.
  *
  * ⚠️ WHAT A BOUNDARY DOES NOT CATCH, because the gaps matter when you are debugging
  * one: errors inside event handlers, anything thrown asynchronously (setTimeout, a
  * promise rejection, an await after the first suspension point), and errors thrown by
  * the boundary's own render. It DOES catch render, constructor and lifecycle errors —
- * including useEffect bodies, which run during commit and are covered. The GhostCursor
- * case above was an effect, which is exactly why a boundary answers it.
+ * including useEffect bodies, which run during commit and are covered. The WebGL case
+ * above was an effect, which is exactly why a boundary answers it.
  *
  * A CLASS, and there is no choice about that: `getDerivedStateFromError` and
  * `componentDidCatch` have no hook equivalents. This is the one class component in

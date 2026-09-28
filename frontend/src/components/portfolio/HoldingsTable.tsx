@@ -5,7 +5,7 @@ import { Link } from 'react-router'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import { Sparkline } from '@/components/Sparkline'
 import { StatusBadge } from '@/components/StatusBadge'
-import { INSET_SURFACE, StatusGlow } from '@/components/StatusSurface'
+import { StatusGlow } from '@/components/StatusSurface'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/toast'
@@ -31,8 +31,19 @@ import { describeError } from '@/lib/errors'
 import { entryProps } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
-/** Right-aligned, mono, tabular — so digits line up column-wise for scanning. */
-const NUM = 'px-3 py-3 text-right font-mono text-sm tabular-nums whitespace-nowrap'
+/** Right-aligned, mono, tabular — so digits line up column-wise for scanning.
+ *
+ * ⚠️ BELOW md THE SAME CELL IS A LABELLED ROW INSIDE A CARD. The column heading
+ * it used to sit under is hidden, so the cell grows its own label from
+ * `data-label` via ::before — which is why every numeric <td> must carry that
+ * attribute. Without it the figure appears with nothing saying what it is.
+ * The figure stays right-aligned, so a column of them still lines up down the
+ * card exactly as it did across the table. */
+const NUM =
+  'px-3 py-3 text-right font-mono text-sm tabular-nums whitespace-nowrap ' +
+  'max-xl:flex max-xl:items-baseline max-xl:justify-between max-xl:gap-4 max-xl:px-0 max-xl:py-1 ' +
+  "max-xl:before:content-[attr(data-label)] max-xl:before:font-mono max-xl:before:normal-case " +
+  'max-xl:before:text-[length:var(--text-2xs)] max-xl:before:tracking-[0.08em] max-xl:before:text-text-muted'
 const HEAD =
   'px-3 py-2 text-right font-mono text-2xs tracking-[0.08em] text-text-muted uppercase whitespace-nowrap'
 
@@ -63,13 +74,37 @@ export function HoldingsTable({
        No hover on this one: the whole table is not a target, and brightening its
        frame because the cursor crossed a cell would be noise. Row hover is
        unchanged and still lands on the row. */
-    <div className={cn('overflow-x-auto bg-surface-inset', INSET_SURFACE)}>
-      <table className="w-full border-collapse">
+    /* ⚠️ BELOW md THIS IS NOT A TABLE AT ALL — every row becomes its own card,
+       and the whole conversion is CSS. The markup below is untouched: one DOM
+       tree, one set of handlers, one edit form. The alternative (a second
+       card component beside the table) would have duplicated 300 lines of
+       delete-confirm and edit state, and the two would have drifted.
+
+       Every class added for narrow widths is prefixed `max-xl:`, so nothing here
+       can reach the desktop layout even by accident — which is what makes the
+       1280px fingerprint match by construction.
+
+       The shell and the scroller are md-and-up only: at phone width the cards
+       carry their own borders, and there is nothing left to scroll sideways. */
+    <div
+      className={cn(
+        'bg-surface-inset max-xl:bg-transparent',
+        // ⚠️ SPELLED OUT, NOT BUILT FROM INSET_SURFACE AT RUNTIME. Tailwind
+        // generates CSS by scanning the source for literal class strings, so a
+        // name assembled with string concatenation produces no rule at all — the
+        // markup would carry classes that style nothing. These are INSET_SURFACE's
+        // own utilities, md-prefixed by hand for exactly that reason.
+        'xl:overflow-x-auto xl:rounded-xl xl:border xl:border-border xl:ring-0 xl:outline-1 xl:outline-offset-2 xl:outline-card-ring',
+      )}
+    >
+      <table className="w-full border-collapse max-xl:block">
         <caption className="sr-only">
           Your holdings, with size, cost, current value and the status of any thesis
           you have written on the same ticker.
         </caption>
-        <thead>
+        {/* Hidden, not removed: the column names still label the cells below via
+            data-label, and a screen reader still gets a real table on desktop. */}
+        <thead className="max-xl:hidden">
           <tr className="border-b border-border">
             <th scope="col" className={cn(HEAD, 'text-left')}>
               Holding
@@ -104,7 +139,7 @@ export function HoldingsTable({
             </th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="max-xl:block max-xl:space-y-3">
           {/* Re-sorting MOVES these rows. A move is a DOM remove-and-reinsert,
               which restarts a CSS animation — see useStaggerIndex, which is what
               stops a re-sort from replaying every row's entrance. */}
@@ -171,7 +206,13 @@ function HoldingRow({
       <tr
         {...entryProps(
           index,
-          'group/glow border-b border-border/60 last:border-b-0 hover:bg-surface-raised/40',
+          // The desktop half is unchanged. Below md the row IS the card: its own
+          // fill, border and ring — the shell the wrapper stops drawing at that
+          // width — and no bottom hairline, because cards are separated by the
+          // gap on <tbody> instead.
+          'group/glow border-b border-border/60 last:border-b-0 hover:bg-surface-raised/40 ' +
+            'max-xl:block max-xl:rounded-xl max-xl:border max-xl:border-border max-xl:bg-surface-inset ' +
+            'max-xl:p-4 max-xl:outline-1 max-xl:outline-offset-2 max-xl:outline-card-ring',
         )}
       >
         {/* Holding, and the cell the status blooms out of — same colour map and
@@ -185,7 +226,7 @@ function HoldingRow({
             `group/glow` has to be on the ROW: hovering the P&L column should
             light the corner, the same as the row's own background hover, and a
             group scoped to this cell would only fire over the ticker. */}
-        <td className="relative isolate px-3 py-3">
+        <td className="relative isolate px-3 py-3 max-xl:block max-xl:px-0 max-xl:pt-0 max-xl:pb-2">
           <StatusGlow status={holding.thesis_status} />
           <div className="flex items-center gap-2.5">
             <CompanyLogo ticker={holding.ticker} logoUrl={holding.logo_url} size={28} />
@@ -212,18 +253,23 @@ function HoldingRow({
         </td>
 
         {/* ⭐ The connection between what you own and what you believe. */}
-        <td className="px-3 py-3">
+        <td
+          data-label="Thesis"
+          className="px-3 py-3 max-xl:flex max-xl:items-baseline max-xl:justify-between max-xl:gap-4 max-xl:border-t max-xl:border-border/60 max-xl:px-0 max-xl:pt-3 max-xl:pb-1 max-xl:before:font-mono max-xl:before:text-[length:var(--text-2xs)] max-xl:before:tracking-[0.08em] max-xl:before:text-text-muted max-xl:before:content-[attr(data-label)]"
+        >
           <ThesisCell holding={holding} />
         </td>
 
-        <td className={cn(NUM, 'text-text-secondary')}>{formatShares(holding.shares)}</td>
-        <td className={cn(NUM, 'text-text-secondary')}>
+        <td data-label="Shares" className={cn(NUM, 'text-text-secondary')}>
+          {formatShares(holding.shares)}
+        </td>
+        <td data-label="Avg cost" className={cn(NUM, 'text-text-secondary')}>
           {formatMoney(holding.average_cost)}
         </td>
 
         {/* Every cell below is null — never 0 — when the price could not be
             fetched, and each dash carries the reason on hover. */}
-        <td className={cn(NUM, 'text-text-secondary')}>
+        <td data-label="Price" className={cn(NUM, 'text-text-secondary')}>
           <OrUnavailable
             value={holding.current_price}
             render={formatMoney}
@@ -232,10 +278,13 @@ function HoldingRow({
         </td>
         {/* Renders nothing at all for an unpriced ticker, but keeps its box, so
             the column stays aligned down the table. */}
-        <td className="px-3 py-3">
+        <td
+          data-label="30d"
+          className="px-3 py-3 max-xl:flex max-xl:items-center max-xl:justify-between max-xl:gap-4 max-xl:px-0 max-xl:py-1 max-xl:before:font-mono max-xl:before:text-[length:var(--text-2xs)] max-xl:before:tracking-[0.08em] max-xl:before:text-text-muted max-xl:before:content-[attr(data-label)]"
+        >
           <Sparkline ticker={holding.ticker} days={30} />
         </td>
-        <td className={cn(NUM, 'text-text-primary')}>
+        <td data-label="Value" className={cn(NUM, 'text-text-primary')}>
           <OrUnavailable
             value={holding.market_value}
             render={formatMoney}
@@ -243,6 +292,7 @@ function HoldingRow({
           />
         </td>
         <td
+          data-label="P&L"
           className={cn(
             NUM,
             tone === 'positive'
@@ -255,15 +305,20 @@ function HoldingRow({
           {holding.unrealised_pnl === null ? (
             <Unavailable reason={reason} />
           ) : (
-            <>
+            // ⚠️ WRAPPED IN ONE ELEMENT ON PURPOSE. Below md the cell is a flex
+            // row of [label, value]; as a bare fragment these two lines would be
+            // two separate flex items and the label would end up between the
+            // money and the percentage. On desktop a block div holding two block
+            // divs renders exactly as the two divs did, so nothing moves there.
+            <div>
               <div>{formatSignedMoney(holding.unrealised_pnl)}</div>
               <div className="text-xs opacity-80">
                 {formatSignedPercent(holding.pnl_percent)}
               </div>
-            </>
+            </div>
           )}
         </td>
-        <td className={cn(NUM, 'text-text-secondary')}>
+        <td data-label="Alloc" className={cn(NUM, 'text-text-secondary')}>
           <OrUnavailable
             value={holding.allocation_percent}
             render={formatPercent}
@@ -271,7 +326,7 @@ function HoldingRow({
           />
         </td>
 
-        <td className="px-3 py-3 text-right whitespace-nowrap">
+        <td className="px-3 py-3 text-right whitespace-nowrap max-xl:flex max-xl:justify-end max-xl:border-t max-xl:border-border/60 max-xl:px-0 max-xl:pt-3 max-xl:pb-0">
           {confirmingDelete ? (
             // Inline two-step rather than a browser confirm(): it keeps the row in
             // view, so it is clear WHICH holding is about to go.
@@ -320,16 +375,16 @@ function HoldingRow({
       </tr>
 
       {error && (
-        <tr>
-          <td colSpan={10} className="px-3 pb-3 text-sm text-status-broken">
+        <tr className="max-xl:block">
+          <td colSpan={10} className="px-3 pb-3 text-sm text-status-broken max-xl:block max-xl:px-0">
             {error}
           </td>
         </tr>
       )}
 
       {editing && (
-        <tr className="border-b border-border/60 bg-surface-raised/30">
-          <td colSpan={10} className="px-3 py-4">
+        <tr className="border-b border-border/60 bg-surface-raised/30 max-xl:block max-xl:rounded-xl max-xl:border max-xl:border-border">
+          <td colSpan={10} className="px-3 py-4 max-xl:block">
             <EditHoldingForm
               holding={holding}
               onCancel={() => setEditing(false)}

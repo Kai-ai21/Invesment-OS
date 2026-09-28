@@ -1,0 +1,63 @@
+{
+  "theses": [
+    {
+      "ticker": "NVDA",
+      "reasoning": "Buying NVDA because data center demand keeps accelerating from AI training workloads, and their gross margins should stay above 70% because no competitor can match Blackwell at the high end yet. Hyperscaler capex guidance keeps rising, and switching costs around CUDA make displacement slow.",
+      "documents": [
+        {
+          "title": "Q3 earnings summary",
+          "text": "Nvidia reported non-GAAP gross margin of 58% this quarter, down sharply from 75% a year ago. Management attributed the decline to aggressive pricing pressure from AMD's MI400 series and custom silicon from major cloud customers. Data Center revenue declined 12% year-over-year."
+        },
+        {
+          "title": "Q4 earnings summary",
+          "text": "Nvidia's fourth quarter showed continued deterioration. Non-GAAP gross margin fell further to 51%, marking three consecutive quarters below 65%. Data Center revenue declined another 18% year-over-year as hyperscalers shifted volume to in-house accelerators. Nvidia's share of high-end AI training is now estimated at 54%, down from over 90% two years ago."
+        }
+      ]
+    },
+    {
+      "ticker": "MSFT",
+      "reasoning": "Holding MSFT because Azure growth is reaccelerating as enterprises move AI workloads to cloud, and the Copilot attach rate should lift Office margins. Their capex is heavy but it's funding capacity they've already got signed demand for, and the enterprise contracts are sticky in a way consumer AI products aren't.",
+      "documents": [
+        {
+          "title": "Quarterly results",
+          "text": "Microsoft reported Azure revenue growth accelerating to 34% year-over-year, up from 29% in the prior quarter, driven by AI workload migration. Microsoft Cloud gross margin expanded to 71%. Management noted commercial bookings grew 23% with remaining performance obligations of $298 billion."
+        }
+      ]
+    },
+    {
+      "ticker": "AAPL",
+      "reasoning": "Buying AAPL because Services revenue keeps compounding at double digits with far better margins than hardware, and it now cushions the iPhone cycle. The installed base keeps growing even in flat upgrade years, so Services should keep expanding regardless of hardware timing.",
+      "documents": [
+        {
+          "title": "Quarterly results",
+          "text": "Apple reported Services revenue of $26.3 billion, up 14% year-over-year, the eleventh consecutive quarter of double-digit Services growth. Services gross margin reached 74.2%, compared with 36.8% for products. The active installed base of devices reached an all-time high in every geographic segment, growing even as iPhone unit sales were flat year-over-year."
+        }
+      ]
+    },
+    {
+      "ticker": "TSLA",
+      "reasoning": "Holding TSLA because energy storage is becoming a real second business with better margins than autos, and deployments are growing much faster than vehicle deliveries. Automotive gross margin should stabilise as the price cuts stop, and FSD gives optionality I'm not paying much for.",
+      "documents": [
+        {
+          "title": "Quarterly results",
+          "text": "Tesla reported automotive gross margin excluding regulatory credits of 13.2%, down from 17.1% a year ago, as average selling prices declined for the sixth consecutive quarter. Total vehicle deliveries fell 8% year-over-year. Energy storage deployments grew but management noted energy gross margin compressed to 22% from 26% as competition in grid-scale storage intensified."
+        }
+      ]
+    },
+    {
+      "ticker": "AMZN",
+      "reasoning": "Buying AMZN because AWS margins are expanding as Trainium takes share from bought-in silicon, and retail is finally structurally profitable after years of fulfilment investment. Advertising is growing fast at very high incremental margin and is still under-appreciated.",
+      "documents": [
+        {
+          "title": "Quarterly results",
+          "text": "Amazon reported AWS revenue growth of 17% year-over-year, below the 19% of the prior quarter. AWS operating margin narrowed to 29.4% from 35.5% a year ago, which management attributed to increased infrastructure depreciation from AI capacity buildout. North America retail operating margin was 4.1%."
+        }
+      ]
+    },
+    {
+      "ticker": "AVGO",
+      "reasoning": "Buying AVGO because custom AI accelerator demand from hyperscalers is growing faster than merchant silicon, and the VMware software mix should lift overall margins as licences convert to subscription. The customer concentration is a risk but those customers have no near-term alternative.",
+      "documents": []
+    }
+  ]
+}

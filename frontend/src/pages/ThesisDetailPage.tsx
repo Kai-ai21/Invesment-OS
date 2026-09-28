@@ -145,7 +145,13 @@ export function ThesisDetailPage() {
           header is one fixed height whether or not ThesisHoldingLine has anything
           to render — that line arrives on its own request, and without this it
           grew the header under the reader a second after the page painted. */}
-      <header className="sticky top-0 z-10 -mx-12 mt-6 mb-6 flex min-h-22 flex-wrap items-start justify-between gap-4 border-b border-border bg-background px-12 py-4">
+      {/* ⚠️ THE NEGATIVE MARGIN AND THE PADDING MUST ALWAYS MATCH. This header
+          bleeds to the panel edge by pulling itself out with -mx and pushing its
+          contents back in with an equal px. When only one of the pair was
+          responsive the difference became overflow — at 768px the -mx-12 against
+          a narrower gutter pushed the page 8px sideways. They now step together,
+          4/8/12, so the bleed is exactly cancelled at every width. */}
+      <header className="sticky top-0 z-10 -mx-4 mt-6 mb-6 flex min-h-22 flex-wrap items-start justify-between gap-4 border-b border-border bg-background px-4 py-4 sm:-mx-8 sm:px-8 lg:-mx-12 lg:px-12">
         <div className="flex flex-wrap items-center gap-3">
           {/* Detail-page ticker in the display font (weight 400). The list-card
               tickers stay on the sans — display font is for titles, not data rows. */}
@@ -169,8 +175,17 @@ export function ThesisDetailPage() {
           <ThesisHoldingLine ticker={thesis.ticker} />
         </div>
 
-        <div className="flex flex-col items-end gap-1.5">
-          <div className="flex items-center gap-3">
+        {/* ⚠️ items-start UNTIL THERE IS ROOM TO RIGHT-ALIGN. On a phone this
+            column is the full width of the header, so right-aligning it pushed
+            the caption and the buttons against the edge while the row above
+            started at the left — two different margins on one stack. It only
+            becomes a right-hand column once the header actually has two columns. */}
+        <div className="flex w-full flex-col items-start gap-1.5 sm:w-auto sm:items-end">
+          {/* ⚠️ flex-wrap IS THE FIX FOR THE 158px OVERFLOW. These four controls
+              measure ~470px together and the phone viewport is 375px, so without
+              wrapping the last of them — "Check now", the primary action on the
+              page — sat entirely off-screen with no way to reach it. */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <RelativeTime
               iso={thesis.created_at}
               prefix="Created"
